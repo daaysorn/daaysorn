@@ -44,26 +44,28 @@ const Footer = () => {
   const appName = process.env.NEXT_PUBLIC_APP_NAME
 
   return (
-    <footer className="flex w-full flex-col gap-3 py-8 text-center font-medium md:fixed md:bottom-5 md:flex-row md:gap-4 md:py-0 md:text-left">
-      {/** now playing / last played (Spotify) — before copyright on mobile */}
-      <div className="order-1 flex justify-center md:order-2 md:justify-start">
-        <NowPlaying />
+    <footer className="flex w-full flex-col gap-3 py-8 text-center font-medium md:fixed md:bottom-5 md:flex-row md:items-center md:gap-4 md:py-0 md:text-left">
+      {/** mobile: clock & copyright are separate ordered rows; md: paired inline */}
+      <div className="contents md:order-1 md:flex md:items-center md:gap-x-1.5 md:justify-start">
+        <div className="order-1 flex justify-center text-sm text-muted-foreground md:justify-start">
+          <FlipClock />
+        </div>
+        <div className="order-3 flex justify-center text-sm text-muted-foreground md:justify-start">
+          <span className="font-semibold">
+            <span className="hidden md:inline">/ </span>
+            &copy; <span className="text-primary">{appName}'s</span> {currentYear}
+          </span>
+        </div>
       </div>
 
-      {/** copyright + local time */}
-      <div className="order-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 md:order-1 md:justify-start">
-        <p className="text-sm text-muted-foreground">
-          &copy; {currentYear} /{" "}
-          <span className="font-semibold text-primary">{appName}</span>
-        </p>
-        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-          @ <FlipClock />
-        </span>
+      {/** now playing / last played (Spotify) */}
+      <div className="order-2 flex justify-center md:order-2 md:justify-start">
+        <NowPlaying />
       </div>
 
       {/** social media */}
       <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-        <div className="order-3 flex items-center justify-center gap-5 text-primary md:justify-start md:gap-3">
+        <div className="order-4 flex items-center justify-center gap-5 text-primary md:order-3 md:justify-start md:gap-3">
           {socialLinks.map(({ href, icon: Icon, label }) => (
             <Tooltip key={label}>
               <TooltipTrigger asChild>

@@ -60,7 +60,7 @@ export function FlipClock({
       <span
         aria-hidden
         className={cn(
-          "inline-block h-[1.4rem] w-[7rem] animate-pulse rounded bg-muted align-middle",
+          "inline-block h-[1.3rem] w-[6.2rem] animate-pulse rounded bg-muted align-middle",
           className,
         )}
       />
@@ -72,7 +72,8 @@ export function FlipClock({
       role="timer"
       aria-label={`${time.h}:${time.m}:${time.s}`}
       className={cn(
-        "inline-flex items-center gap-[0.15rem] align-middle font-mono text-[0.8rem] leading-none [--fc-h:1.4rem] [--fc-w:0.95rem]",
+        // Muted + text-sm to sit alongside the copyright text.
+        "inline-flex items-center gap-[0.12rem] align-middle font-mono text-sm leading-none text-muted-foreground [--fc-h:1.3rem] [--fc-w:0.85rem]",
         className,
       )}
     >

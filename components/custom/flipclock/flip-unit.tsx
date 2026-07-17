@@ -44,7 +44,7 @@ export function FlipUnit({ digit }: { digit: string }) {
   return (
     <span
       aria-hidden
-      className="relative inline-block h-[var(--fc-h)] w-[var(--fc-w)] rounded-[0.18em] bg-card text-card-foreground shadow-sm select-none [perspective:220px]"
+      className="relative inline-block h-(--fc-h) w-(--fc-w) rounded-[0.18em] bg-muted text-muted-foreground select-none perspective-[220px]"
     >
       <Half half="top">{current}</Half>
       <Half half="bottom">{bottomStatic}</Half>
@@ -81,21 +81,16 @@ function Half({
   return (
     <span
       className={cn(
-        "absolute inset-x-0 flex h-1/2 overflow-hidden bg-card",
+        "absolute inset-x-0 flex h-1/2 overflow-hidden bg-muted",
         half === "top"
           ? "top-0 items-start rounded-t-[0.18em]"
           : "bottom-0 items-end rounded-b-[0.18em]",
         className,
       )}
     >
-      {/* Full-height glyph, vertically centered over the whole unit; each half
-          is a clipping window onto its portion of that glyph. */}
-      <span
-        className={cn(
-          "block h-[var(--fc-h)] w-full text-center leading-[var(--fc-h)]",
-          half === "bottom" && "-translate-y-1/2",
-        )}
-      >
+      {/* A full-unit-height glyph clipped by the half window. items-start shows
+          its top half; items-end shows its bottom half — together = one digit. */}
+      <span className="block h-(--fc-h) w-full shrink-0 text-center leading-(--fc-h)">
         {children}
       </span>
     </span>
