@@ -1,9 +1,9 @@
 import { Geist, JetBrains_Mono, Montserrat } from "next/font/google"
 
 import "./globals.css"
+import { Footer, Header } from "@/components/nav"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
-import { Header, Footer } from "@/components/nav"
+import { cn } from "@/lib/utils"
 
 const montserratHeading = Montserrat({
   subsets: ["latin"],
@@ -38,12 +38,14 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-        <div className="flex min-h-svh p-6 max-w-md min-w-0 flex-col">
-          <Header />
-          {children}
-          <Footer />
+          <div className="flex min-h-svh max-w-md min-w-0 flex-col p-6 pb-24 md:mx-auto md:pb-6">
+            <Header />
+            <main className="w-full min-w-0 wrap-break-word text-left md:mt-16">
+              {children}
+            </main>
+            <Footer />
           </div>
-          </ThemeProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
