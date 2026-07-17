@@ -1,18 +1,16 @@
-# Daaysorn Design System
+# daaysorn Design System
 
 > **Source of truth:** this document reflects the live codebase. Tokens live in `app/globals.css`. Fonts and shell layout live in `app/layout.tsx`. Components live under `components/`.
 
-
-| Meta          | Value                                                |
-| ------------- | ---------------------------------------------------- |
-| Product       | Daaysorn                                             |
-| UI kit        | shadcn/ui (`radix-vega` style)                       |
+| Meta          | Value                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| Product       | daaysorn                                                                                           |
+| UI kit        | shadcn/ui (`radix-vega` style)                                                                     |
 | Theme origin  | [shadcn/ui Create](https://ui.shadcn.com/create) → generated `app/globals.css` + `components.json` |
-| Styling       | Tailwind CSS v4 + CSS variables (OKLCH)              |
-| Base palette  | Neutral (`components.json` → `baseColor: "neutral"`) |
-| Default theme | Dark (`ThemeProvider` `defaultTheme="dark"`)         |
-| Last audited  | From current `app/`, `components/`, `views/`         |
-
+| Styling       | Tailwind CSS v4 + CSS variables (OKLCH)                                                            |
+| Base palette  | Neutral (`components.json` → `baseColor: "neutral"`)                                               |
+| Default theme | Dark (`ThemeProvider` `defaultTheme="dark"`)                                                       |
+| Last audited  | From current `app/`, `components/`, `views/`                                                       |
 
 ---
 
@@ -40,10 +38,7 @@
 
 ---
 
-
-
 ## 1. Principles
-
 
 | Principle                       | How it shows up in code                                                                             |
 | ------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -54,10 +49,7 @@
 | **Role-based type**             | Body = Geist, headings = Montserrat, code = JetBrains Mono                                          |
 | **Composable UI**               | shadcn + Radix primitives; Magic UI registry available (`@magicui`)                                 |
 
-
 ---
-
-
 
 ## 2. Architecture & file map
 
@@ -83,10 +75,7 @@ lib/
 components.json        ← shadcn config
 ```
 
-
-
 ### Stack preview
-
 
 | Layer         | Package / API                                     |
 | ------------- | ------------------------------------------------- |
@@ -100,18 +89,17 @@ components.json        ← shadcn config
 | Variants      | `class-variance-authority` (CVA)                  |
 | Themes        | `next-themes` (class strategy on `<html>`)        |
 
-
 ### 2.1 Origin: generated from shadcn Create
 
 `app/globals.css` and the initial token set were generated via **[shadcn/ui Create](https://ui.shadcn.com/create)** (style `radix-vega`, base color `neutral`, CSS variables on). That means:
 
-| Artifact | Role |
-|----------|------|
+| Artifact          | Role                                                        |
+| ----------------- | ----------------------------------------------------------- |
 | `app/globals.css` | Semantic OKLCH tokens + `@theme inline` maps shadcn expects |
-| `components.json` | CLI config (`style`, `baseColor`, aliases, registries) |
+| `components.json` | CLI config (`style`, `baseColor`, aliases, registries)      |
 | `components/ui/*` | Components that consume those tokens via Tailwind utilities |
 
-**Daaysorn extensions on top of that scaffold** (do not confuse with the shadcn export itself):
+**daaysorn extensions on top of that scaffold** (do not confuse with the shadcn export itself):
 
 - Font roles: Geist / Montserrat / JetBrains Mono in `app/layout.tsx` + base-layer heading/code rules
 - Breakpoints: `watch` + `xs` in a plain `@theme` block
@@ -122,14 +110,11 @@ Because the token **names** match the shadcn contract, any component from `npx s
 
 ---
 
-
-
 ## 3. Color system
 
 Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as Tailwind utilities via `@theme inline` in `app/globals.css`.
 
 ### 3.1 Semantic roles
-
 
 | Token                                | Tailwind utilities                         | Role                    |
 | ------------------------------------ | ------------------------------------------ | ----------------------- |
@@ -148,11 +133,7 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
 | `chart-1` … `chart-5`                | `bg-chart-1` …                             | Data viz scale          |
 | `sidebar*`                           | `bg-sidebar` `text-sidebar-foreground` …   | Sidebar kit (shadcn)    |
 
-
-
-
 ### 3.2 Light theme (`:root`)
-
 
 | Token                     | OKLCH                         | Approx. feel      |
 | ------------------------- | ----------------------------- | ----------------- |
@@ -171,7 +152,6 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
 | `--chart-1` → `--chart-5` | `0.87` → `0.269` (achromatic) | Gray ramp         |
 | `--sidebar`               | `oklch(0.985 0 0)`            | Near-white        |
 
-
 **Light preview (conceptual swatches):**
 
 ```
@@ -179,10 +159,7 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
      white        near-black      charcoal      mid-gray         warm red
 ```
 
-
-
 ### 3.3 Dark theme (`.dark`)
-
 
 | Token                                  | OKLCH                        | Approx. feel                                  |
 | -------------------------------------- | ---------------------------- | --------------------------------------------- |
@@ -199,7 +176,6 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
 | `--ring`                               | `oklch(0.556 0 0)`           | Mid gray                                      |
 | `--sidebar-primary`                    | `oklch(0.488 0.243 264.376)` | **Only chromatic brand accent** (violet-blue) |
 
-
 **Dark preview (conceptual swatches):**
 
 ```
@@ -207,12 +183,9 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
    near-black      off-white      light gray     soft gray         violet accent
 ```
 
-
-
 ### 3.4 Chart ramp
 
 Used for sequential data. Same values in light and dark currently:
-
 
 | Token     | Lightness | Use             |
 | --------- | --------- | --------------- |
@@ -221,9 +194,6 @@ Used for sequential data. Same values in light and dark currently:
 | `chart-3` | 0.439     | Mid             |
 | `chart-4` | 0.371     |                 |
 | `chart-5` | 0.269     | Darkest series  |
-
-
-
 
 ### 3.5 How to use color
 
@@ -247,25 +217,33 @@ Used for sequential data. Same values in light and dark currently:
 
 Muted is the system language for “secondary, not inactive.” Use it for captions, metadata, helper copy, idle icons, and supporting labels — never for primary CTAs.
 
-| Role | Utility | When |
-|------|---------|------|
-| Quiet body / caption | `text-muted-foreground` | Footer copy, dialog descriptions, “by Artist”, empty states |
-| Quiet fill | `bg-muted` | Skeleton bars, soft chips, ghost hover targets |
-| De-emphasized icon (idle) | `text-muted-foreground` | Spotify glyph when not playing |
-| Soft opacity on primary chrome | `text-primary opacity-80` → `hover:opacity-100` | Social icons (still brand-colored, just quieter) |
-| Half-muted indicator | `bg-muted-foreground/50` | Inactive equalizer / status dots |
+| Role                           | Utility                                         | When                                                        |
+| ------------------------------ | ----------------------------------------------- | ----------------------------------------------------------- |
+| Quiet body / caption           | `text-muted-foreground`                         | Footer copy, dialog descriptions, “by Artist”, empty states |
+| Quiet fill                     | `bg-muted`                                      | Skeleton bars, soft chips, ghost hover targets              |
+| De-emphasized icon (idle)      | `text-muted-foreground`                         | Spotify glyph when not playing                              |
+| Soft opacity on primary chrome | `text-primary opacity-80` → `hover:opacity-100` | Social icons (still brand-colored, just quieter)            |
+| Half-muted indicator           | `bg-muted-foreground/50`                        | Inactive equalizer / status dots                            |
 
 ```tsx
-{/* Hierarchy in one line */}
-<span className="text-sm text-muted-foreground">
+{
+  /* Hierarchy in one line */
+}
+;<span className="text-sm text-muted-foreground">
   <span className="font-semibold text-primary">Song Title</span> by Artist
 </span>
 
-{/* Caption */}
-<p className="text-sm text-muted-foreground">Supporting copy</p>
+{
+  /* Caption */
+}
+;<p className="text-sm text-muted-foreground">Supporting copy</p>
 
-{/* Micro mono hint */}
-<p className="font-mono text-xs text-muted-foreground">Press <kbd>d</kbd>…</p>
+{
+  /* Micro mono hint */
+}
+;<p className="font-mono text-xs text-muted-foreground">
+  Press <kbd>d</kbd>…
+</p>
 ```
 
 **Rules**
@@ -276,23 +254,17 @@ Muted is the system language for “secondary, not inactive.” Use it for capti
 
 ---
 
-
-
 ## 4. Typography
-
-
 
 ### 4.1 Font families
 
 Defined in `app/layout.tsx` via `next/font/google`, applied as CSS variables on `<html>`.
-
 
 | Role              | Family             | CSS variable     | Tailwind class | Applied to                            |
 | ----------------- | ------------------ | ---------------- | -------------- | ------------------------------------- |
 | Body / paragraphs | **Geist**          | `--font-sans`    | `font-sans`    | `html` (default)                      |
 | Headings          | **Montserrat**     | `--font-heading` | `font-heading` | `h1`–`h6` (base layer)                |
 | Code              | **JetBrains Mono** | `--font-mono`    | `font-mono`    | `code`, `kbd`, `samp`, `pre` + opt-in |
-
 
 ```tsx
 // app/layout.tsx (conceptual)
@@ -303,12 +275,24 @@ JetBrains_Mono → variable: "--font-mono"
 
 ```css
 /* app/globals.css — base layer */
-html { @apply font-sans; }
-h1, h2, h3, h4, h5, h6 { @apply font-heading; }
-code, kbd, samp, pre { @apply font-mono; }
+html {
+  @apply font-sans;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-heading;
+}
+code,
+kbd,
+samp,
+pre {
+  @apply font-mono;
+}
 ```
-
-
 
 ### 4.2 Type preview
 
@@ -318,12 +302,9 @@ BODY (Geist)             You may now add components and start building.
 CODE (JetBrains Mono)    (Press d to toggle dark mode)
 ```
 
-
-
 ### 4.3 Scale & weight (practical)
 
 Tailwind default type scale is in use. Patterns already in the repo:
-
 
 | Pattern          | Classes                                     | Where                |
 | ---------------- | ------------------------------------------- | -------------------- |
@@ -336,9 +317,6 @@ Tailwind default type scale is in use. Patterns already in the repo:
 | Button label     | `text-sm font-medium`                       | `button.tsx`         |
 | Tooltip label    | `text-xs`                                   | `tooltip.tsx`        |
 
-
-
-
 ### 4.4 Antialiasing & scroll
 
 Root `<html>` also carries:
@@ -347,8 +325,6 @@ Root `<html>` also carries:
 - `scroll-smooth` — smooth in-page scrolling
 
 ---
-
-
 
 ## 5. Radius & shape
 
@@ -360,7 +336,6 @@ Base radius token:
 
 Derived scale in `@theme inline`:
 
-
 | Token          | Formula      | Computed          | Tailwind      |
 | -------------- | ------------ | ----------------- | ------------- |
 | `--radius-sm`  | `× 0.6`      | `0.375rem` (6px)  | `rounded-sm`  |
@@ -370,9 +345,6 @@ Derived scale in `@theme inline`:
 | `--radius-2xl` | `× 1.8`      | `1.125rem` (18px) | `rounded-2xl` |
 | `--radius-3xl` | `× 2.2`      | `1.375rem` (22px) | `rounded-3xl` |
 | `--radius-4xl` | `× 2.6`      | `1.625rem` (26px) | `rounded-4xl` |
-
-
-
 
 ### Shape preview
 
@@ -393,22 +365,17 @@ Tooltip:        rounded-md (+ arrow rounded-[2px])
 
 ---
 
-
-
 ## 6. Spacing, layout & shell
-
-
 
 ### 6.1 App shell (`app/layout.tsx`)
 
 ```tsx
-<div className="flex min-h-svh p-6 max-w-md min-w-0 flex-col">
+<div className="flex min-h-svh max-w-md min-w-0 flex-col p-6">
   <Header />
   {children}
   <Footer />
 </div>
 ```
-
 
 | Constraint | Value                  | Meaning                                     |
 | ---------- | ---------------------- | ------------------------------------------- |
@@ -417,13 +384,9 @@ Tooltip:        rounded-md (+ arrow rounded-[2px])
 | Width      | `max-w-md`             | Caps at `28rem` / **448px**                 |
 | Flex       | `flex-col` + `min-w-0` | Vertical stack; prevents flex overflow bugs |
 
-
 > **Design note:** The product currently reads as a **narrow, phone-first column** on all viewports. Widen intentionally with responsive utilities (e.g. `max-w-md lg:max-w-3xl`) when desktop layouts are needed.
 
-
-
 ### 6.2 Spacing rhythm in use
-
 
 | Utility       | Rem      | Use in product           |
 | ------------- | -------- | ------------------------ |
@@ -437,9 +400,6 @@ Tooltip:        rounded-md (+ arrow rounded-[2px])
 | `mt-8`        | 2rem     | Dock top margin          |
 | `px-3 py-1.5` | —        | Tooltip padding          |
 | `bottom-5`    | 1.25rem  | Fixed footer offset      |
-
-
-
 
 ### 6.3 Layout preview
 
@@ -461,8 +421,6 @@ Tooltip:        rounded-md (+ arrow rounded-[2px])
 
 ---
 
-
-
 ## 7. Breakpoints — philosophy, approach & how it helps
 
 > **Source of truth:** `app/globals.css` → plain `@theme { --breakpoint-* }` block  
@@ -470,30 +428,24 @@ Tooltip:        rounded-md (+ arrow rounded-[2px])
 
 ---
 
-
-
 ### 7.1 The misconception: “Tailwind doesn’t follow standard screen sizes”
 
 It doesn’t follow **device marketing names** — and neither does Bootstrap, MUI, or most mature systems. What looks like a bug is a deliberate design choice.
 
-
 | Expectation                                | Reality                                                                        |
 | ------------------------------------------ | ------------------------------------------------------------------------------ |
-| “`sm` = smartphone”                        | In Tailwind, `sm` ≈ **640px** = large phone *landscape* / small tablet         |
+| “`sm` = smartphone”                        | In Tailwind, `sm` ≈ **640px** = large phone _landscape_ / small tablet         |
 | “There is one industry standard”           | Tailwind ≠ Bootstrap ≠ MUI — they disagree on the first tier                   |
 | “Breakpoints should match iPhone 12 (390)” | Frameworks break where **layouts** usually reflow, not per SKU                 |
 | “CSS px = physical pixels”                 | CSS pixels are density-independent; iPhone 12 is **390 CSS px** wide, not 1170 |
 
-
 **Framework comparison (first useful tier upward):**
-
 
 | System           | First named tier | Tablet-ish | Laptop-ish | Desktop   | Wide       |
 | ---------------- | ---------------- | ---------- | ---------- | --------- | ---------- |
 | **Tailwind CSS** | `sm` 640px       | `md` 768   | `lg` 1024  | `xl` 1280 | `2xl` 1536 |
 | **Bootstrap 5**  | `sm` 576px       | `md` 768   | `lg` 992   | `xl` 1200 | `xxl` 1400 |
 | **MUI**          | `sm` 600px       | `md` 900   | `lg` 1200  | `xl` 1536 | —          |
-
 
 There is no single “correct” pixel table. Industry guidance (2025–2026) converges on:
 
@@ -502,16 +454,13 @@ There is no single “correct” pixel table. Industry guidance (2025–2026) co
 3. Keep the scale **lean**
 4. In Tailwind v4, define breakpoints in **rem** so variants sort correctly
 
-So: Tailwind *is* a mainstream standard for utility CSS — it just isn’t an Apple/Google device catalog.
+So: Tailwind _is_ a mainstream standard for utility CSS — it just isn’t an Apple/Google device catalog.
 
 ---
-
-
 
 ### 7.2 Are we “not following Tailwind”?
 
 **No — we follow Tailwind’s defaults for** `sm` **→** `2xl`**, and only extend below them.**
-
 
 | Layer                             | Decision                     | Why                                                                       |
 | --------------------------------- | ---------------------------- | ------------------------------------------------------------------------- |
@@ -519,18 +468,17 @@ So: Tailwind *is* a mainstream standard for utility CSS — it just isn’t an A
 | `xs`                              | **Add** (`22.5rem` / 360px)  | Tailwind has no phone-tier between 0 and 640 — but real phones live there |
 | `watch`                           | **Add** (`18.75rem` / 300px) | Wearables / ultra-narrow need an escape hatch Tailwind never shipped      |
 
-
 We are **not**:
 
-- Replacing Tailwind’s scale with Bootstrap’s  
-- Renaming `sm` to mean “iPhone”  
-- Inventing a 12-step device matrix  
+- Replacing Tailwind’s scale with Bootstrap’s
+- Renaming `sm` to mean “iPhone”
+- Inventing a 12-step device matrix
 - Hard-coding px breakpoints (breaks Tailwind’s rem sort order)
 
 We **are**:
 
-- Speaking clearly about phones (`xs`) and ultra-narrow (`watch`)  
-- Staying compatible with every `md:flex` example in the ecosystem  
+- Speaking clearly about phones (`xs`) and ultra-narrow (`watch`)
+- Staying compatible with every `md:flex` example in the ecosystem
 - Documenting that **phone UI = unprefixed base styles**, enhanced by `xs:` when needed
 
 Think of it as:
@@ -538,12 +486,10 @@ Think of it as:
 ```
 Tailwind defaults ………………………………… kept intact (ecosystem)
          ↓
-Daaysorn extensions ……… watch + xs (product reality below 640px)
+daaysorn extensions ……… watch + xs (product reality below 640px)
 ```
 
 ---
-
-
 
 ### 7.3 The problem Tailwind leaves open (and why that hurt us)
 
@@ -551,31 +497,25 @@ Tailwind’s first named breakpoint is **640px**. Everything below that is one b
 
 But our product reality includes:
 
-
 | Viewport  | Example                                 | Tailwind language available? |
 | --------- | --------------------------------------- | ---------------------------- |
-| ~150px    | Native Apple Watch (adaptations off)    | ❌ none                       |
-| 320px     | iPhone SE, watchOS default emulation    | ❌ none (still “base”)        |
-| 360–390px | Most modern phones, **iPhone 12 = 390** | ❌ none (still “base”)        |
-| 430px     | Pro Max class                           | ❌ none (still “base”)        |
-| 640px+    | Landscape phones / small tablets        | ✅ `sm:`                      |
-
+| ~150px    | Native Apple Watch (adaptations off)    | ❌ none                      |
+| 320px     | iPhone SE, watchOS default emulation    | ❌ none (still “base”)       |
+| 360–390px | Most modern phones, **iPhone 12 = 390** | ❌ none (still “base”)       |
+| 430px     | Pro Max class                           | ❌ none (still “base”)       |
+| 640px+    | Landscape phones / small tablets        | ✅ `sm:`                     |
 
 Without `xs` / `watch`, teams either:
 
-1. Stuff all phone work into unprefixed classes (fine until you need a *second* phone step), or
+1. Stuff all phone work into unprefixed classes (fine until you need a _second_ phone step), or
 2. Misuse `sm:` for “phone,” which **never fires on iPhone 12**, or
 3. Sprinkle arbitrary `min-[390px]:` everywhere — unmaintainable
 
-That is the gap Daaysorn closes.
+That is the gap daaysorn closes.
 
 ---
 
-
-
 ### 7.4 Our approach (concrete)
-
-
 
 #### Design rules
 
@@ -585,28 +525,23 @@ That is the gap Daaysorn closes.
 4. `max-watch:` **for glanceable mode** — hide chrome, tighten type; don’t rebuild the brand for the wrist.
 5. **Prefer few breakpoints per component** — usually base + one of `xs` / `md` / `lg`.
 
-
-
 #### Implemented tokens (`app/globals.css`)
 
 ```css
 @theme {
   --breakpoint-watch: 18.75rem; /* 300px — wearables / ultra-narrow */
-  --breakpoint-xs: 22.5rem;     /* 360px — compact → modern phones */
+  --breakpoint-xs: 22.5rem; /* 360px — compact → modern phones */
   /* sm 40rem · md 48rem · lg 64rem · xl 80rem · 2xl 96rem = Tailwind defaults */
 }
 ```
 
 > **Implementation note:** Breakpoints must live in a plain `@theme { }` block, **not** `@theme inline`. Inline theme maps colors/fonts; breakpoint namespaces need the standard `@theme` so Tailwind generates `watch:` / `xs:` / `max-`* variants and sorts them by size.
 
-
-
 #### Full scale
 
-
-| Prefix   | Min width  | ≈ px     | Role in Daaysorn                                        |
+| Prefix   | Min width  | ≈ px     | Role in daaysorn                                        |
 | -------- | ---------- | -------- | ------------------------------------------------------- |
-| *(base)* | `0`        | 0        | Default phone / tiny UI — **always start here**         |
+| _(base)_ | `0`        | 0        | Default phone / tiny UI — **always start here**         |
 | `watch:` | `18.75rem` | **300**  | Crossed “ultra-narrow” floor (rarely used as min-width) |
 | `xs:`    | `22.5rem`  | **360**  | Modern compact phones (includes iPhone 12 at 390)       |
 | `sm:`    | `40rem`    | **640**  | Large phone landscape / small tablet — **Tailwind**     |
@@ -614,9 +549,6 @@ That is the gap Daaysorn closes.
 | `lg:`    | `64rem`    | **1024** | Laptop / tablet landscape — **Tailwind**                |
 | `xl:`    | `80rem`    | **1280** | Desktop — **Tailwind**                                  |
 | `2xl:`   | `96rem`    | **1536** | Wide / 1440p+ — **Tailwind**                            |
-
-
-
 
 #### Mental model
 
@@ -626,17 +558,14 @@ That is the gap Daaysorn closes.
 │          │          │                │     │     │       │       │
 │  SE 320  │          │  iPhone 12 390 │     │ iPad│laptop │desk   │wide
 │  watch*  │          │  Pro Max 430   │     │     │       │       │
-│          └ Daaysorn extensions ──────┘     └──── Tailwind defaults ────┘
+│          └ daaysorn extensions ──────┘     └──── Tailwind defaults ────┘
 ```
 
 Native watch CSS widths (~136–184) sit **below** 300 when `disabled-adaptations` is on.
 
 ---
 
-
-
 ### 7.5 How this helps (product & engineering)
-
 
 | Benefit                         | Without our scale                                         | With `watch` + `xs` + Tailwind defaults         |
 | ------------------------------- | --------------------------------------------------------- | ----------------------------------------------- |
@@ -649,15 +578,11 @@ Native watch CSS widths (~136–184) sit **below** 300 when `disabled-adaptation
 | **Onboarding**                  | “Why doesn’t `sm:` work on my phone?”                     | Design system answers in one place              |
 | **Shell strategy**              | `max-w-md` alone, no responsive vocabulary                | Same shell + clear when to widen (`md:`, `lg:`) |
 
-
-**Especially for Daaysorn’s current shell** (`max-w-md` / 448px phone column): almost all real phones never hit `sm:`. Extending *below* Tailwind is what makes responsive language useful for this product shape.
+**Especially for daaysorn’s current shell** (`max-w-md` / 448px phone column): almost all real phones never hit `sm:`. Extending _below_ Tailwind is what makes responsive language useful for this product shape.
 
 ---
 
-
-
 ### 7.6 Device ground truth → which prefixes fire?
-
 
 | Device / class                        | CSS width          | Active prefixes                     |
 | ------------------------------------- | ------------------ | ----------------------------------- |
@@ -671,7 +596,6 @@ Native watch CSS widths (~136–184) sit **below** 300 when `disabled-adaptation
 | iPad portrait                         | 768                | + `md:`                             |
 | Laptop                                | 1024+              | + `lg:`                             |
 
-
 **iPhone 12 Pro checklist**
 
 ```tsx
@@ -684,22 +608,17 @@ Native watch CSS widths (~136–184) sit **below** 300 when `disabled-adaptation
 
 ---
 
-
-
 ### 7.7 Smartwatches — why we include them (and how far)
 
 **Include the token. Don’t rebuild the site for the wrist.**
-
 
 | Fact                                                                       | Design implication                        |
 | -------------------------------------------------------------------------- | ----------------------------------------- |
 | watchOS Safari **fakes 320px** and shrink-to-fit by default                | Most visitors never hit true watch width  |
 | True ~136–184px needs `<meta name="disabled-adaptations" content="watch">` | Opt-in only for specialist / glance pages |
-| Traffic share is tiny for portfolio/marketing                              | Optimize *selectively*, not globally      |
-
+| Traffic share is tiny for portfolio/marketing                              | Optimize _selectively_, not globally      |
 
 **Recommended use of** `watch`**:**
-
 
 | Pattern            | When                                           |
 | ------------------ | ---------------------------------------------- |
@@ -707,12 +626,9 @@ Native watch CSS widths (~136–184) sit **below** 300 when `disabled-adaptation
 | `max-watch:text-*` | Shorter, denser glance copy                    |
 | Unprefixed base    | Must already be readable if scaled down at 320 |
 
-
 Do **not** put primary brand layout inside `watch:` min-width alone — that would target “everything ≥300px,” which is almost the whole web.
 
 ---
-
-
 
 ### 7.8 Usage recipes
 
@@ -738,10 +654,7 @@ Do **not** put primary brand layout inside `watch:` min-width alone — that wou
 
 ---
 
-
-
 ### 7.9 Anti-patterns (don’t do these)
-
 
 | Anti-pattern                                                  | Why it fails                              |
 | ------------------------------------------------------------- | ----------------------------------------- |
@@ -752,31 +665,21 @@ Do **not** put primary brand layout inside `watch:` min-width alone — that wou
 | Designing desktop-first then fighting with `max-*` everywhere | Fights mobile-first cascade               |
 | Ten device-specific breakpoints                               | Unmaintainable; devices change yearly     |
 
-
 ---
-
-
 
 ### 7.10 Summary — our stance in one paragraph
 
-**We follow Tailwind for tablet → wide (**`sm`**–**`2xl`**) so the ecosystem stays coherent. We do not pretend Tailwind’s** `sm` **means “phone.”** Phones (including iPhone 12 at 390 CSS px) live in **base**, with `xs:` as our named step for modern compact screens, and `watch:` **/** `max-watch:` as an intentional ultra-narrow / wearable escape hatch. That combination is more honest about real CSS viewports, keeps shadcn compatible, and gives Daaysorn a precise language for the widths we actually ship to.
+**We follow Tailwind for tablet → wide (**`sm`**–**`2xl`**) so the ecosystem stays coherent. We do not pretend Tailwind’s** `sm` **means “phone.”** Phones (including iPhone 12 at 390 CSS px) live in **base**, with `xs:` as our named step for modern compact screens, and `watch:` **/** `max-watch:` as an intentional ultra-narrow / wearable escape hatch. That combination is more honest about real CSS viewports, keeps shadcn compatible, and gives daaysorn a precise language for the widths we actually ship to.
 
 ---
 
-
-
 ## 8. Motion & interaction
-
-
 
 ### 8.1 Global interaction rules
 
 From `app/globals.css`: enabled `button` and `[role="button"]` elements use the pointer affordance on hover (see the base layer in that file).
 
-
-
 ### 8.2 Button motion (`components/ui/button.tsx`)
-
 
 | State              | Behavior                              |
 | ------------------ | ------------------------------------- |
@@ -785,9 +688,6 @@ From `app/globals.css`: enabled `button` and `[role="button"]` elements use the 
 | Focus visible      | `border-ring` + `ring-3 ring-ring/50` |
 | Disabled           | `pointer-events-none opacity-50`      |
 | Invalid            | destructive border + ring             |
-
-
-
 
 ### 8.3 Footer socials (`components/nav/footer.tsx`)
 
@@ -801,15 +701,13 @@ Tooltip delay: `delayDuration={150}`, `skipDelayDuration={100}`, `sideOffset={8}
 
 ### 8.4 Dock magnification (`components/ui/dock.tsx`)
 
-
-| Prop                   | Default                                   | Meaning                |
-| ---------------------- | ----------------------------------------- | ---------------------- |
-| `iconSize`             | `40`                                      | Resting icon box       |
+| Prop                   | Default                                   | Meaning                     |
+| ---------------------- | ----------------------------------------- | --------------------------- |
+| `iconSize`             | `40`                                      | Resting icon box            |
 | `iconMagnification`    | `60`                                      | Peak size under the pointer |
-| `iconDistance`         | `140`                                     | Influence radius (px)  |
-| `disableMagnification` | `false`                                   | Flat hover fallback    |
-| Spring                 | mass `0.1`, stiffness `150`, damping `12` | Snappy dock physics    |
-
+| `iconDistance`         | `140`                                     | Influence radius (px)       |
+| `disableMagnification` | `false`                                   | Flat hover fallback         |
+| Spring                 | mass `0.1`, stiffness `150`, damping `12` | Snappy dock physics         |
 
 Shell classes: frosted glass (`backdrop-blur-md`, `bg-white/10` / `dark:bg-black/10`), `h-[58px]`, `rounded-2xl`, `border`.
 
@@ -827,45 +725,53 @@ Press `d` (no modifiers, not while typing in inputs) to toggle light ↔ dark. I
 
 “Ghost” means no permanent fill — presence appears on interaction.
 
-| Pattern | How |
-|---------|-----|
-| **Button `ghost`** | `<Button variant="ghost">` — transparent resting; `hover:bg-muted hover:text-foreground` (dark: `hover:bg-muted/50`) |
-| **Ghost icon / close** | `text-muted-foreground hover:bg-accent hover:text-foreground` (see dialog close) |
-| **Ghost social** | Primary-colored icon at `opacity-80`, full opacity + lift on hover |
+| Pattern                | How                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Button `ghost`**     | `<Button variant="ghost">` — transparent resting; `hover:bg-muted hover:text-foreground` (dark: `hover:bg-muted/50`) |
+| **Ghost icon / close** | `text-muted-foreground hover:bg-accent hover:text-foreground` (see dialog close)                                     |
+| **Ghost social**       | Primary-colored icon at `opacity-80`, full opacity + lift on hover                                                   |
 
 ```tsx
-<Button variant="ghost" size="icon" aria-label="More">…</Button>
+<Button variant="ghost" size="icon" aria-label="More">
+  …
+</Button>
 ```
 
 Use ghost for secondary actions in dense chrome (toolbars, dialogs, icon rows). Prefer `default` / `outline` for primary path actions.
 
 #### Loaders & skeletons
 
-| Kind | Classes / utility | Timing | Use |
-|------|-------------------|--------|-----|
-| **Skeleton bar** | `animate-pulse rounded bg-muted` (+ fixed `h-* w-*`) | Tailwind default pulse | Loading placeholders (e.g. now-playing fetch) |
-| **Pulse (live)** | `motion-safe:animate-pulse` or `animate-music-pulse` | music-pulse: **1.8s** ease | Playing indicator / logo while track is live |
-| **Text shimmer** | `motion-safe:animate-text-shimmer` | **5.5s** `ease-in-out` infinite | Sweeping glint on muted live text (artist name) |
+| Kind             | Classes / utility                                    | Timing                          | Use                                             |
+| ---------------- | ---------------------------------------------------- | ------------------------------- | ----------------------------------------------- |
+| **Skeleton bar** | `animate-pulse rounded bg-muted` (+ fixed `h-* w-*`) | Tailwind default pulse          | Loading placeholders (e.g. now-playing fetch)   |
+| **Pulse (live)** | `motion-safe:animate-pulse` or `animate-music-pulse` | music-pulse: **1.8s** ease      | Playing indicator / logo while track is live    |
+| **Text shimmer** | `motion-safe:animate-text-shimmer`                   | **5.5s** `ease-in-out` infinite | Sweeping glint on muted live text (artist name) |
 
 ```tsx
-{/* Skeleton — keep layout stable */}
-<span className="inline-block h-3 w-40 animate-pulse rounded bg-muted align-middle" />
+{
+  /* Skeleton — keep layout stable */
+}
+;<span className="inline-block h-3 w-40 animate-pulse rounded bg-muted align-middle" />
 
-{/* Live pulse (respect reduced motion) */}
-<Icon className={cn(isPlaying && "motion-safe:animate-pulse")} />
+{
+  /* Live pulse (respect reduced motion) */
+}
+;<Icon className={cn(isPlaying && "motion-safe:animate-pulse")} />
 
-{/* Artist shimmer while playing */}
-<span className={cn(isPlaying && "motion-safe:animate-text-shimmer")}>
+{
+  /* Artist shimmer while playing */
+}
+;<span className={cn(isPlaying && "motion-safe:animate-text-shimmer")}>
   {artist}
 </span>
 ```
 
 **Shimmer tokens** (`app/globals.css`) — theme-aware, derived from muted/foreground:
 
-| Token | Light | Dark |
-|-------|-------|------|
-| `--shimmer-base` | `var(--muted-foreground)` | same |
-| `--shimmer-glint` | `var(--foreground)` | mix of foreground into muted-foreground |
+| Token             | Light                     | Dark                                    |
+| ----------------- | ------------------------- | --------------------------------------- |
+| `--shimmer-base`  | `var(--muted-foreground)` | same                                    |
+| `--shimmer-glint` | `var(--foreground)`       | mix of foreground into muted-foreground |
 
 Defined via `@utility animate-text-shimmer` and `@utility animate-music-pulse`.
 
@@ -879,11 +785,7 @@ Defined via `@utility animate-text-shimmer` and `@utility animate-music-pulse`.
 
 ---
 
-
-
 ## 9. Theming
-
-
 
 ### 9.1 Provider config
 
@@ -903,10 +805,7 @@ Dark variant wiring in CSS:
 @custom-variant dark (&:is(.dark *));
 ```
 
-
-
 ### 9.2 Modes
-
 
 | Mode     | Behavior                            |
 | -------- | ----------------------------------- |
@@ -914,15 +813,12 @@ Dark variant wiring in CSS:
 | `light`  | `:root` tokens                      |
 | `system` | Follows OS preference when selected |
 
-
-
-
 ### 9.3 Authoring dark-only tweaks
 
 Prefer semantic tokens. When needed, use Tailwind dark variants:
 
 ```tsx
-className="border border-border dark:bg-input/30"
+className = "border border-border dark:bg-input/30"
 ```
 
 Avoid pairing two theme variants that set the same CSS property unless the component intentionally needs that override. Button variants already handle their own dark-state details.
@@ -940,23 +836,19 @@ npx shadcn@latest add @magicui/<name>   # via components.json registries
 
 **Change the whole visual theme**
 
-Edit or replace the **values** in `app/globals.css` (`:root` + `.dark`). Keep the **same token names**. Every shadcn/Daaysorn component restyles with no TSX edits.
+Edit or replace the **values** in `app/globals.css` (`:root` + `.dark`). Keep the **same token names**. Every shadcn/daaysorn component restyles with no TSX edits.
 
 You can regenerate a new palette from [ui.shadcn.com/create](https://ui.shadcn.com/create) and paste the new `:root` / `.dark` (and related) token blocks into `globals.css` — as long as you preserve:
 
 1. Semantic token names (`--background`, `--primary`, `--radius`, …)
 2. `@theme inline` mappings (`--color-primary: var(--primary)`, …)
-3. Our Daaysorn additions you still want (font CSS vars, `watch`/`xs` breakpoints, heading/code base rules)
+3. Our daaysorn additions you still want (font CSS vars, `watch`/`xs` breakpoints, heading/code base rules)
 
 **Do not** rename tokens or hard-code hex/oklch in `components/ui`. That is what breaks portability and shadcn.
 
 ---
 
-
-
 ## 10. Components
-
-
 
 ### 10.1 Button — `components/ui/button.tsx`
 
@@ -964,21 +856,16 @@ Built with CVA + Radix `Slot` (`asChild`). Data attributes: `data-slot="button"`
 
 #### Variants
 
-
-| Variant       | Preview          | Classes (summary)                                        |
-| ------------- | ---------------- | -------------------------------------------------------- |
-| `default`     | Filled primary   | `bg-primary text-primary-foreground hover:bg-primary/80` |
-| `outline`     | Bordered surface | `border-border bg-background shadow-xs` + dark input mix |
-| `secondary`   | Soft fill        | `bg-secondary` + OKLCH mix hover                         |
+| Variant       | Preview          | Classes (summary)                                                |
+| ------------- | ---------------- | ---------------------------------------------------------------- |
+| `default`     | Filled primary   | `bg-primary text-primary-foreground hover:bg-primary/80`         |
+| `outline`     | Bordered surface | `border-border bg-background shadow-xs` + dark input mix         |
+| `secondary`   | Soft fill        | `bg-secondary` + OKLCH mix hover                                 |
 | `ghost`       | Transparent      | Resting empty; `hover:bg-muted hover:text-foreground` (see §8.7) |
-| `destructive` | Soft danger      | `bg-destructive/10 text-destructive`                     |
-| `link`        | Text link        | `underline-offset-4 hover:underline`                     |
-
-
-
+| `destructive` | Soft danger      | `bg-destructive/10 text-destructive`                             |
+| `link`        | Text link        | `underline-offset-4 hover:underline`                             |
 
 #### Sizes
-
 
 | Size      | Height / box | Notes                     |
 | --------- | ------------ | ------------------------- |
@@ -991,9 +878,6 @@ Built with CVA + Radix `Slot` (`asChild`). Data attributes: `data-slot="button"`
 | `icon-sm` | `size-8`     |                           |
 | `icon-lg` | `size-10`    |                           |
 
-
-
-
 #### Visual preview
 
 ```
@@ -1002,8 +886,6 @@ Built with CVA + Radix `Slot` (`asChild`). Data attributes: `data-slot="button"`
 
 [xs] [sm] [default] [lg]     [■] icon-xs  [■] icon-sm  [■] icon  [■] icon-lg
 ```
-
-
 
 #### Usage
 
@@ -1021,12 +903,9 @@ import { Button } from "@/components/ui/button"
 
 ---
 
-
-
 ### 10.2 Tooltip — `components/ui/tooltip.tsx`
 
 Radix Tooltip compound API:
-
 
 | Export            | Role                                                           |
 | ----------------- | -------------------------------------------------------------- |
@@ -1034,7 +913,6 @@ Radix Tooltip compound API:
 | `Tooltip`         | Root                                                           |
 | `TooltipTrigger`  | Trigger (`asChild` supported)                                  |
 | `TooltipContent`  | Portal content; inverted colors                                |
-
 
 **Look:** `bg-foreground text-background` (inverted chip), `text-xs`, `rounded-md`, arrow matching foreground.
 
@@ -1050,7 +928,9 @@ Radix Tooltip compound API:
 <TooltipProvider delayDuration={150}>
   <Tooltip>
     <TooltipTrigger asChild>
-      <Link href="…" aria-label="GitHub">…</Link>
+      <Link href="…" aria-label="GitHub">
+        …
+      </Link>
     </TooltipTrigger>
     <TooltipContent side="top" sideOffset={8}>
       GitHub
@@ -1060,8 +940,6 @@ Radix Tooltip compound API:
 ```
 
 ---
-
-
 
 ### 10.3 Dock — `components/ui/dock.tsx`
 
@@ -1077,7 +955,7 @@ Mac-style icon dock with pointer-driven magnification (Motion springs).
 ```tsx
 import { Dock, DockIcon } from "@/components/ui/dock"
 
-<Dock direction="middle" iconSize={40} iconMagnification={60}>
+;<Dock direction="middle" iconSize={40} iconMagnification={60}>
   <DockIcon>{/* icon */}</DockIcon>
   <DockIcon>{/* icon */}</DockIcon>
 </Dock>
@@ -1087,20 +965,15 @@ import { Dock, DockIcon } from "@/components/ui/dock"
 
 ---
 
-
-
 ### 10.4 Header — `components/nav/header.tsx`
 
 Stub placeholder (`<div>Header</div>`). Reserved for brand / nav. Should eventually use `font-heading` via semantic headings or explicit `font-heading`.
 
 ---
 
-
-
 ### 10.5 Footer — `components/nav/footer.tsx`
 
 Fixed bottom chrome with three zones:
-
 
 | Zone        | Content                        | Type treatment                                          |
 | ----------- | ------------------------------ | ------------------------------------------------------- |
@@ -1108,15 +981,12 @@ Fixed bottom chrome with three zones:
 | Now playing | “last played — Song by Artist” | same pattern                                            |
 | Social      | GitHub, Instagram, X, Email    | `react-icons`, tooltips, hover lift                     |
 
-
 Env vars:
 
 - `NEXT_PUBLIC_APP_NAME`
 - `NEXT_PUBLIC_SOCIAL_USERNAME`
 
 ---
-
-
 
 ### 10.6 Home view — `views/homeView.tsx`
 
@@ -1131,10 +1001,7 @@ You may now add components…             ← Geist body
 
 ---
 
-
-
 ## 11. Icons
-
 
 | Source                      | Where                           | Notes                                         |
 | --------------------------- | ------------------------------- | --------------------------------------------- |
@@ -1142,17 +1009,13 @@ You may now add components…             ← Geist body
 | shadcn `iconLibrary`        | `components.json` → `"lucide"`  | Default for newly generated shadcn components |
 | Magic UI registry           | `@magicui` in `components.json` | Optional animated components                  |
 
-
 **Icon behavior in Button:** default SVG size `size-4` unless overridden; icons are non-interactive (`pointer-events-none`).
 
 **Icon behavior in Dock:** children centered in a `rounded-full` hit target that scales.
 
 ---
 
-
-
 ## 12. Accessibility
-
 
 | Area           | Implementation                                                               |
 | -------------- | ---------------------------------------------------------------------------- |
@@ -1164,14 +1027,9 @@ You may now add components…             ← Geist body
 | Tooltips       | Radix primitives (keyboard / focus aware)                                    |
 | Hydration      | `suppressHydrationWarning` on `<html>` for theme class                       |
 
-
 ---
 
-
-
 ## 13. Usage recipes
-
-
 
 ### 13.1 Page section
 
@@ -1185,15 +1043,13 @@ You may now add components…             ← Geist body
 </section>
 ```
 
-
-
 ### 13.2 Emphasized inline brand
 
 ```tsx
-<span className="font-semibold text-primary">{process.env.NEXT_PUBLIC_APP_NAME}</span>
+<span className="font-semibold text-primary">
+  {process.env.NEXT_PUBLIC_APP_NAME}
+</span>
 ```
-
-
 
 ### 13.3 Code / keyboard hint
 
@@ -1203,8 +1059,6 @@ You may now add components…             ← Geist body
 </p>
 ```
 
-
-
 ### 13.4 Soft surface
 
 ```tsx
@@ -1212,8 +1066,6 @@ You may now add components…             ← Geist body
   Card content
 </div>
 ```
-
-
 
 ### 13.5 Widen shell for desktop (recommended pattern)
 
@@ -1226,13 +1078,13 @@ You may now add components…             ← Geist body
 
 Unbroken strings (API tokens, refresh tokens, env assignments, long URLs, hashes) **must never overflow** their container. This is required on every surface — React UI and standalone HTML helpers.
 
-| Context | Required utilities / CSS |
-|---------|--------------------------|
-| Flex/grid children | `min-w-0` on the shrinking item (and often the parent chain) |
-| Inline / block text | `break-all` or `break-words` + `overflow-wrap` |
+| Context                           | Required utilities / CSS                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Flex/grid children                | `min-w-0` on the shrinking item (and often the parent chain)                                     |
+| Inline / block text               | `break-all` or `break-words` + `overflow-wrap`                                                   |
 | Prefers hard breaks (tokens, env) | `break-all` + `overflow-wrap-anywhere` (or CSS `overflow-wrap: anywhere; word-break: break-all`) |
-| Preserve newlines but wrap | `whitespace-pre-wrap` **with** break rules above |
-| Containers | `max-w-full` / `w-full` + `overflow-x-hidden` if needed |
+| Preserve newlines but wrap        | `whitespace-pre-wrap` **with** break rules above                                                 |
+| Containers                        | `max-w-full` / `w-full` + `overflow-x-hidden` if needed                                          |
 
 ```tsx
 {/* React / Tailwind */}
@@ -1259,11 +1111,7 @@ Unbroken strings (API tokens, refresh tokens, env assignments, long URLs, hashes
 
 ---
 
-
-
 ## 14. Extending the system
-
-
 
 ### Add a color token
 
@@ -1271,16 +1119,12 @@ Unbroken strings (API tokens, refresh tokens, env assignments, long URLs, hashes
 2. Map in `@theme inline` as `--color-your-token: var(--your-token)`
 3. Use as `bg-your-token` / `text-your-token`
 
-
-
 ### Add a font role
 
 1. Load with `next/font/google` in `app/layout.tsx`
 2. Attach `.variable` on `<html>`
 3. Register in `@theme` if needed
 4. Apply via base layer or utility class
-
-
 
 ### Add a component
 
@@ -1300,30 +1144,23 @@ Edit `--radius` in `:root`; the entire `sm`–`4xl` scale recalculates.
 
 ---
 
-
-
 ## 15. Portability & multi-brand — use on any site
 
-> **Goal:** the *same* system drops into any website by swapping **token values only**. The architecture (token names, roles, scales, component APIs) stays fixed. This is exactly what already ships in Daaysorn — this section just formalizes the contract so it travels.
-
-
+> **Goal:** the _same_ system drops into any website by swapping **token values only**. The architecture (token names, roles, scales, component APIs) stays fixed. This is exactly what already ships in daaysorn — this section just formalizes the contract so it travels.
 
 ### 15.1 Three-tier token model
 
 The system is layered so branding changes never touch component code.
 
-
-| Tier             | What it is                                                                                          | Where it lives                                    | Swappable?                     |
-| ---------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------ |
+| Tier             | What it is                                                                                          | Where it lives                                    | Swappable?                      |
+| ---------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------- |
 | **1. Primitive** | Raw values (an OKLCH color, a rem size, a font family)                                              | `:root` / `.dark` / `@theme` in `app/globals.css` | ✅ Per brand                    |
-| **2. Semantic**  | Role names that map to primitives (`--primary`, `--muted-foreground`, `--font-heading`, `--radius`) | `@theme inline` mapping in `app/globals.css`      | ⚠️ Rename rarely               |
+| **2. Semantic**  | Role names that map to primitives (`--primary`, `--muted-foreground`, `--font-heading`, `--radius`) | `@theme inline` mapping in `app/globals.css`      | ⚠️ Rename rarely                |
 | **3. Component** | Utilities/variants consuming semantics (`bg-primary`, CVA button variants)                          | `components/`**                                   | ❌ Do not hard-code values here |
-
 
 **Rule:** components only ever read **tier 2** (semantic). They must never contain a raw hex/oklch/px color. That single discipline is what makes the system portable.
 
 ### 15.2 Fixed vs swappable (the contract)
-
 
 | Layer       | Fixed (the “system”)                                                                                                                                                  | Swappable (the “brand”)                             |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
@@ -1333,7 +1170,6 @@ The system is layered so branding changes never touch component code.
 | Breakpoints | The named ladder (`watch`, `xs`, `sm`–`2xl`)                                                                                                                          | The rem values per name                             |
 | Components  | Public APIs (Button variants/sizes, Tooltip parts, Dock props)                                                                                                        | Which variants a brand uses                         |
 | Motion      | Interaction rules (focus ring, press, hover lift)                                                                                                                     | Timing/easing values                                |
-
 
 If you only change the **right column**, any site looks on-brand while behaving identically.
 
@@ -1350,8 +1186,6 @@ If you only change the **right column**, any site looks on-brand while behaving 
 - [ ] Do NOT rename semantic tokens or hard-code values in components
 ```
 
-
-
 ### 15.4 Brand-swap mechanics (Tailwind v4)
 
 A brand is just a values file. Keep names identical; change values.
@@ -1360,13 +1194,15 @@ A brand is just a values file. Keep names identical; change values.
 /* brand-acme.css — swap in per site, names never change */
 :root {
   --background: oklch(0.99 0.01 95);
-  --foreground: oklch(0.20 0.02 260);
-  --primary: oklch(0.55 0.20 265);      /* brand hue */
+  --foreground: oklch(0.2 0.02 260);
+  --primary: oklch(0.55 0.2 265); /* brand hue */
   --primary-foreground: oklch(0.98 0 0);
-  --radius: 0.375rem;                    /* tighter brand */
+  --radius: 0.375rem; /* tighter brand */
   /* …rest of the SAME token names… */
 }
-.dark { /* same names, dark values */ }
+.dark {
+  /* same names, dark values */
+}
 ```
 
 Because `@theme inline` maps `--color-*` → these variables, **every** `bg-primary` / `text-muted-foreground` across the app re-skins with zero component edits. Multi-brand = load a different values file (or a `[data-brand="acme"]` scope).
@@ -1374,7 +1210,6 @@ Because `@theme inline` maps `--color-*` → these variables, **every** `bg-prim
 ### 15.5 Accessibility as part of the contract
 
 Portability must not break a11y. Any brand swap must still pass:
-
 
 | Check                             | Target                              |
 | --------------------------------- | ----------------------------------- |
@@ -1384,9 +1219,6 @@ Portability must not break a11y. Any brand swap must still pass:
 | `destructive` legibility          | ≥ 4.5:1 in both themes              |
 | Focus ring visibility             | `ring-ring` visible on all surfaces |
 | Not color-only meaning            | Pair with icon/label                |
-
-
-
 
 ### 15.6 Versioning the contract
 
@@ -1400,11 +1232,11 @@ Record every change in the [Changelog](#changelog-design-system-doc).
 
 ### 15.7 Full theme replacement (shadcn Create → this repo)
 
-Someone adopting Daaysorn (or rebranding it) can throw away the current look entirely:
+Someone adopting daaysorn (or rebranding it) can throw away the current look entirely:
 
 1. Open [shadcn/ui Create](https://ui.shadcn.com/create) and pick a new style / base color / radius.
 2. Copy the generated CSS variable blocks into `app/globals.css` (replace `:root` and `.dark` values — keep names).
-3. Keep (or re-apply) Daaysorn-specific layers you still need: font variables in `layout.tsx`, `--breakpoint-watch` / `--breakpoint-xs`, base `h*` / `code` rules.
+3. Keep (or re-apply) daaysorn-specific layers you still need: font variables in `layout.tsx`, `--breakpoint-watch` / `--breakpoint-xs`, base `h*` / `code` rules.
 4. Leave `components/ui` alone — they already bind to the semantic contract.
 5. Optionally align `components.json` (`style`, `baseColor`) with what you generated so future `shadcn add` stays consistent.
 
@@ -1412,22 +1244,20 @@ Result: a completely different brand, same design-system architecture, same shad
 
 ---
 
-
-
 ## 16. Agent usage (skill)
 
 This design system is exposed to AI coding agents as a **project skill** so any agent building UI in this repo follows it automatically.
 
-| Item | Value |
-|------|-------|
-| **Skill (edit here)** | https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md · local `public/doc/daaysorn-design-system/SKILL.md` |
-| Skill name | `daaysorn-design-system` |
-| Deep reference | this file · https://github.com/daaysorn/daaysorn/blob/main/public/doc/designSystem.md |
-| Runtime source of truth | `app/globals.css` |
+| Item                    | Value                                                                                                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Skill (edit here)**   | https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md · local `public/doc/daaysorn-design-system/SKILL.md` |
+| Skill name              | `daaysorn-design-system`                                                                                                                       |
+| Deep reference          | this file · https://github.com/daaysorn/daaysorn/blob/main/public/doc/designSystem.md                                                          |
+| Runtime source of truth | `app/globals.css`                                                                                                                              |
 
 ### 16.1 How to invoke
 
-- **Humans:** ask the agent to *“use the daaysorn-design-system skill”* (or mention design system / tokens / breakpoints / theming), then describe the UI.
+- **Humans:** ask the agent to _“use the daaysorn-design-system skill”_ (or mention design system / tokens / breakpoints / theming), then describe the UI.
 - **Agents:** read `public/doc/daaysorn-design-system/SKILL.md` (GitHub: https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md), then consult the relevant section of this doc via progressive disclosure before writing UI code.
 
 ### 16.2 What the skill enforces (summary)
@@ -1436,55 +1266,47 @@ The skill carries the non-negotiable rules (tokens-only, font roles, breakpoint 
 
 ---
 
-
-
 ## Quick reference card
 
-
-| Need                 | Use                                                |
-| -------------------- | -------------------------------------------------- |
-| Page background      | `bg-background`                                    |
-| Body text            | `text-foreground` (default)                        |
-| Quiet text           | `text-muted-foreground`                            |
-| Quiet fill / skeleton | `bg-muted` + `animate-pulse`                     |
-| Ghost action         | `<Button variant="ghost">`                         |
-| Live text shimmer    | `motion-safe:animate-text-shimmer` (~5.5s)         |
-| Live pulse           | `motion-safe:animate-pulse` / `animate-music-pulse` |
-| Strong / brand text  | `text-primary` + `font-semibold`                   |
-| Heading              | `<h*>` → Montserrat automatically                  |
-| Body font            | Geist via `font-sans`                              |
-| Code font            | `font-mono` or `<code>` / `<kbd>`                  |
-| Primary CTA          | `<Button>`                                         |
-| Secondary CTA        | `<Button variant="outline">` or `secondary`        |
-| Danger               | `<Button variant="destructive">`                   |
-| Floating tip         | Tooltip compound components                        |
-| Icon shelf           | `<Dock>` + `<DockIcon>`                            |
-| Toggle theme         | Press `d`                                          |
-| Merge classes        | `cn(...)` from `@/lib/utils`                       |
-| iPhone 12 (~390)     | Base + `xs:` (not `sm:`)                           |
-| Ultra-narrow / watch | `max-watch:` for simplifications                   |
-| Compact phones       | `xs:` from 360px                                   |
-| Tablet+              | `md:` / `lg:` / `xl:` / `2xl:` (Tailwind defaults) |
+| Need                     | Use                                                                 |
+| ------------------------ | ------------------------------------------------------------------- |
+| Page background          | `bg-background`                                                     |
+| Body text                | `text-foreground` (default)                                         |
+| Quiet text               | `text-muted-foreground`                                             |
+| Quiet fill / skeleton    | `bg-muted` + `animate-pulse`                                        |
+| Ghost action             | `<Button variant="ghost">`                                          |
+| Live text shimmer        | `motion-safe:animate-text-shimmer` (~5.5s)                          |
+| Live pulse               | `motion-safe:animate-pulse` / `animate-music-pulse`                 |
+| Strong / brand text      | `text-primary` + `font-semibold`                                    |
+| Heading                  | `<h*>` → Montserrat automatically                                   |
+| Body font                | Geist via `font-sans`                                               |
+| Code font                | `font-mono` or `<code>` / `<kbd>`                                   |
+| Primary CTA              | `<Button>`                                                          |
+| Secondary CTA            | `<Button variant="outline">` or `secondary`                         |
+| Danger                   | `<Button variant="destructive">`                                    |
+| Floating tip             | Tooltip compound components                                         |
+| Icon shelf               | `<Dock>` + `<DockIcon>`                                             |
+| Toggle theme             | Press `d`                                                           |
+| Merge classes            | `cn(...)` from `@/lib/utils`                                        |
+| iPhone 12 (~390)         | Base + `xs:` (not `sm:`)                                            |
+| Ultra-narrow / watch     | `max-watch:` for simplifications                                    |
+| Compact phones           | `xs:` from 360px                                                    |
+| Tablet+                  | `md:` / `lg:` / `xl:` / `2xl:` (Tailwind defaults)                  |
 | Long tokens / env / URLs | `min-w-0 break-all` (+ `whitespace-pre-wrap` if needed) — see §13.6 |
 
-
 ---
-
-
 
 ## Changelog (design system doc)
 
-
-| Date        | Change                                                                                                                                                                                                                                                                                                                                       |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Initial     | Full audit of fonts (Geist / Montserrat / JetBrains Mono), OKLCH tokens, radius scale, shell layout, Button / Tooltip / Dock / Footer, theme provider, Tailwind default breakpoints                                                                                                                                                          |
-| Breakpoints | Deep §7: why Tailwind isn’t “wrong,” what we keep vs extend (`watch`/`xs`), how it helps phones (incl. iPhone 12), wearables, shadcn compatibility, anti-patterns                                                                                                                                                                            |
-| Portability | Added §15 (three-tier tokens, fixed-vs-swappable contract, brand-swap mechanics, a11y contract, versioning) + §16 agent skill usage; skill at [https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md](https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md) |
-| shadcn Create | Documented origin of `globals.css` from [ui.shadcn.com/create](https://ui.shadcn.com/create); §2.1, §9.4, §15.7 — replace theme values freely, keep token names; shadcn `add` works unchanged |
-| Overflow wrap | §13.6 — long tokens/URLs/env lines must use `break-all` + `overflow-wrap` / `min-w-0`; Spotify auth callback fixed |
-| Feedback UI | §3.6 muted text hierarchy; §8.7 ghost patterns, skeletons, pulse, text-shimmer (`5.5s ease-in-out`) |
-
+| Date          | Change                                                                                                                                                                                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Initial       | Full audit of fonts (Geist / Montserrat / JetBrains Mono), OKLCH tokens, radius scale, shell layout, Button / Tooltip / Dock / Footer, theme provider, Tailwind default breakpoints                                                                                                                                                  |
+| Breakpoints   | Deep §7: why Tailwind isn’t “wrong,” what we keep vs extend (`watch`/`xs`), how it helps phones (incl. iPhone 12), wearables, shadcn compatibility, anti-patterns                                                                                                                                                                    |
+| Portability   | Added §15 (three-tier tokens, fixed-vs-swappable contract, brand-swap mechanics, a11y contract, versioning) + §16 agent skill usage; skill at [https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md](https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md) |
+| shadcn Create | Documented origin of `globals.css` from [ui.shadcn.com/create](https://ui.shadcn.com/create); §2.1, §9.4, §15.7 — replace theme values freely, keep token names; shadcn `add` works unchanged                                                                                                                                        |
+| Overflow wrap | §13.6 — long tokens/URLs/env lines must use `break-all` + `overflow-wrap` / `min-w-0`; Spotify auth callback fixed                                                                                                                                                                                                                   |
+| Feedback UI   | §3.6 muted text hierarchy; §8.7 ghost patterns, skeletons, pulse, text-shimmer (`5.5s ease-in-out`)                                                                                                                                                                                                                                  |
 
 ---
 
-*When tokens or components change, update this file in the same PR so the design system stays the single source of truth for humans — while* `app/globals.css` *remains the source of truth for the runtime.*
+_When tokens or components change, update this file in the same PR so the design system stays the single source of truth for humans — while_ `app/globals.css` _remains the source of truth for the runtime._

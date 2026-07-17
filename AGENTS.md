@@ -1,4 +1,5 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
@@ -12,6 +13,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Prefer filled icons over outlined; color them with primary tokens (`text-primary` / `bg-primary`), not brand-native icon colors.
 - Do not mention "Cursor" in design-system markdown under `public/doc/`.
 - Long unbroken strings (tokens, URLs, env lines, hashes) must wrap — use `min-w-0` with `break-all` / `overflow-wrap-anywhere`.
+- Always write the brand name as lowercase `daaysorn`, including at the beginning of sentences and in names such as `daaysorn account` and `daaysorn-cmp`.
 
 ## Learned Workspace Facts
 

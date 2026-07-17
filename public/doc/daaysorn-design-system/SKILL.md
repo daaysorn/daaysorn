@@ -1,17 +1,17 @@
 ---
 name: daaysorn-design-system
-description: Daaysorn's design system — tokens, fonts, breakpoints, radius, and components for building UI in this repo. Use when building or editing any UI, styling components, choosing colors/spacing/typography, adding responsive/breakpoint behavior, theming (light/dark), or porting the system to another site, or when the user says to use the daaysorn-design-system skill.
+description: daaysorn's design system — tokens, fonts, breakpoints, radius, and components for building UI in this repo. Use when building or editing any UI, styling components, choosing colors/spacing/typography, adding responsive/breakpoint behavior, theming (light/dark), or porting the system to another site, or when the user says to use the daaysorn-design-system skill.
 ---
 
-# Daaysorn Design System
+# daaysorn Design System
 
 Authoritative rules for building UI in this repo.
 
-| | |
-|--|--|
+|                      |                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | **Main (edit here)** | `public/doc/daaysorn-design-system/SKILL.md` · https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md |
-| **Deep reference** | `public/doc/designSystem.md` · https://github.com/daaysorn/daaysorn/blob/main/public/doc/designSystem.md |
-| **Runtime tokens** | `app/globals.css` |
+| **Deep reference**   | `public/doc/designSystem.md` · https://github.com/daaysorn/daaysorn/blob/main/public/doc/designSystem.md                                 |
+| **Runtime tokens**   | `app/globals.css`                                                                                                                        |
 
 Read the relevant doc section before non-trivial UI work (progressive disclosure map in the last section).
 
@@ -32,22 +32,24 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 13. Accessibility is non-negotiable: visible focus (`ring-ring`), `aria-label` on icon-only controls, ≥4.5:1 text contrast, external links get `rel="noopener noreferrer"`.
 14. Long unbroken strings (tokens, env lines, URLs, hashes) must wrap — use `min-w-0`, `break-all` / `overflow-wrap-anywhere`, and never let mono blocks overflow. See `public/doc/designSystem.md` §13.6.
 
+15. The brand name is always written as lowercase **daaysorn**, including at the beginning of a sentence and in names such as **daaysorn account** and **daaysorn-cmp**.
+
 ## Token → utility quick map
 
-| Need | Utility |
-|------|---------|
-| Page canvas | `bg-background text-foreground` |
-| Elevated surface | `bg-card text-card-foreground` / `bg-popover` |
-| Primary action | `<Button>` (`bg-primary text-primary-foreground`) |
-| Quiet text | `text-muted-foreground` |
-| Quiet fill / skeleton | `bg-muted` (+ `animate-pulse` for loaders) |
-| Ghost action | `<Button variant="ghost">` |
-| Live text shimmer | `motion-safe:animate-text-shimmer` (~5.5s ease-in-out) |
-| Live pulse | `motion-safe:animate-pulse` / `animate-music-pulse` |
-| Brand emphasis | `text-primary font-semibold` |
-| Borders / inputs | `border-border` / `border-input` |
-| Focus ring | `ring-ring` (buttons already handle it) |
-| Danger | `variant="destructive"` / `text-destructive` |
+| Need                  | Utility                                                |
+| --------------------- | ------------------------------------------------------ |
+| Page canvas           | `bg-background text-foreground`                        |
+| Elevated surface      | `bg-card text-card-foreground` / `bg-popover`          |
+| Primary action        | `<Button>` (`bg-primary text-primary-foreground`)      |
+| Quiet text            | `text-muted-foreground`                                |
+| Quiet fill / skeleton | `bg-muted` (+ `animate-pulse` for loaders)             |
+| Ghost action          | `<Button variant="ghost">`                             |
+| Live text shimmer     | `motion-safe:animate-text-shimmer` (~5.5s ease-in-out) |
+| Live pulse            | `motion-safe:animate-pulse` / `animate-music-pulse`    |
+| Brand emphasis        | `text-primary font-semibold`                           |
+| Borders / inputs      | `border-border` / `border-input`                       |
+| Focus ring            | `ring-ring` (buttons already handle it)                |
+| Danger                | `variant="destructive"` / `text-destructive`           |
 
 ## Typography
 
@@ -63,6 +65,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 <div className="max-md:px-4" />              // phone-only
 <header className="max-watch:py-2" />        // ultra-narrow
 ```
+
 Full rationale (why not Tailwind naming, device table): `public/doc/designSystem.md` §7.
 
 ## Radius
@@ -79,18 +82,22 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Dock, DockIcon } from "@/components/ui/dock"
 ```
+
 Details/variants: `public/doc/designSystem.md` §10.
 
 ## Build checklist
 
 Before writing UI:
+
 ```
 - [ ] Identified the semantic tokens (no raw colors)
 - [ ] Correct font roles (headings via <h*>, code via <code>/font-mono)
 - [ ] Mobile-first: base styles first, then xs:/md:/lg: as needed
 - [ ] Reusing components/ui/* where possible
 ```
+
 After writing UI:
+
 ```
 - [ ] No hard-coded hex/oklch/px colors
 - [ ] Classes merged with cn(); conditional classes clean
@@ -106,17 +113,17 @@ Same system, swap **token values only** (keep token names + component APIs). `ap
 
 ## Progressive disclosure — open the doc when
 
-| Task | Read section |
-|------|--------------|
-| Colors / tokens / muted text | §3 (incl. §3.6) |
-| Fonts / type scale | §4 |
-| Radius | §5 |
-| Layout / shell | §6 |
-| Responsive / breakpoints | §7 |
-| Motion / ghost / loaders / shimmer | §8 (incl. §8.7) |
-| Theming (light/dark) | §9 |
-| Component variants/APIs | §10 |
-| Accessibility | §12 |
-| Recipes | §13 (incl. §13.6 long-string wrap) |
-| Add token/font/component | §14 |
-| Rebrand / multi-brand / reuse elsewhere | §15 |
+| Task                                    | Read section                       |
+| --------------------------------------- | ---------------------------------- |
+| Colors / tokens / muted text            | §3 (incl. §3.6)                    |
+| Fonts / type scale                      | §4                                 |
+| Radius                                  | §5                                 |
+| Layout / shell                          | §6                                 |
+| Responsive / breakpoints                | §7                                 |
+| Motion / ghost / loaders / shimmer      | §8 (incl. §8.7)                    |
+| Theming (light/dark)                    | §9                                 |
+| Component variants/APIs                 | §10                                |
+| Accessibility                           | §12                                |
+| Recipes                                 | §13 (incl. §13.6 long-string wrap) |
+| Add token/font/component                | §14                                |
+| Rebrand / multi-brand / reuse elsewhere | §15                                |

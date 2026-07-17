@@ -1,16 +1,16 @@
-# Daaysorn Components — Install Guide
+# daaysorn Components — Install Guide
 
 A small **shadcn-compatible registry**. Components are distributed the same way
-shadcn/ui components are: the CLI copies the source files into *your* project,
+shadcn/ui components are: the CLI copies the source files into _your_ project,
 installs dependencies, and patches your `globals.css` / env — so you own the
 code and can edit it freely.
 
-| | |
-|--|--|
-| **Registry index** | `https://daaysorn.com/r/registry.json` |
-| **Items** | [`spotify-now-playing`](./spotify-now-playing.md) · [`flip-clock`](./flip-clock.md) |
-| **Requires** | Tailwind **v4**, React 19, a shadcn-initialized project (`components.json`) |
-| **Maintainer?** | See the [Author Guide](./AUTHOR.md) — how the registry works + how to add components |
+|                    |                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| **Registry index** | `https://daaysorn.com/r/registry.json`                                               |
+| **Items**          | [`spotify-now-playing`](./spotify-now-playing.md) · [`flip-clock`](./flip-clock.md)  |
+| **Requires**       | Tailwind **v4**, React 19, a shadcn-initialized project (`components.json`)          |
+| **Maintainer?**    | See the [Author Guide](./AUTHOR.md) — how the registry works + how to add components |
 
 > Replace `daaysorn.com` with wherever you host the registry. While developing
 > locally it's served from your dev server at `http://localhost:3000/r/...`.
@@ -53,8 +53,8 @@ Add the registry to your `components.json`:
 ```jsonc
 {
   "registries": {
-    "@daaysorn": "https://daaysorn.com/r/{name}.json"
-  }
+    "@daaysorn": "https://daaysorn.com/r/{name}.json",
+  },
 }
 ```
 
@@ -80,7 +80,7 @@ bunx shadcn@latest add @daaysorn/flip-clock
 
 ## Customizing
 
-Because the files are copied into *your* repo, you customize by editing them —
+Because the files are copied into _your_ repo, you customize by editing them —
 there's no config to fight. Each component's page documents its specific knobs:
 
 - **[Spotify Now Playing](./spotify-now-playing.md#customization)** — polling
@@ -90,12 +90,12 @@ there's no config to fight. Each component's page documents its specific knobs:
 
 General patterns that apply to both:
 
-| Want to change | Where |
-|----------------|-------|
-| Colors / tone | Semantic classes (`text-muted-foreground`, `bg-muted`, …) in the component, or the theme tokens in `globals.css`. |
-| Animation timing | The `@utility animate-*` blocks in `globals.css`. |
-| Size / spacing | Tailwind classes on the component's root, or its CSS variables. |
-| Behavior | Props (see each component page) and the small consts at the top of each file. |
+| Want to change   | Where                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Colors / tone    | Semantic classes (`text-muted-foreground`, `bg-muted`, …) in the component, or the theme tokens in `globals.css`. |
+| Animation timing | The `@utility animate-*` blocks in `globals.css`.                                                                 |
+| Size / spacing   | Tailwind classes on the component's root, or its CSS variables.                                                   |
+| Behavior         | Props (see each component page) and the small consts at the top of each file.                                     |
 
 Everything uses **semantic tokens**, so components auto-adapt to your light/dark
 theme and rebrand — no per-color overrides needed.
@@ -137,8 +137,8 @@ fresh registry JSON — you don't have to remember:
 {
   "scripts": {
     "registry": "shadcn build",
-    "build": "shadcn build && next build"
-  }
+    "build": "shadcn build && next build",
+  },
 }
 ```
 

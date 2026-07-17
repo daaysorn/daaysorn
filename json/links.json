@@ -1,0 +1,53 @@
+{
+  "products": [
+    {
+      "key": "tech",
+      "label": "Software and Engineering",
+      "href": "/software-and-engineering",
+      "description": "Software, tools, and engineering work made to solve real problems."
+    },
+    {
+      "key": "energy",
+      "label": "Internet of Things",
+      "href": "/internet-of-things",
+      "description": "Connected devices and thoughtful systems for the physical world."
+    },
+    {
+      "key": "ecommerce",
+      "label": "Ecommerce",
+      "href": "/ecommerce",
+      "description": "Simple shopping experiences for products people care about."
+    },
+    {
+      "key": "wears",
+      "label": "Clothing",
+      "href": "/clothing",
+      "description": "Clothing shaped by comfort, character, and everyday life."
+    },
+    {
+      "key": "food",
+      "label": "Meals",
+      "href": "/meals",
+      "description": "Food ideas and experiences made for sharing."
+    }
+  ],
+  "documentation": {
+    "label": "Docs",
+    "href": "/docs"
+  },
+  "account": {
+    "createHref": ""
+  },
+  "contact": {
+    "href": "mailto:david@daaysorn.com"
+  },
+  "code": {
+    "profileHref": "https://github.com/daaysorn",
+    "repositoryHref": "https://github.com/daaysorn/daaysorn",
+    "componentsHref": "https://github.com/daaysorn/daaysorn/tree/main/components/daaysorn-cmp"
+  },
+  "social": {
+    "instagramHref": "https://www.instagram.com/daaysorn",
+    "xHref": "https://x.com/daaysorn"
+  }
+}

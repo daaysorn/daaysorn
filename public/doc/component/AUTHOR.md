@@ -1,4 +1,4 @@
-# Author Guide — the Daaysorn component registry
+# Author Guide — the daaysorn component registry
 
 > This is **for you (the maintainer)**, not for people installing your
 > components. Consumer-facing docs live in
@@ -12,13 +12,14 @@ It explains the mental model, where everything lives, and the exact steps to
 
 ## Mental model
 
-You are running a **shadcn-compatible registry**. It is *not* an npm package.
+You are running a **shadcn-compatible registry**. It is _not_ an npm package.
 Instead of `import`-ing from a library, people run `shadcn add <url>` and the CLI
 **copies your source files into their project**, installs the npm deps, and
 patches their `globals.css` + env. They own the code afterwards.
 
 This "copy-in" model is why the feature can span a **component + API route + CSS
-+ env + deps** — things a plain package can't install for someone.
+
+- env + deps** — things a plain package can't install for someone.
 
 The flow:
 
@@ -32,7 +33,7 @@ public/r/*.json       ← generated; each file's source is INLINED as a snapshot
 https://daaysorn.com/r/<name>.json   ← what `shadcn add` fetches
 ```
 
-**The one rule that bites people:** `public/r/*.json` is a *snapshot*. If you
+**The one rule that bites people:** `public/r/*.json` is a _snapshot_. If you
 edit a component and don't rebuild, the published JSON is stale and consumers get
 old code. The build script does this automatically (see [Build](#build--deploy)).
 
@@ -40,16 +41,16 @@ old code. The build script does this automatically (see [Build](#build--deploy))
 
 ## Repo map
 
-| Path | What it is |
-|------|-----------|
-| `registry.json` | **Source of truth.** Lists each item and the files it ships, plus deps / cssVars / css / envVars. Edit this to change what's published. |
-| `public/r/*.json` | **Generated** by `shadcn build`. One file per item + `registry.json` (the index). Committed & deployed; don't hand-edit. |
+| Path                                 | What it is                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registry.json`                      | **Source of truth.** Lists each item and the files it ships, plus deps / cssVars / css / envVars. Edit this to change what's published.               |
+| `public/r/*.json`                    | **Generated** by `shadcn build`. One file per item + `registry.json` (the index). Committed & deployed; don't hand-edit.                              |
 | `components/daaysorn-cmp/<feature>/` | **Self-contained** component source. Everything it needs lives here: client components, its own `ui/` primitives, `server.ts`, `auth.ts`, `types.ts`. |
-| `app/api/**` | Thin route-handler **shims** — Next.js requires route files under `app/`, so these are one-liners that re-export logic from the feature folder. |
-| `components/ui/*`, `lib/utils.ts` | Pre-existing app scaffolding (button, tooltip, `cn`). Not shipped by components — consumers already have `cn` from shadcn init. |
-| `app/globals.css` | Where `@utility` / `@keyframes` / theme tokens live in *this* app. The registry re-injects equivalents on install via the item's `css` / `cssVars`. |
-| `components.json` | shadcn config. Its `registries` map lets `@daaysorn/<name>` resolve to your URL. |
-| `public/doc/component/*` | These docs. |
+| `app/api/**`                         | Thin route-handler **shims** — Next.js requires route files under `app/`, so these are one-liners that re-export logic from the feature folder.       |
+| `components/ui/*`, `lib/utils.ts`    | Pre-existing app scaffolding (button, tooltip, `cn`). Not shipped by components — consumers already have `cn` from shadcn init.                       |
+| `app/globals.css`                    | Where `@utility` / `@keyframes` / theme tokens live in _this_ app. The registry re-injects equivalents on install via the item's `css` / `cssVars`.   |
+| `components.json`                    | shadcn config. Its `registries` map lets `@daaysorn/<name>` resolve to your URL.                                                                      |
+| `public/doc/component/*`             | These docs.                                                                                                                                           |
 
 ---
 
@@ -82,13 +83,13 @@ Each entry in `registry.json` → one installable component. Anatomy:
 
 ### `files[].type` — where each file lands
 
-| type | Destination | Use for |
-|------|-------------|---------|
+| type                 | Destination                                                         | Use for                                                                                      |
+| -------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `registry:component` | components alias (path preserved, e.g. `components/daaysorn-cmp/…`) | **Everything in the feature folder** — components, its `ui/*`, `server.ts`, `auth.ts`, types |
-| `registry:ui` | ui alias (`components/ui/…`) | shadcn default for primitives — **we don't use it** (see convention below) |
-| `registry:lib` | lib alias (`lib/…`) | shadcn default for helpers — **we don't use it** (helpers go in the folder) |
-| `registry:hook` | hooks alias | Hooks (if ever shared app-wide) |
-| `registry:file` | **exact `target`** (required) | Anything that must sit outside the folder — API route shims, config |
+| `registry:ui`        | ui alias (`components/ui/…`)                                        | shadcn default for primitives — **we don't use it** (see convention below)                   |
+| `registry:lib`       | lib alias (`lib/…`)                                                 | shadcn default for helpers — **we don't use it** (helpers go in the folder)                  |
+| `registry:hook`      | hooks alias                                                         | Hooks (if ever shared app-wide)                                                              |
+| `registry:file`      | **exact `target`** (required)                                       | Anything that must sit outside the folder — API route shims, config                          |
 
 > **Self-contained convention.** Everything a component needs is shipped as
 > `registry:component` files **inside its own folder** — including its `ui/`
@@ -99,8 +100,9 @@ Each entry in `registry.json` → one installable component. Anatomy:
 > whole directory is portable.
 >
 > Two consequences:
+>
 > - Don't `registryDependencies: ["dialog"]` for primitives you've customized —
->   that would pull shadcn's *official* version. Ship your own copy in the folder.
+>   that would pull shadcn's _official_ version. Ship your own copy in the folder.
 > - Route handlers can't live in the folder (Next.js needs them under `app/`), so
 >   ship them as `registry:file` **shims** with a `target`, and put their real
 >   logic in the folder (`server.ts` / `auth.ts`).
@@ -115,8 +117,8 @@ Each entry in `registry.json` → one installable component. Anatomy:
 - **`envVars`** — listed to the user after install (e.g. Spotify keys).
 
 Keep these **in sync** with what's actually in this app's `app/globals.css`. They
-are two copies of the same thing: `globals.css` powers *this* site; the `css`
-field powers *installs*.
+are two copies of the same thing: `globals.css` powers _this_ site; the `css`
+field powers _installs_.
 
 ---
 
@@ -173,14 +175,14 @@ Existing installs are copies in other people's repos — they won't auto-update.
 ```jsonc
 {
   "scripts": {
-    "registry": "shadcn build",           // regenerate public/r/*.json
-    "build": "shadcn build && next build"  // registry is always fresh on build
-  }
+    "registry": "shadcn build", // regenerate public/r/*.json
+    "build": "shadcn build && next build", // registry is always fresh on build
+  },
 }
 ```
 
 - `shadcn` is a **local dependency**, so the scripts call its bin directly — no
-  `npx`/`bunx` needed *inside* the scripts.
+  `npx`/`bunx` needed _inside_ the scripts.
 - `bun run build` regenerates the registry, then builds Next.js. On Vercel (bun
   detected from `bun.lock`) this runs on every deploy, so the published registry
   is always in sync with `main`.
@@ -193,6 +195,7 @@ Existing installs are copies in other people's repos — they won't auto-update.
 ## Per-component operational notes
 
 ### spotify-now-playing
+
 - Needs `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` / `SPOTIFY_REFRESH_TOKEN`
   in env (server-only). Mint the refresh token **once** via
   `/api/spotify-auth/login` → the callback shows it. Those helper routes are
@@ -202,6 +205,7 @@ Existing installs are copies in other people's repos — they won't auto-update.
 - Full setup: [spotify-now-playing.md](./spotify-now-playing.md).
 
 ### flip-clock
+
 - Zero-config. Reads the viewer's timezone via `Intl` (no geolocation prompt).
 - `FLIP_MS` in `flip-unit.tsx` **must match** the total CSS flip duration in
   `globals.css` (top flap + delayed bottom flap). Change one, change the other.

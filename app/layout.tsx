@@ -6,7 +6,7 @@ import { AppShell } from "@/components/app-shell"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
-const appName = process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Daaysorn"
+const appName = process.env.NEXT_PUBLIC_APP_NAME?.trim() || "daaysorn"
 
 export const metadata: Metadata = {
   title: appName,

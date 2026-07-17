@@ -7,44 +7,38 @@ import { useTheme } from "next-themes"
 import type { IconType } from "react-icons"
 import { LuMoon, LuSun } from "react-icons/lu"
 import {
+  PiBracketsCurlyDuotone,
   PiBowlFoodFill,
-  PiDesktopTowerFill,
-  PiEnvelopeSimpleFill,
-  PiFileTextFill,
+  PiCoatHangerFill,
   PiLightningFill,
   PiShoppingCartSimpleFill,
-  PiTShirtFill,
 } from "react-icons/pi"
-import { RiHome5Fill } from "react-icons/ri"
+import { RiHome5Fill, RiQuillPenFill } from "react-icons/ri"
 
 import { buttonVariants } from "@/components/ui/button"
 import { Dock, DockIcon } from "@/components/ui/dock"
+import links from "@/json/links.json"
 import { cn } from "@/lib/utils"
 
-const navItems: {
-  href: string
-  icon: IconType
-  label: string
-}[] = [
+const productIcons: Record<string, IconType> = {
+  tech: PiBracketsCurlyDuotone,
+  energy: PiLightningFill,
+  ecommerce: PiShoppingCartSimpleFill,
+  wears: PiCoatHangerFill,
+  food: PiBowlFoodFill,
+}
+
+const navItems: { href: string; icon: IconType; label: string }[] = [
   { href: "/", icon: RiHome5Fill, label: "Home" },
-  { href: "/docs", icon: PiFileTextFill, label: "Docs" },
-  { href: "/tech", icon: PiDesktopTowerFill, label: "Tech" },
+  ...links.products.map((product) => ({
+    href: product.href,
+    icon: productIcons[product.key] ?? RiHome5Fill,
+    label: product.label,
+  })),
   {
-    href: "/energy-and-power",
-    icon: PiLightningFill,
-    label: "Energy and Power",
-  },
-  {
-    href: "/ecommerce",
-    icon: PiShoppingCartSimpleFill,
-    label: "Ecommerce",
-  },
-  { href: "/wears", icon: PiTShirtFill, label: "Wears" },
-  { href: "/food", icon: PiBowlFoodFill, label: "Food" },
-  {
-    href: `mailto:${process.env.NEXT_PUBLIC_APP_NAME?.split(" ")[0]?.toLowerCase()}@${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}.com`,
-    icon: PiEnvelopeSimpleFill,
-    label: "Contact",
+    href: links.documentation.href,
+    icon: RiQuillPenFill,
+    label: links.documentation.label,
   },
 ]
 
@@ -179,16 +173,16 @@ const Header = () => {
   return (
     <header
       className={cn(
-        "z-50 flex w-full justify-center before:pointer-events-none before:absolute before:inset-x-0 before:-bottom-[max(1rem,env(safe-area-inset-bottom))] before:h-32 before:bg-linear-to-b before:from-transparent before:via-background/80 before:to-background before:content-[''] max-watch:hidden",
+        "z-50 flex w-full justify-center before:pointer-events-none before:absolute before:inset-x-0 before:-bottom-[max(1rem,env(safe-area-inset-bottom))] before:h-32 before:bg-linear-to-b before:from-transparent before:via-background/80 before:to-background before:content-[''] after:pointer-events-none max-watch:hidden md:isolate md:after:absolute md:after:-top-6 md:after:left-1/2 md:after:z-0 md:after:h-36 md:after:w-screen md:after:-translate-x-1/2 md:after:bg-linear-to-b md:after:from-background md:after:via-background md:after:to-transparent md:after:content-['']",
         // mobile: pinned bottom dock (above home indicator)
         "fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] px-6",
-        // md+: back to top of the shell column
-        "md:static md:inset-auto md:bottom-auto md:px-0 md:before:hidden"
+        // md+: sticky at the top of the shell column
+        "md:sticky md:inset-auto md:top-6 md:bottom-auto md:px-0 md:before:hidden"
       )}
     >
       <Dock
         direction="middle"
-        className="relative z-10 mt-0 scale-[0.68] gap-0.5 p-1 xs:max-md:scale-80 md:scale-100 md:gap-2 md:p-2"
+        className="relative z-10 mt-0 scale-[0.78] gap-0.5 p-1 xs:max-md:scale-90 md:w-xl md:max-w-[calc(100vw-3rem)] md:shrink-0 md:scale-100 md:justify-between md:gap-2 md:px-5 md:py-2"
       >
         {navItems.map(({ href, icon: Icon, label }) => {
           const isRoute = href.startsWith("/")

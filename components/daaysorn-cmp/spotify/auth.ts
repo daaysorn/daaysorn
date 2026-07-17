@@ -13,8 +13,7 @@ const SCOPES = [
   "user-read-playback-state",
 ].join(" ")
 
-const DEFAULT_REDIRECT_URI =
-  "http://127.0.0.1:3000/api/spotify-auth/callback"
+const DEFAULT_REDIRECT_URI = "http://127.0.0.1:3000/api/spotify-auth/callback"
 
 /** Step 1: redirect the user to Spotify's consent screen. */
 export async function spotifyLogin() {
@@ -26,7 +25,7 @@ export async function spotifyLogin() {
   if (!clientId) {
     return new NextResponse(
       "Missing SPOTIFY_CLIENT_ID in .env.local — add it and restart the dev server.",
-      { status: 500 },
+      { status: 500 }
     )
   }
 
@@ -55,7 +54,7 @@ export async function spotifyLogin() {
 
 /**
  * Standalone HTML shell for the Spotify auth helper.
- * Mirrors Daaysorn design tokens (see app/globals.css) — semantic roles only.
+ * Mirrors daaysorn design tokens (see app/globals.css) — semantic roles only.
  * Fonts: Montserrat (headings), Geist (body), JetBrains Mono (code).
  */
 function htmlPage(title: string, body: string, status = 200) {
@@ -224,21 +223,21 @@ export async function spotifyCallback(request: NextRequest) {
     htmlPage(
       "Spotify auth failed",
       `<h1>Couldn't get a refresh token</h1><p class="err">${msg}</p><p>Start over at <code>/api/spotify-auth/login</code>.</p>`,
-      400,
+      400
     )
 
   if (oauthError) return fail(`Spotify returned: ${oauthError}`)
   if (!code) return fail("No authorization code in the callback.")
   if (!state || state !== cookieState)
     return fail(
-      "State mismatch — restart the flow from /api/spotify-auth/login.",
+      "State mismatch — restart the flow from /api/spotify-auth/login."
     )
 
   const clientId = process.env.SPOTIFY_CLIENT_ID
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
   if (!clientId || !clientSecret)
     return fail(
-      "Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET in .env.local.",
+      "Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET in .env.local."
     )
 
   // Must match the redirect_uri sent to /authorize exactly.
@@ -291,7 +290,7 @@ export async function spotifyCallback(request: NextRequest) {
          await navigator.clipboard.writeText(value);
          this.textContent = "Copied";
        });
-     </script>`,
+     </script>`
   )
   // Clear the state cookie now that we're finished.
   res.cookies.set("spotify_auth_state", "", { path: "/", maxAge: 0 })
