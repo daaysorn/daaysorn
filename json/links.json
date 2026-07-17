@@ -40,9 +40,9 @@
     "href": "/docs"
   },
   "content": {
-    "articles": {
-      "label": "Articles",
-      "href": "/articles"
+    "rants": {
+      "label": "Rants",
+      "href": "/rants"
     },
     "gallery": {
       "label": "Gallery",

@@ -49,7 +49,7 @@ The intended daaysorn account model is one account across daaysorn products, sim
 
 ## Publishing and contribution
 
-Tomiwa plans to publish random thoughts through articles, welcome thoughtful contributions, and share a personal gallery. Treat Articles and Gallery as planned or in development until their live routes return published content.
+Tomiwa plans to publish random thoughts through rants, welcome thoughtful contributions, and share a personal gallery. Treat Rants and Gallery as planned or in development until their live routes return published content.
 
 ## Technology
 

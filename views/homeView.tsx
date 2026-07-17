@@ -174,7 +174,7 @@ const HomeView = () => {
 
   return (
     <article className="min-w-0 pb-8 md:pb-24">
-      <h1 className="text-4xl leading-none font-bold tracking-tight xs:text-5xl md:text-3xl">
+      <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
         Tomiwa David
       </h1>
 
@@ -227,12 +227,12 @@ const HomeView = () => {
           that quietly make everything work, and the clarity that holds it all
           together. You can read my random thoughts in{" "}
           <PreviewLink
-            href={links.content.articles.href}
-            label={links.content.articles.label}
+            href={links.content.rants.href}
+            label={links.content.rants.label}
             description="Thoughts, lessons, and ideas from what I am learning and making."
             icon={PiArticleFill}
           >
-            {links.content.articles.label}
+            {links.content.rants.label}
           </PreviewLink>
           , contribute your own perspective, and browse a{" "}
           <PreviewLink
