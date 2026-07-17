@@ -179,7 +179,7 @@ const Header = () => {
   return (
     <header
       className={cn(
-        "z-50 flex w-full justify-center max-watch:hidden before:pointer-events-none before:absolute before:inset-x-0 before:bottom-[calc(-1*max(1rem,env(safe-area-inset-bottom)))] before:h-32 before:bg-linear-to-b before:from-transparent before:via-background/80 before:to-background before:content-['']",
+        "z-50 flex w-full justify-center before:pointer-events-none before:absolute before:inset-x-0 before:-bottom-[max(1rem,env(safe-area-inset-bottom))] before:h-32 before:bg-linear-to-b before:from-transparent before:via-background/80 before:to-background before:content-[''] max-watch:hidden",
         // mobile: pinned bottom dock (above home indicator)
         "fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] px-6",
         // md+: back to top of the shell column
