@@ -31,12 +31,20 @@
       "description": "Food ideas and experiences made for sharing."
     }
   ],
+  "brand": {
+    "label": "daaysorn",
+    "href": "/"
+  },
   "documentation": {
     "label": "Docs",
     "href": "/docs"
   },
   "account": {
     "createHref": ""
+  },
+  "faith": {
+    "label": "CCI Global",
+    "href": "https://joincci.org/"
   },
   "contact": {
     "href": "mailto:david@daaysorn.com"

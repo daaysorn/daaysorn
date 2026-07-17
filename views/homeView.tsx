@@ -1,12 +1,22 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Fragment } from "react"
+import { Fragment, type ReactNode } from "react"
 import {
+  PiArrowUpRightBold,
   PiBowlFoodFill,
   PiBracketsCurlyDuotone,
+  PiBrowserFill,
   PiCoatHangerFill,
+  PiCrossFill,
+  PiCubeFill,
+  PiEnvelopeSimpleFill,
+  PiGithubLogoFill,
+  PiInstagramLogoFill,
   PiLightningFill,
+  PiNotebookFill,
   PiShoppingCartSimpleFill,
+  PiUserCircleFill,
+  PiXLogoFill,
 } from "react-icons/pi"
 import type { IconType } from "react-icons"
 
@@ -27,6 +37,68 @@ const productIcons: Record<string, IconType> = {
   wears: PiCoatHangerFill,
   food: PiBowlFoodFill,
 }
+
+type PreviewLinkProps = {
+  href: string
+  label: string
+  description: string
+  icon: IconType
+  children?: ReactNode
+  external?: boolean
+  className?: string
+}
+
+const PreviewLink = ({
+  href,
+  label,
+  description,
+  icon: Icon,
+  children,
+  external = false,
+  className = "",
+}: PreviewLinkProps) => (
+  <HoverCard openDelay={120} closeDelay={100}>
+    <HoverCardTrigger asChild>
+      <Link
+        href={href}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noopener noreferrer" : undefined}
+        className={`${linkClassName} ${className}`}
+      >
+        {children ?? label}
+      </Link>
+    </HoverCardTrigger>
+    <HoverCardContent
+      side="top"
+      className="w-72 overflow-hidden border-black/10 bg-background/95 p-2 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/5 backdrop-blur-2xl dark:border-white/15 dark:bg-card/90 dark:ring-white/10"
+    >
+      <div className="relative overflow-hidden rounded-lg border border-black/10 bg-linear-to-br from-primary/15 via-card to-muted/80 p-4 dark:border-white/10 dark:from-primary/20 dark:via-card dark:to-muted/60">
+        <div className="absolute -top-12 -right-10 size-28 rounded-full bg-primary/15 blur-2xl dark:bg-primary/20" />
+        <div className="relative flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary shadow-sm dark:border-primary/25 dark:bg-primary/15">
+            <Icon aria-hidden="true" className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="font-heading text-sm leading-5 font-semibold text-foreground">
+                {label}
+              </p>
+              {external ? (
+                <PiArrowUpRightBold
+                  aria-hidden="true"
+                  className="size-3 text-muted-foreground"
+                />
+              ) : null}
+            </div>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {description}
+            </p>
+          </div>
+        </div>
+      </div>
+    </HoverCardContent>
+  </HoverCard>
+)
 
 const HomeView = () => {
   const accountHref = links.account.createHref.trim()
@@ -59,7 +131,25 @@ const HomeView = () => {
 
         <p>
           I&apos;m a founder, designer, and builder. I create brands that mean
-          something and products that look good and work well.
+          something and products that look good and work well. I turn early
+          ideas into clear experiences, from the name and story to the smallest
+          detail someone touches. I enjoy finding the simple thread that makes a
+          big idea feel useful, familiar, and worth returning to. I&apos;m also
+          a Christian, growing in faith with{" "}
+          <PreviewLink
+            href={links.faith.href}
+            label={links.faith.label}
+            description="A church family helping me grow in faith and know Christ more deeply."
+            icon={PiCrossFill}
+            external
+          >
+            <PiCrossFill
+              aria-hidden="true"
+              className="mr-1 inline size-[1em] text-primary"
+            />
+            {links.faith.label}
+          </PreviewLink>{" "}
+          as I learn to know Christ more deeply and live out what I believe.
         </p>
 
         <p className="clear-none mt-5">
@@ -71,24 +161,26 @@ const HomeView = () => {
 
         <p className="clear-both mt-5">
           You can follow how I make this website in the{" "}
-          <a
+          <PreviewLink
             href={links.code.repositoryHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClassName}
+            label="daaysorn repository"
+            description="See how this website is designed and built in public."
+            icon={PiGithubLogoFill}
+            external
           >
             daaysorn repository
-          </a>
+          </PreviewLink>
           . It is where I share how ideas grow into clear, useful products and
           how I make each part feel considered.{" "}
-          <a
+          <PreviewLink
             href={links.code.componentsHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClassName}
+            label="daaysorn-cmp"
+            description="Reusable building blocks shared across my products."
+            icon={PiCubeFill}
+            external
           >
             daaysorn-cmp
-          </a>{" "}
+          </PreviewLink>{" "}
           is my collection of ready-made building blocks. I use it to keep my
           products familiar, easy to use, and consistent wherever they appear.
         </p>
@@ -101,106 +193,112 @@ const HomeView = () => {
             return (
               <Fragment key={product.label}>
                 {index > 0 ? ", " : null}
-                <HoverCard openDelay={120} closeDelay={100}>
-                  <HoverCardTrigger asChild>
-                    <Link
-                      href={product.href}
-                      className={`${linkClassName} inline-flex items-center gap-1 align-baseline`}
-                    >
-                      <ProductIcon
-                        aria-hidden="true"
-                        className="size-[1em] shrink-0 text-primary"
-                      />
-                      {product.label}
-                    </Link>
-                  </HoverCardTrigger>
-                  <HoverCardContent
-                    side="top"
-                    className="w-72 overflow-hidden border-foreground/15 bg-popover/75 p-2 shadow-2xl ring-1 ring-white/10 backdrop-blur-2xl"
-                  >
-                    <div className="relative aspect-[16/9] overflow-hidden rounded-lg border border-foreground/10 bg-linear-to-br from-primary/20 via-background to-muted p-5">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklch,var(--primary)_24%,transparent),transparent_58%)]" />
-                      <div className="relative flex h-full flex-col justify-between">
-                        <ProductIcon
-                          aria-hidden="true"
-                          className="size-8 text-primary"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-heading text-sm leading-tight font-semibold text-foreground">
-                            {product.label}
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                            {product.description}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
+                <PreviewLink
+                  href={product.href}
+                  label={product.label}
+                  description={product.description}
+                  icon={ProductIcon}
+                  className="inline-flex items-center gap-1 align-baseline"
+                >
+                  <ProductIcon
+                    aria-hidden="true"
+                    className="size-[1em] shrink-0 text-primary"
+                  />
+                  {product.label}
+                </PreviewLink>
               </Fragment>
             )
           })}
-          . Developer-ready documentation for integrating with daaysorn is
-          available in{" "}
-          <Link href={links.documentation.href} className={linkClassName}>
+          . Developer-ready documentation for integrating with{" "}
+          <PreviewLink
+            href={links.brand.href}
+            label="daaysorn"
+            description="One connected home for the products I create."
+            icon={PiBrowserFill}
+          >
+            daaysorn
+          </PreviewLink>{" "}
+          is available in{" "}
+          <PreviewLink
+            href={links.documentation.href}
+            label={links.documentation.label}
+            description="Developer-ready guidance for connecting with daaysorn."
+            icon={PiNotebookFill}
+          >
             {links.documentation.label}
-          </Link>
+          </PreviewLink>
           . They may look different, but they share one goal: to feel clear,
           connected, and made with care.
         </p>
 
         <p className="mt-5">
           Access is connected too. One{" "}
-          {accountHref ? (
-            <a href={accountHref} className={linkClassName}>
-              daaysorn account
-            </a>
-          ) : (
-            <span className="font-medium text-foreground">
-              daaysorn account
-            </span>
-          )}{" "}
+          <PreviewLink
+            href={accountHref || links.brand.href}
+            label="daaysorn account"
+            description="One account for moving easily between every daaysorn product."
+            icon={PiUserCircleFill}
+            external={accountHref.startsWith("http")}
+          >
+            daaysorn account
+          </PreviewLink>{" "}
           gives you access across my products, much like one Google Account
-          works across Google&apos;s services. You sign in once and move between
-          daaysorn products without starting over each time.
+          works across Google&apos;s services. You sign in once and move between{" "}
+          <PreviewLink
+            href={links.brand.href}
+            label="daaysorn"
+            description="Explore the connected products and experiences from daaysorn."
+            icon={PiBrowserFill}
+          >
+            daaysorn
+          </PreviewLink>{" "}
+          products without starting over each time.
         </p>
 
         <p className="mt-5">
           You can see the work as it develops on{" "}
-          <a
+          <PreviewLink
             href={links.code.profileHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClassName}
+            label="GitHub"
+            description="Follow the code and projects as they develop."
+            icon={PiGithubLogoFill}
+            external
           >
             GitHub
-          </a>
+          </PreviewLink>
           , or follow along on{" "}
-          <a
+          <PreviewLink
             href={links.social.instagramHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClassName}
+            label="Instagram"
+            description="See visual notes, ideas, and work in progress."
+            icon={PiInstagramLogoFill}
+            external
           >
             Instagram
-          </a>{" "}
+          </PreviewLink>{" "}
           and{" "}
-          <a
+          <PreviewLink
             href={links.social.xHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={linkClassName}
+            label="X"
+            description="Follow short updates and thoughts along the way."
+            icon={PiXLogoFill}
+            external
           >
             X
-          </a>
+          </PreviewLink>
           .
         </p>
 
         <p className="mt-5">
           If you have a brand to shape or a product worth making,{" "}
-          <a href={links.contact.href} className={linkClassName}>
+          <PreviewLink
+            href={links.contact.href}
+            label="Get in touch"
+            description="Start a conversation about a brand, product, or new idea."
+            icon={PiEnvelopeSimpleFill}
+          >
             get in touch
-          </a>
+          </PreviewLink>
           .
         </p>
       </div>
