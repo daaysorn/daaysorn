@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "transcripts": {
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/0ccb0bbd-915d-48aa-b704-82f880e9ee8b/0ccb0bbd-915d-48aa-b704-82f880e9ee8b.jsonl": {
+      "mtimeMs": 1784250585107,
+      "lastProcessedAt": "2026-07-17T01:10:49Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/0ccb0bbd-915d-48aa-b704-82f880e9ee8b/subagents/696ef8ff-ed0a-4291-a02e-d8bb8d2320d6.jsonl": {
+      "mtimeMs": 1784250603192,
+      "lastProcessedAt": "2026-07-17T01:10:49Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a.jsonl": {
+      "mtimeMs": 1784250088819,
+      "lastProcessedAt": "2026-07-17T01:10:49Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/7c58a317-6a6e-4f3a-9180-54bdb3c59e9e/7c58a317-6a6e-4f3a-9180-54bdb3c59e9e.jsonl": {
+      "mtimeMs": 1784183349153,
+      "lastProcessedAt": "2026-07-17T01:10:49Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/a0588cc2-7fe7-4e14-9201-97afa73cf0b2/a0588cc2-7fe7-4e14-9201-97afa73cf0b2.jsonl": {
+      "mtimeMs": 1784208262716,
+      "lastProcessedAt": "2026-07-17T01:10:49Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/a0588cc2-7fe7-4e14-9201-97afa73cf0b2/subagents/fe2f197d-27b2-47d6-aac6-1532d0249f53.jsonl": {
+      "mtimeMs": 1784205232068,
+      "lastProcessedAt": "2026-07-17T01:10:49Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/b2f44080-64d6-46a7-815b-8316aa9ee189/b2f44080-64d6-46a7-815b-8316aa9ee189.jsonl": {
+      "mtimeMs": 1784244480630,
+      "lastProcessedAt": "2026-07-17T01:10:49Z"
+    }
+  }
+}
