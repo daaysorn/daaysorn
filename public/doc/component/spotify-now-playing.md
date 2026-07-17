@@ -25,16 +25,30 @@ bunx shadcn@latest add @daaysorn/spotify-now-playing   # if the namespace is con
 npx shadcn@latest add https://daaysorn.com/r/spotify-now-playing.json
 ```
 
-This copies:
+This copies a **self-contained folder** (plus 3 thin API route shims — Next.js
+requires route handlers to live under `app/`):
 
 ```
-components/daaysorn-cmp/spotify/   now-playing.tsx, now-playing-widget.tsx,
-                             providers.tsx, types.ts, index.ts
-components/ui/               hover-card.tsx, dialog.tsx
-lib/                         spotify.ts
-app/api/now-playing/         route.ts
-app/api/spotify-auth/        login/route.ts, callback/route.ts   (one-time helper)
+components/daaysorn-cmp/spotify/
+├── now-playing.tsx          client component (the footer line)
+├── now-playing-widget.tsx   the embed player card
+├── providers.tsx            provider metadata (icons, brand colors, embeds)
+├── types.ts                 shared types
+├── server.ts                Spotify API calls (server-only)
+├── auth.ts                  one-time refresh-token helper logic
+├── ui/
+│   ├── hover-card.tsx       glass hover preview primitive
+│   └── dialog.tsx           centered modal primitive
+└── index.ts                 barrel export
+
+app/api/now-playing/route.ts             ← thin shim → server.ts
+app/api/spotify-auth/login/route.ts      ← thin shim → auth.ts   (dev-only)
+app/api/spotify-auth/callback/route.ts   ← thin shim → auth.ts   (dev-only)
 ```
+
+Everything the component needs lives in the folder; the route files are
+one-line shims that re-export from `auth.ts` / `server.ts`. Nothing is written
+to your `components/ui/` or `lib/`.
 
 Dependencies installed: `swr`, `react-icons`, `radix-ui`. CSS injected: the
 `animate-text-shimmer` and `animate-music-pulse` utilities plus the
@@ -134,11 +148,12 @@ paths exist for a manually configured ("pinned") track.
 
 ## How it works
 
-- `lib/spotify.ts` (server-only) refreshes an access token, then reads
+- `spotify/server.ts` (server-only) refreshes an access token, then reads
   `currently-playing`, falling back to `recently-played`. It never throws —
   failures degrade to an empty state.
-- `app/api/now-playing/route.ts` is `force-dynamic` + `Cache-Control: no-store`
-  so playback state is always fresh (no CDN staleness).
+- `app/api/now-playing/route.ts` is a thin `force-dynamic` +
+  `Cache-Control: no-store` shim over `server.ts`, so playback state is always
+  fresh (no CDN staleness).
 - `now-playing.tsx` fetches with **SWR**: adaptive `refreshInterval`,
   `revalidateOnFocus`, `keepPreviousData`.
 

@@ -12,7 +12,7 @@
  *
  * Server-only: imported exclusively by the /api/now-playing route handler.
  */
-import type { NowPlayingResult, Track } from "@/components/daaysorn-cmp/spotify/types"
+import type { NowPlayingResult, Track } from "./types"
 
 const TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token"
 const NOW_PLAYING_ENDPOINT =

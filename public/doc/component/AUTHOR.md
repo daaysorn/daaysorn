@@ -44,10 +44,9 @@ old code. The build script does this automatically (see [Build](#build--deploy))
 |------|-----------|
 | `registry.json` | **Source of truth.** Lists each item and the files it ships, plus deps / cssVars / css / envVars. Edit this to change what's published. |
 | `public/r/*.json` | **Generated** by `shadcn build`. One file per item + `registry.json` (the index). Committed & deployed; don't hand-edit. |
-| `components/daaysorn-cmp/<feature>/` | The actual component source (e.g. `spotify/`, `flipclock/`). |
-| `components/ui/*` | shadcn-style primitives a component ships with (e.g. `hover-card.tsx`, `dialog.tsx`). |
-| `lib/*` | Server/shared helpers a component ships (e.g. `spotify.ts`). |
-| `app/api/**` | Route handlers a component ships (Spotify). |
+| `components/daaysorn-cmp/<feature>/` | **Self-contained** component source. Everything it needs lives here: client components, its own `ui/` primitives, `server.ts`, `auth.ts`, `types.ts`. |
+| `app/api/**` | Thin route-handler **shims** — Next.js requires route files under `app/`, so these are one-liners that re-export logic from the feature folder. |
+| `components/ui/*`, `lib/utils.ts` | Pre-existing app scaffolding (button, tooltip, `cn`). Not shipped by components — consumers already have `cn` from shadcn init. |
 | `app/globals.css` | Where `@utility` / `@keyframes` / theme tokens live in *this* app. The registry re-injects equivalents on install via the item's `css` / `cssVars`. |
 | `components.json` | shadcn config. Its `registries` map lets `@daaysorn/<name>` resolve to your URL. |
 | `public/doc/component/*` | These docs. |
@@ -88,11 +87,20 @@ Each entry in `registry.json` → one installable component. Anatomy:
 | `registry:hook` | hooks alias | Hooks |
 | `registry:file` | **exact `target`** (required) | Anything outside an alias — API routes, config |
 
-> **Ship your own primitives, don't `registryDependency` them.** Our
-> `hover-card`/`dialog` are custom (built on the `radix-ui` umbrella package with
-> glass styling). If we listed them as `registryDependencies: ["dialog"]`, the
-> CLI would pull shadcn's *official* versions instead. So they're shipped as
-> `registry:ui` files.
+> **Self-contained convention.** Everything a component needs is shipped as
+> `registry:component` files **inside its own folder** — including its `ui/`
+> primitives (`components/daaysorn-cmp/<feature>/ui/*`) and any `server.ts` /
+> `auth.ts`. This keeps installs from touching the consumer's `components/ui/`
+> or `lib/`, and avoids clobbering their existing shadcn primitives. Use
+> **relative imports** within the folder (`./ui/dialog`, `./server`) so the
+> whole directory is portable.
+>
+> Two consequences:
+> - Don't `registryDependencies: ["dialog"]` for primitives you've customized —
+>   that would pull shadcn's *official* version. Ship your own copy in the folder.
+> - Route handlers can't live in the folder (Next.js needs them under `app/`), so
+>   ship them as `registry:file` **shims** with a `target`, and put their real
+>   logic in the folder (`server.ts` / `auth.ts`).
 
 ### `css` / `cssVars` / `envVars`
 

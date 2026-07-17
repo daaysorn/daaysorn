@@ -4,19 +4,19 @@ import * as React from "react"
 import useSWR from "swr"
 
 import { cn } from "@/lib/utils"
+
+import { NowPlayingWidget } from "./now-playing-widget"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "./ui/dialog"
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "@/components/ui/hover-card"
-
-import { NowPlayingWidget } from "./now-playing-widget"
+} from "./ui/hover-card"
 import { PROVIDERS } from "./providers"
 import type { NowPlayingResult, Track } from "./types"
 

@@ -31,16 +31,20 @@
           "type": "registry:component"
         },
         {
-          "path": "components/ui/hover-card.tsx",
-          "type": "registry:ui"
+          "path": "components/daaysorn-cmp/spotify/server.ts",
+          "type": "registry:component"
         },
         {
-          "path": "components/ui/dialog.tsx",
-          "type": "registry:ui"
+          "path": "components/daaysorn-cmp/spotify/auth.ts",
+          "type": "registry:component"
         },
         {
-          "path": "lib/spotify.ts",
-          "type": "registry:lib"
+          "path": "components/daaysorn-cmp/spotify/ui/hover-card.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/daaysorn-cmp/spotify/ui/dialog.tsx",
+          "type": "registry:component"
         },
         {
           "path": "app/api/now-playing/route.ts",

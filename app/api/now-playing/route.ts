@@ -1,4 +1,4 @@
-import { getNowPlaying } from "@/lib/spotify"
+import { getNowPlaying } from "@/components/daaysorn-cmp/spotify/server"
 
 // Always run at request time — this reflects live playback state.
 export const dynamic = "force-dynamic"
