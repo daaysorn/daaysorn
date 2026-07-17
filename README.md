@@ -1,41 +1,59 @@
 <div align="center">
-  <img src="./public/images/logo.png" width="132" alt="Tomiwa David" />
+  <a href="https://daaysorn.com">
+    <img src="./public/images/logo.png" width="124" alt="Tomiwa David Memoji" />
+  </a>
 
 # Tomiwa David
 
-Founder, designer, and builder creating thoughtful brands and useful products.
+**Founder · Designer · Builder**
 
-[Website](https://daaysorn.com) · [Instagram](https://www.instagram.com/daaysorn) · [X](https://x.com/daaysorn) · [Email](mailto:david@daaysorn.com)
+I shape brands, build products, and connect the details that make them feel whole.
+
+  <br />
+
+  <a href="https://daaysorn.com" title="Website">
+    <img src="https://api.iconify.design/ph:globe-simple-fill.svg?color=%23888888" width="22" alt="Website" />
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/daaysorn" title="GitHub">
+    <img src="https://api.iconify.design/ph:github-logo-fill.svg?color=%23888888" width="22" alt="GitHub" />
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://www.instagram.com/daaysorn" title="Instagram">
+    <img src="https://api.iconify.design/ph:instagram-logo-fill.svg?color=%23888888" width="22" alt="Instagram" />
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://x.com/daaysorn" title="X">
+    <img src="https://api.iconify.design/ph:x-logo-fill.svg?color=%23888888" width="22" alt="X" />
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="mailto:david@daaysorn.com" title="Email">
+    <img src="https://api.iconify.design/ph:envelope-simple-fill.svg?color=%23888888" width="22" alt="Email" />
+  </a>
 </div>
 
-## Hello
+<br />
 
-I turn ideas into clear experiences people can understand, trust, and enjoy. My work brings together how a brand feels, how a product looks, and how people use it.
+### ✦ A little about me
 
-My product spans across software and engineering, the Internet of Things, ecommerce, clothing, and meals. Every product follows the daaysorn design system so the experience stays clear, familiar, and consistent.
+I turn ideas into clear experiences people can understand, trust, and enjoy. My work sits where identity, product, and everyday use meet.
 
-I am also a Christian, growing in faith with [CCI Global](https://joincci.org/).
+My product spans across [software and engineering](https://daaysorn.com/software-and-engineering), the [Internet of Things](https://daaysorn.com/internet-of-things), [ecommerce](https://daaysorn.com/ecommerce), [clothing](https://daaysorn.com/clothing), and [meals](https://daaysorn.com/meals). Everything follows the daaysorn design system, so it feels familiar without feeling the same.
 
-## What I am building
+Faith matters to me. I am a Christian, growing in faith with [CCI Global](https://joincci.org/). 🙏
 
-- [Software and Engineering](https://daaysorn.com/software-and-engineering), useful software and carefully made tools
-- [Internet of Things](https://daaysorn.com/internet-of-things), connected devices for the physical world
-- [Ecommerce](https://daaysorn.com/ecommerce), simple shopping experiences
-- [Clothing](https://daaysorn.com/clothing), everyday pieces shaped by comfort and character
-- [Meals](https://daaysorn.com/meals), food ideas and experiences made for sharing
+### 🧩 Building in public
 
-One daaysorn account is designed to give people access across every product, similar to how one Google Account works across Google services.
+[daaysorn-cmp](https://github.com/daaysorn/daaysorn/tree/main/components/daaysorn-cmp) is my collection of ready-made building blocks for [shadcn/ui](https://ui.shadcn.com/), Next.js, React, Tailwind CSS, and registry-based installs.
 
-## Building in public
+I use it to keep products thoughtful, consistent, and easy to use. I have also made [developer-ready documentation](https://daaysorn.com/docs) for integrating with daaysorn.
 
-This repository contains the source for [daaysorn.com](https://daaysorn.com). I share how ideas become useful products, along with [daaysorn-cmp](https://github.com/daaysorn/daaysorn/tree/main/components/daaysorn-cmp), my collection of ready-made building blocks. It works with [shadcn/ui](https://ui.shadcn.com/), Next.js, React, Tailwind CSS, and registry-based installs. I use it to keep my products familiar, easy to use, and consistent wherever they appear.
+### ☕ Let us make something meaningful
 
-I have made developer-ready integration guidance available in the [documentation](https://daaysorn.com/docs).
+Have a brand to shape or a product worth making? [Send me a note](mailto:david@daaysorn.com).
 
-## Tools I enjoy
+<br />
 
-`Next.js` · `React` · `TypeScript` · `Tailwind CSS` · `GSAP` · `Design systems`
-
-## Let us make something meaningful
-
-If you have a brand to shape or a product worth making, [get in touch](mailto:david@daaysorn.com).
+<div align="center">
+  <sub>Next.js · React · TypeScript · Tailwind CSS · GSAP · Design systems</sub>
+</div>
