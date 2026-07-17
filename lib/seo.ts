@@ -1,9 +1,12 @@
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://daaysorn.vercel.app"
+
 export const siteConfig = {
   name: "daaysorn",
   title: "daaysorn | Tomiwa David",
   description:
     "daaysorn is the home of Tomiwa David, a founder, designer, and builder creating thoughtful brands and useful products across digital and physical spaces.",
-  url: "https://daaysorn.com",
+  url: siteUrl,
   locale: "en_NG",
   creator: {
     name: "Tomiwa David",
