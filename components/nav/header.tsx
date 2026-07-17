@@ -2,21 +2,23 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import type { IconType } from "react-icons"
-import { FaEnvelope, FaGithub, FaHouse, FaPen } from "react-icons/fa6"
 import { LuMoon, LuSun } from "react-icons/lu"
-import { RiInstagramFill, RiTwitterXLine } from "react-icons/ri"
+import {
+  PiBowlFoodFill,
+  PiDesktopTowerFill,
+  PiEnvelopeSimpleFill,
+  PiFileTextFill,
+  PiLightningFill,
+  PiShoppingCartSimpleFill,
+  PiTShirtFill,
+} from "react-icons/pi"
+import { RiHome5Fill } from "react-icons/ri"
 
 import { buttonVariants } from "@/components/ui/button"
 import { Dock, DockIcon } from "@/components/ui/dock"
-import { Separator } from "@/components/ui/separator"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 const navItems: {
@@ -24,34 +26,25 @@ const navItems: {
   icon: IconType
   label: string
 }[] = [
-  { href: "/", icon: FaHouse, label: "Home" },
-  { href: "/docs", icon: FaPen, label: "Docs" },
-]
-
-const socialLinks: {
-  href: string
-  icon: IconType
-  label: string
-}[] = [
+  { href: "/", icon: RiHome5Fill, label: "Home" },
+  { href: "/docs", icon: PiFileTextFill, label: "Docs" },
+  { href: "/tech", icon: PiDesktopTowerFill, label: "Tech" },
   {
-    href: `https://github.com/${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}`,
-    icon: FaGithub,
-    label: "GitHub",
+    href: "/energy-and-power",
+    icon: PiLightningFill,
+    label: "Energy and Power",
   },
   {
-    href: `https://www.instagram.com/${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}`,
-    icon: RiInstagramFill,
-    label: "Instagram",
+    href: "/ecommerce",
+    icon: PiShoppingCartSimpleFill,
+    label: "Ecommerce",
   },
-  {
-    href: `https://x.com/${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}`,
-    icon: RiTwitterXLine,
-    label: "X",
-  },
+  { href: "/wears", icon: PiTShirtFill, label: "Wears" },
+  { href: "/food", icon: PiBowlFoodFill, label: "Food" },
   {
     href: `mailto:${process.env.NEXT_PUBLIC_APP_NAME?.split(" ")[0]?.toLowerCase()}@${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}.com`,
-    icon: FaEnvelope,
-    label: "Email",
+    icon: PiEnvelopeSimpleFill,
+    label: "Contact",
   },
 ]
 
@@ -68,29 +61,22 @@ function ThemeToggle() {
 
   return (
     <DockIcon>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            aria-label={mounted ? label : "Toggle theme"}
-            disabled={!mounted}
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "icon" }),
-              "size-12 rounded-full"
-            )}
-          >
-            {mounted && isDark ? (
-              <LuSun className="size-4 text-primary" />
-            ) : (
-              <LuMoon className="size-4 text-primary" />
-            )}
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={8}>
-          {mounted ? label : "Toggle theme"}
-        </TooltipContent>
-      </Tooltip>
+      <button
+        type="button"
+        aria-label={mounted ? label : "Toggle theme"}
+        disabled={!mounted}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "icon" }),
+          "size-12 rounded-full"
+        )}
+      >
+        {mounted && isDark ? (
+          <LuSun className="size-4 text-primary" />
+        ) : (
+          <LuMoon className="size-4 text-primary" />
+        )}
+      </button>
     </DockIcon>
   )
 }
@@ -112,8 +98,8 @@ type CountryInfo = {
 }
 
 /**
- * Shows the viewer's country flag (from IP). Tooltip shows local timezone
- * abbreviation (e.g. WAT). Refreshes on focus / online after travel.
+ * Shows the viewer's country flag (from IP) and exposes its timezone
+ * abbreviation to assistive technology. Refreshes after travel.
  */
 function CountryBadge() {
   const [country, setCountry] = React.useState<CountryInfo | null>(null)
@@ -164,110 +150,78 @@ function CountryBadge() {
     }
   }, [])
 
-  const tooltip = country
-    ? (country.timezoneAbbr ?? country.name)
-    : "Detecting country…"
-
   return (
     <DockIcon>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span
-            aria-label={
-              country
-                ? `${country.name}${country.timezoneAbbr ? ` (${country.timezoneAbbr})` : ""}`
-                : "Country"
-            }
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "icon" }),
-              "size-12 rounded-full"
-            )}
-          >
-            {country ? (
-              <span className="text-base leading-none">{country.flag}</span>
-            ) : (
-              <span className="size-4 animate-pulse rounded-full bg-muted" />
-            )}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={8}>
-          {tooltip}
-        </TooltipContent>
-      </Tooltip>
+      <span
+        aria-label={
+          country
+            ? `${country.name}${country.timezoneAbbr ? ` (${country.timezoneAbbr})` : ""}`
+            : "Country"
+        }
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "icon" }),
+          "size-12 rounded-full"
+        )}
+      >
+        {country ? (
+          <span className="text-base leading-none">{country.flag}</span>
+        ) : (
+          <span className="size-4 animate-pulse rounded-full bg-muted" />
+        )}
+      </span>
     </DockIcon>
   )
 }
 
 const Header = () => {
+  const pathname = usePathname()
+
   return (
     <header
       className={cn(
-        "z-50 flex w-full justify-center max-watch:hidden",
+        "z-50 flex w-full justify-center max-watch:hidden before:pointer-events-none before:absolute before:inset-x-0 before:bottom-[calc(-1*max(1rem,env(safe-area-inset-bottom)))] before:h-32 before:bg-linear-to-b before:from-transparent before:via-background/80 before:to-background before:content-['']",
         // mobile: pinned bottom dock (above home indicator)
         "fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] px-6",
         // md+: back to top of the shell column
-        "md:static md:inset-auto md:bottom-auto md:px-0"
+        "md:static md:inset-auto md:bottom-auto md:px-0 md:before:hidden"
       )}
     >
-      <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-        <Dock
-          direction="middle"
-          className="mt-0 max-xs:scale-[0.86] max-md:gap-0.5 max-md:p-1"
-        >
-          {navItems.map(({ href, icon: Icon, label }) => (
+      <Dock
+        direction="middle"
+        className="relative z-10 mt-0 scale-[0.68] gap-0.5 p-1 xs:max-md:scale-80 md:scale-100 md:gap-2 md:p-2"
+      >
+        {navItems.map(({ href, icon: Icon, label }) => {
+          const isRoute = href.startsWith("/")
+          const isActive =
+            isRoute &&
+            (href === "/"
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`))
+
+          return (
             <DockIcon key={label}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={href}
-                    aria-label={label}
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "icon" }),
-                      "size-12 rounded-full"
-                    )}
-                  >
-                    <Icon className="size-4 text-primary" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={8}>
-                  {label}
-                </TooltipContent>
-              </Tooltip>
+              <Link
+                href={href}
+                aria-label={label}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon" }),
+                  "size-12 rounded-full"
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "size-4 transition-colors",
+                    isActive ? "text-foreground" : "text-muted-foreground"
+                  )}
+                />
+              </Link>
             </DockIcon>
-          ))}
-          <Separator orientation="vertical" className="h-full" />
-          {socialLinks.map(({ href, icon: Icon, label }) => (
-            <DockIcon key={label}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={href}
-                    target={href.startsWith("mailto:") ? undefined : "_blank"}
-                    rel={
-                      href.startsWith("mailto:")
-                        ? undefined
-                        : "noopener noreferrer"
-                    }
-                    aria-label={label}
-                    className={cn(
-                      buttonVariants({ variant: "ghost", size: "icon" }),
-                      "size-12 rounded-full"
-                    )}
-                  >
-                    <Icon className="size-4 text-primary" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={8}>
-                  {label}
-                </TooltipContent>
-              </Tooltip>
-            </DockIcon>
-          ))}
-          <Separator orientation="vertical" className="h-full" />
-          <ThemeToggle />
-          <CountryBadge />
-        </Dock>
-      </TooltipProvider>
+          )
+        })}
+        <ThemeToggle />
+        <CountryBadge />
+      </Dock>
     </header>
   )
 }

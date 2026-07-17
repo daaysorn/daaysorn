@@ -201,6 +201,21 @@
   animation: flip-fold-bottom 0.28s ease-out 0.28s forwards;
 }
 
+/* Prevent server-rendered page content from flashing before GSAP applies the
+   route transition's initial state. The template removes this class in the
+   same frame that animation setup runs. */
+.page-transition-pending > *,
+.shell-transition-pending > * {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-pending > *,
+  .shell-transition-pending > * {
+    visibility: visible;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

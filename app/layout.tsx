@@ -1,9 +1,16 @@
+import type { Metadata } from "next"
 import { Geist, JetBrains_Mono, Montserrat } from "next/font/google"
 
 import "./globals.css"
-import { Footer, Header } from "@/components/nav"
+import { AppShell } from "@/components/app-shell"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
+
+const appName = process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Daaysorn"
+
+export const metadata: Metadata = {
+  title: appName,
+}
 
 const montserratHeading = Montserrat({
   subsets: ["latin"],
@@ -28,6 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={cn(
         "scroll-smooth bg-background font-sans text-foreground antialiased",
@@ -38,13 +46,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <div className="flex min-h-svh max-w-md min-w-0 flex-col p-6 pb-24 md:mx-auto md:pb-6">
-            <Header />
-            <main className="w-full min-w-0 flex-1 text-left wrap-break-word md:mt-16 md:w-xl md:max-w-[calc(100vw-3rem)] md:self-center">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

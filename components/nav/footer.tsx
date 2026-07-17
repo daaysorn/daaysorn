@@ -44,7 +44,7 @@ const Footer = () => {
   const appName = process.env.NEXT_PUBLIC_APP_NAME
 
   return (
-    <footer className="flex w-full flex-col gap-3 py-8 text-center font-medium md:fixed md:inset-x-0 md:bottom-5 md:flex-row md:items-center md:justify-center md:gap-4 md:py-0 md:text-center">
+    <footer className="flex w-full flex-col gap-3 py-8 text-center font-medium md:fixed md:inset-x-0 md:bottom-5 md:origin-bottom md:scale-90 md:flex-row md:items-center md:justify-center md:gap-4 md:py-0 md:text-center">
       {/** mobile: clock & copyright are separate ordered rows; md: paired inline */}
       <div className="contents md:order-1 md:flex md:items-center md:gap-x-3 md:justify-center">
         <div className="order-1 flex justify-center text-sm text-muted-foreground">
@@ -52,7 +52,8 @@ const Footer = () => {
         </div>
         <div className="order-3 flex justify-center text-sm text-muted-foreground">
           <span className="font-semibold">
-            &copy; <span className="text-primary">{appName}'s</span> {currentYear}
+            &copy; <span className="text-primary">{appName}&apos;s</span>{" "}
+            {currentYear}
           </span>
         </div>
       </div>
