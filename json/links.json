@@ -39,6 +39,12 @@
     "label": "Docs",
     "href": "/docs"
   },
+  "platforms": {
+    "shadcn": {
+      "label": "shadcn/ui",
+      "href": "https://ui.shadcn.com/"
+    }
+  },
   "account": {
     "createHref": ""
   },

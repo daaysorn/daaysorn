@@ -28,9 +28,9 @@ One daaysorn account is designed to give people access across every product, sim
 
 ## Building in public
 
-This repository contains the source for [daaysorn.com](https://daaysorn.com). I share how ideas become useful products, along with [daaysorn-cmp](https://github.com/daaysorn/daaysorn/tree/main/components/daaysorn-cmp), the reusable building blocks that keep my products consistent.
+This repository contains the source for [daaysorn.com](https://daaysorn.com). I share how ideas become useful products, along with [daaysorn-cmp](https://github.com/daaysorn/daaysorn/tree/main/components/daaysorn-cmp), my collection of ready-made building blocks. It works with [shadcn/ui](https://ui.shadcn.com/), Next.js, React, Tailwind CSS, and registry-based installs. I use it to keep my products familiar, easy to use, and consistent wherever they appear.
 
-Developer-ready integration guidance is available in the [documentation](https://daaysorn.com/docs).
+I have made developer-ready integration guidance available in the [documentation](https://daaysorn.com/docs).
 
 ## Tools I enjoy
 

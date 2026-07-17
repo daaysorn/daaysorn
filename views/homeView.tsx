@@ -248,8 +248,19 @@ const HomeView = () => {
           >
             daaysorn-cmp
           </PreviewLink>{" "}
-          is my collection of ready-made building blocks. I use it to keep my
-          products familiar, easy to use, and consistent wherever they appear.
+          is my collection of ready-made building blocks. It works with{" "}
+          <PreviewLink
+            href={links.platforms.shadcn.href}
+            label={links.platforms.shadcn.label}
+            description="A source-first component system for building your own interface library."
+            icon={PiCubeFill}
+            external
+          >
+            {links.platforms.shadcn.label}
+          </PreviewLink>
+          , Next.js, React, Tailwind CSS, and registry-based installs. I use it
+          to keep my products familiar, easy to use, and consistent wherever
+          they appear.
         </p>
 
         <p className="mt-5">
@@ -281,8 +292,8 @@ const HomeView = () => {
             )
           })}
           . Every product follows the daaysorn design system so it feels clear,
-          familiar, and consistent. Developer-ready documentation for
-          integrating with{" "}
+          familiar, and consistent. I have made developer-ready documentation
+          for integrating with{" "}
           <PreviewLink
             href={links.brand.href}
             label="daaysorn"
@@ -291,7 +302,7 @@ const HomeView = () => {
           >
             daaysorn
           </PreviewLink>{" "}
-          is available in{" "}
+          available in{" "}
           <PreviewLink
             href={links.documentation.href}
             label={links.documentation.label}
