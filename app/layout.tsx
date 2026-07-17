@@ -30,17 +30,17 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       className={cn(
-        "antialiased font-sans bg-background text-foreground scroll-smooth",
+        "scroll-smooth bg-background font-sans text-foreground antialiased",
         geistSans.variable,
         montserratHeading.variable,
-        jetbrainsMono.variable,
+        jetbrainsMono.variable
       )}
     >
       <body>
         <ThemeProvider>
           <div className="flex min-h-svh max-w-md min-w-0 flex-col p-6 pb-24 md:mx-auto md:pb-6">
             <Header />
-            <main className="w-full min-w-0 wrap-break-word text-left md:mt-16">
+            <main className="w-full min-w-0 flex-1 text-left wrap-break-word md:mt-16 md:w-xl md:max-w-[calc(100vw-3rem)] md:self-center">
               {children}
             </main>
             <Footer />

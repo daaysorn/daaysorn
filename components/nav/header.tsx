@@ -4,14 +4,8 @@ import * as React from "react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import type { IconType } from "react-icons"
-import {
-  FaEnvelope,
-  FaGithub,
-  FaHouse,
-  FaMoon,
-  FaPen,
-  FaSun,
-} from "react-icons/fa6"
+import { FaEnvelope, FaGithub, FaHouse, FaPen } from "react-icons/fa6"
+import { LuMoon, LuSun } from "react-icons/lu"
 import { RiInstagramFill, RiTwitterXLine } from "react-icons/ri"
 
 import { buttonVariants } from "@/components/ui/button"
@@ -87,14 +81,117 @@ function ThemeToggle() {
             )}
           >
             {mounted && isDark ? (
-              <FaSun className="size-4 text-primary" />
+              <LuSun className="size-4 text-primary" />
             ) : (
-              <FaMoon className="size-4 text-primary" />
+              <LuMoon className="size-4 text-primary" />
             )}
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={8}>
           {mounted ? label : "Toggle theme"}
+        </TooltipContent>
+      </Tooltip>
+    </DockIcon>
+  )
+}
+
+/** ISO 3166 alpha-2 → regional-indicator flag emoji (e.g. "NG" → 🇳🇬). */
+function flagEmoji(cc: string) {
+  return cc
+    .toUpperCase()
+    .replace(/[A-Z]/g, (c) =>
+      String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65)
+    )
+}
+
+type CountryInfo = {
+  code: string
+  name: string
+  flag: string
+  timezoneAbbr: string | null
+}
+
+/**
+ * Shows the viewer's country flag (from IP). Tooltip shows local timezone
+ * abbreviation (e.g. WAT). Refreshes on focus / online after travel.
+ */
+function CountryBadge() {
+  const [country, setCountry] = React.useState<CountryInfo | null>(null)
+
+  const load = React.useEffectEvent(async () => {
+    try {
+      const res = await fetch("/api/geo", { cache: "no-store" })
+      if (!res.ok) return
+
+      const data = (await res.json()) as {
+        countryCode: string | null
+        country: string | null
+        timezoneAbbr: string | null
+      }
+
+      if (!data.countryCode) return
+
+      setCountry({
+        code: data.countryCode,
+        name: data.country ?? data.countryCode,
+        flag: flagEmoji(data.countryCode),
+        timezoneAbbr: data.timezoneAbbr,
+      })
+    } catch {
+      // Keep last known country on transient failures.
+    }
+  })
+
+  React.useEffect(() => {
+    void load()
+
+    const onFocus = () => {
+      void load()
+    }
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") onFocus()
+    }
+
+    window.addEventListener("focus", onFocus)
+    window.addEventListener("online", onFocus)
+    document.addEventListener("visibilitychange", onVisibility)
+
+    return () => {
+      window.removeEventListener("focus", onFocus)
+      window.removeEventListener("online", onFocus)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
+  }, [])
+
+  const tooltip = country
+    ? (country.timezoneAbbr ?? country.name)
+    : "Detecting country…"
+
+  return (
+    <DockIcon>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            aria-label={
+              country
+                ? `${country.name}${country.timezoneAbbr ? ` (${country.timezoneAbbr})` : ""}`
+                : "Country"
+            }
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon" }),
+              "size-12 rounded-full"
+            )}
+          >
+            {country ? (
+              <span className="text-base leading-none">{country.flag}</span>
+            ) : (
+              <span className="size-4 animate-pulse rounded-full bg-muted" />
+            )}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={8}>
+          {tooltip}
         </TooltipContent>
       </Tooltip>
     </DockIcon>
@@ -113,7 +210,10 @@ const Header = () => {
       )}
     >
       <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-        <Dock direction="middle" className="mt-0">
+        <Dock
+          direction="middle"
+          className="mt-0 max-xs:scale-[0.86] max-md:gap-0.5 max-md:p-1"
+        >
           {navItems.map(({ href, icon: Icon, label }) => (
             <DockIcon key={label}>
               <Tooltip>
@@ -165,6 +265,7 @@ const Header = () => {
           ))}
           <Separator orientation="vertical" className="h-full" />
           <ThemeToggle />
+          <CountryBadge />
         </Dock>
       </TooltipProvider>
     </header>
