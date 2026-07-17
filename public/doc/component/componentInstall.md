@@ -68,7 +68,7 @@ bunx shadcn@latest add @daaysorn/flip-clock
 ### What the CLI does on `add`
 
 1. **Copies files** into your project, preserving paths:
-   `components/custom/…`, `components/ui/…`, `lib/…`, and (for Spotify) the
+   `components/daaysorn-cmp/…`, `components/ui/…`, `lib/…`, and (for Spotify) the
    `app/api/…` route handlers.
 2. **Installs npm dependencies** (e.g. `swr`, `react-icons`, `radix-ui`).
 3. **Injects CSS** — the `@keyframes` / `@utility` animations and any theme

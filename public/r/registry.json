@@ -11,23 +11,23 @@
       "dependencies": ["swr", "react-icons", "radix-ui"],
       "files": [
         {
-          "path": "components/custom/spotify/now-playing.tsx",
+          "path": "components/daaysorn-cmp/spotify/now-playing.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/custom/spotify/now-playing-widget.tsx",
+          "path": "components/daaysorn-cmp/spotify/now-playing-widget.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/custom/spotify/providers.tsx",
+          "path": "components/daaysorn-cmp/spotify/providers.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/custom/spotify/types.ts",
+          "path": "components/daaysorn-cmp/spotify/types.ts",
           "type": "registry:component"
         },
         {
-          "path": "components/custom/spotify/index.ts",
+          "path": "components/daaysorn-cmp/spotify/index.ts",
           "type": "registry:component"
         },
         {
@@ -103,15 +103,15 @@
       "dependencies": [],
       "files": [
         {
-          "path": "components/custom/flipclock/flip-clock.tsx",
+          "path": "components/daaysorn-cmp/flipclock/flip-clock.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/custom/flipclock/flip-unit.tsx",
+          "path": "components/daaysorn-cmp/flipclock/flip-unit.tsx",
           "type": "registry:component"
         },
         {
-          "path": "components/custom/flipclock/index.ts",
+          "path": "components/daaysorn-cmp/flipclock/index.ts",
           "type": "registry:component"
         }
       ],

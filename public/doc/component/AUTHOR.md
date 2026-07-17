@@ -44,7 +44,7 @@ old code. The build script does this automatically (see [Build](#build--deploy))
 |------|-----------|
 | `registry.json` | **Source of truth.** Lists each item and the files it ships, plus deps / cssVars / css / envVars. Edit this to change what's published. |
 | `public/r/*.json` | **Generated** by `shadcn build`. One file per item + `registry.json` (the index). Committed & deployed; don't hand-edit. |
-| `components/custom/<feature>/` | The actual component source (e.g. `spotify/`, `flipclock/`). |
+| `components/daaysorn-cmp/<feature>/` | The actual component source (e.g. `spotify/`, `flipclock/`). |
 | `components/ui/*` | shadcn-style primitives a component ships with (e.g. `hover-card.tsx`, `dialog.tsx`). |
 | `lib/*` | Server/shared helpers a component ships (e.g. `spotify.ts`). |
 | `app/api/**` | Route handlers a component ships (Spotify). |
@@ -67,7 +67,7 @@ Each entry in `registry.json` → one installable component. Anatomy:
   "dependencies": ["swr"],           // npm packages the CLI installs
   "registryDependencies": [],        // OTHER registry items to pull first (bare = shadcn's)
   "files": [
-    { "path": "components/custom/flipclock/flip-clock.tsx", "type": "registry:component" },
+    { "path": "components/daaysorn-cmp/flipclock/flip-clock.tsx", "type": "registry:component" },
     { "path": "lib/spotify.ts",        "type": "registry:lib" },
     { "path": "app/api/now-playing/route.ts", "type": "registry:file",
       "target": "app/api/now-playing/route.ts" }   // exact destination
@@ -82,7 +82,7 @@ Each entry in `registry.json` → one installable component. Anatomy:
 
 | type | Destination | Use for |
 |------|-------------|---------|
-| `registry:component` | components alias (path preserved, e.g. `components/custom/…`) | Your components |
+| `registry:component` | components alias (path preserved, e.g. `components/daaysorn-cmp/…`) | Your components |
 | `registry:ui` | ui alias (`components/ui/…`) | Primitives you ship |
 | `registry:lib` | lib alias (`lib/…`) | Helpers |
 | `registry:hook` | hooks alias | Hooks |
@@ -113,7 +113,7 @@ field powers *installs*.
 
 End-to-end checklist. Say you're adding `foo-widget`.
 
-1. **Build it in the app** under `components/custom/foo/`. Use semantic tokens
+1. **Build it in the app** under `components/daaysorn-cmp/foo/`. Use semantic tokens
    only (see the design-system skill), `cn()` for classes, and put any
    keyframes/utilities in `app/globals.css`. Wire it somewhere (e.g. the footer)
    and get it working + typechecking.

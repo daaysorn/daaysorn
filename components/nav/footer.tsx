@@ -3,8 +3,8 @@ import type { IconType } from "react-icons"
 import { FaEnvelope, FaGithub } from "react-icons/fa6"
 import { RiInstagramFill, RiTwitterXLine } from "react-icons/ri"
 
-import { FlipClock } from "@/components/custom/flipclock"
-import { NowPlaying } from "@/components/custom/spotify"
+import { FlipClock } from "@/components/daaysorn-cmp/flipclock"
+import { NowPlaying } from "@/components/daaysorn-cmp/spotify"
 import {
   Tooltip,
   TooltipContent,

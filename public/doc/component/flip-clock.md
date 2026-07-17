@@ -25,7 +25,7 @@ npx shadcn@latest add https://daaysorn.com/r/flip-clock.json
 This copies:
 
 ```
-components/custom/flipclock/   flip-clock.tsx, flip-unit.tsx, index.ts
+components/daaysorn-cmp/flipclock/   flip-clock.tsx, flip-unit.tsx, index.ts
 ```
 
 CSS injected: the `flip-fold-top` / `flip-fold-bottom` keyframes and the
@@ -37,7 +37,7 @@ env — it uses your existing `cn()` helper and theme tokens.
 ## Usage
 
 ```tsx
-import { FlipClock } from "@/components/custom/flipclock"
+import { FlipClock } from "@/components/daaysorn-cmp/flipclock"
 
 // Viewer's local time
 <FlipClock />

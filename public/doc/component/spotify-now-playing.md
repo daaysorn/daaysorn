@@ -28,7 +28,7 @@ npx shadcn@latest add https://daaysorn.com/r/spotify-now-playing.json
 This copies:
 
 ```
-components/custom/spotify/   now-playing.tsx, now-playing-widget.tsx,
+components/daaysorn-cmp/spotify/   now-playing.tsx, now-playing-widget.tsx,
                              providers.tsx, types.ts, index.ts
 components/ui/               hover-card.tsx, dialog.tsx
 lib/                         spotify.ts
@@ -45,7 +45,7 @@ Dependencies installed: `swr`, `react-icons`, `radix-ui`. CSS injected: the
 ## Usage
 
 ```tsx
-import { NowPlaying } from "@/components/custom/spotify"
+import { NowPlaying } from "@/components/daaysorn-cmp/spotify"
 
 export function Footer() {
   return (
