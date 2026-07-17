@@ -737,13 +737,7 @@ Do **not** put primary brand layout inside `watch:` min-width alone — that wou
 
 ### 8.1 Global interaction rules
 
-From `app/globals.css`:
-
-```css
-button:not(:disabled), [role="button"]:not(:disabled) {
-  cursor: pointer;
-}
-```
+From `app/globals.css`: enabled `button` and `[role="button"]` elements use the pointer affordance on hover (see the base layer in that file).
 
 
 
@@ -777,7 +771,7 @@ Tooltip delay: `delayDuration={150}`, `skipDelayDuration={100}`, `sideOffset={8}
 | Prop                   | Default                                   | Meaning                |
 | ---------------------- | ----------------------------------------- | ---------------------- |
 | `iconSize`             | `40`                                      | Resting icon box       |
-| `iconMagnification`    | `60`                                      | Peak size under cursor |
+| `iconMagnification`    | `60`                                      | Peak size under the pointer |
 | `iconDistance`         | `140`                                     | Influence radius (px)  |
 | `disableMagnification` | `false`                                   | Flat hover fallback    |
 | Spring                 | mass `0.1`, stiffness `150`, damping `12` | Snappy dock physics    |
@@ -981,11 +975,11 @@ Radix Tooltip compound API:
 
 ### 10.3 Dock — `components/ui/dock.tsx`
 
-Mac-style icon dock with cursor-driven magnification (Motion springs).
+Mac-style icon dock with pointer-driven magnification (Motion springs).
 
 ```
 ┌──────────────────────────────────────┐
-│  ( ⬡ )  ( ⬡ )  ( ⬡ )  ( ⬡ )        │  ← icons scale toward cursor
+│  ( ⬡ )  ( ⬡ )  ( ⬡ )  ( ⬡ )        │  ← icons scale toward the pointer
 └──────────────────────────────────────┘
      frosted · blurred · rounded-2xl
 ```
@@ -1301,8 +1295,7 @@ This design system is exposed to AI coding agents as a **project skill** so any 
 
 | Item | Value |
 |------|-------|
-| **Main skill (edit here)** | https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md · local `public/doc/daaysorn-design-system/SKILL.md` |
-| **Cursor mirror** | `.cursor/skills/daaysorn-design-system/SKILL.md` — copy of main for Cursor discovery; **sync after every edit to main** |
+| **Skill (edit here)** | https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md · local `public/doc/daaysorn-design-system/SKILL.md` |
 | Skill name | `daaysorn-design-system` |
 | Deep reference | this file · https://github.com/daaysorn/daaysorn/blob/main/public/doc/designSystem.md |
 | Runtime source of truth | `app/globals.css` |
@@ -1310,18 +1303,9 @@ This design system is exposed to AI coding agents as a **project skill** so any 
 ### 16.1 How to invoke
 
 - **Humans:** ask the agent to *“use the daaysorn-design-system skill”* (or mention design system / tokens / breakpoints / theming), then describe the UI.
-- **Agents:** prefer reading the **main** skill at `public/doc/daaysorn-design-system/SKILL.md` (GitHub: https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md). Cursor also loads the mirror under `.cursor/skills/`. Then consult the relevant section of this doc via progressive disclosure before writing UI code.
+- **Agents:** read `public/doc/daaysorn-design-system/SKILL.md` (GitHub: https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md), then consult the relevant section of this doc via progressive disclosure before writing UI code.
 
-### 16.2 Keeping the Cursor mirror in sync
-
-1. Edit **only** `public/doc/daaysorn-design-system/SKILL.md`
-2. Copy it over the mirror:
-
-```bash
-cp public/doc/daaysorn-design-system/SKILL.md .cursor/skills/daaysorn-design-system/SKILL.md
-```
-
-### 16.3 What the skill enforces (summary)
+### 16.2 What the skill enforces (summary)
 
 The skill carries the non-negotiable rules (tokens-only, font roles, breakpoint ladder incl. `xs`/`watch`, radius scale, `cn()` usage, component APIs) plus a pre/post build checklist. This doc remains the deep reference the skill links into.
 

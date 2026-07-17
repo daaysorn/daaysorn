@@ -10,7 +10,6 @@ Authoritative rules for building UI in this repo.
 | | |
 |--|--|
 | **Main (edit here)** | `public/doc/daaysorn-design-system/SKILL.md` · https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md |
-| **Cursor mirror** | `.cursor/skills/daaysorn-design-system/SKILL.md` (copy of main — keep in sync after edits) |
 | **Deep reference** | `public/doc/designSystem.md` · https://github.com/daaysorn/daaysorn/blob/main/public/doc/designSystem.md |
 | **Runtime tokens** | `app/globals.css` |
 

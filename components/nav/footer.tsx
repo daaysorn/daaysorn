@@ -1,8 +1,7 @@
 import Link from "next/link"
 import type { IconType } from "react-icons"
 import { FaEnvelope, FaGithub } from "react-icons/fa6"
-import { FaSquareXTwitter } from "react-icons/fa6"
-import { RiInstagramFill } from "react-icons/ri"
+import { RiInstagramFill, RiTwitterXLine } from "react-icons/ri"
 
 import {
   Tooltip,
@@ -28,7 +27,7 @@ const socialLinks: {
   },
   {
     href: `https://x.com/${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}`,
-    icon: FaSquareXTwitter,
+    icon: RiTwitterXLine,
     label: "X",
   },
   {
@@ -43,7 +42,7 @@ const Footer = () => {
   const appName = process.env.NEXT_PUBLIC_APP_NAME
 
   return (
-    <footer className="fixed bottom-5 flex w-full gap-4 font-medium">
+    <footer className="flex w-full flex-col gap-3 py-5 text-center font-medium md:fixed md:bottom-5 md:flex-row md:gap-4 md:py-0 md:text-left">
       {/** copyright */}
       <div>
         <p className="text-sm text-muted-foreground">
@@ -53,7 +52,7 @@ const Footer = () => {
       </div>
 
       {/** spotify player */}
-      <div>
+      <div className="hidden md:block">
         <p className="text-sm text-muted-foreground">
           last played -{" "}
           <span className="font-semibold text-primary">Song Name</span> by
@@ -63,7 +62,7 @@ const Footer = () => {
 
       {/** social media */}
       <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-        <div className="flex items-center gap-3 text-primary">
+        <div className="flex items-center justify-center gap-5 text-primary md:justify-start md:gap-3">
           {socialLinks.map(({ href, icon: Icon, label }) => (
             <Tooltip key={label}>
               <TooltipTrigger asChild>
@@ -78,7 +77,7 @@ const Footer = () => {
                   aria-label={label}
                   className="inline-flex opacity-80 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-110 hover:opacity-100"
                 >
-                  <Icon size={20} className="text-primary" />
+                  <Icon className="size-4 text-primary md:size-5" />
                 </Link>
               </TooltipTrigger>
               <TooltipContent
