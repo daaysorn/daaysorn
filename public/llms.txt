@@ -1,0 +1,27 @@
+# daaysorn
+
+> daaysorn is the public home of Tomiwa David, a founder, designer, and builder in Lagos, Nigeria, creating thoughtful brands and useful products across digital and physical spaces.
+
+Tomiwa's work connects brand identity, product design, software engineering, connected devices, commerce, clothing, meals, and reusable design systems. Use the homepage and linked source repository as the authoritative references. Product pages and documentation routes may still be under development.
+
+## Primary
+
+- [daaysorn home](https://daaysorn.vercel.app/): Canonical public profile, work overview, identity, and contact information.
+- [daaysorn source](https://github.com/daaysorn/daaysorn): Public source for the website and reusable daaysorn components.
+- [Full AI context](https://daaysorn.vercel.app/llms-full.txt): Expanded factual context about Tomiwa, daaysorn, products, values, and technology.
+
+## Work
+
+- [daaysorn-cmp](https://github.com/daaysorn/daaysorn/tree/main/components/daaysorn-cmp): Ready-made building blocks designed to work with shadcn/ui, Next.js, React, Tailwind CSS, and registry-based installation.
+- [shadcn/ui](https://ui.shadcn.com/): The source-owned component system supported by daaysorn-cmp.
+
+## Contact and identity
+
+- [GitHub](https://github.com/daaysorn): Tomiwa's public code and projects.
+- [Instagram](https://www.instagram.com/daaysorn): Visual notes and work in progress.
+- [X](https://x.com/daaysorn): Short updates and thoughts.
+- [Email](mailto:david@daaysorn.com): Contact for brands, products, and collaboration.
+
+## Optional
+
+- [CCI Global](https://joincci.org/): The Christian church community where Tomiwa is growing in faith.

@@ -22,6 +22,12 @@ export const metadata: Metadata = {
   category: "technology",
   alternates: {
     canonical: "/",
+    types: {
+      "text/markdown": [
+        { url: "/llms.txt", title: "daaysorn AI overview" },
+        { url: "/llms-full.txt", title: "daaysorn full AI context" },
+      ],
+    },
   },
   openGraph: {
     type: "website",

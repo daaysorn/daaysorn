@@ -65,5 +65,19 @@ export const homeStructuredData = {
         "@id": `${siteConfig.url}/#person`,
       },
     },
+    {
+      "@type": "ProfilePage",
+      "@id": `${siteConfig.url}/#profile`,
+      url: siteConfig.url,
+      name: siteConfig.title,
+      description: siteConfig.description,
+      inLanguage: "en-NG",
+      isPartOf: {
+        "@id": `${siteConfig.url}/#website`,
+      },
+      mainEntity: {
+        "@id": `${siteConfig.url}/#person`,
+      },
+    },
   ],
 }
