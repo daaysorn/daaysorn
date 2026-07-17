@@ -97,7 +97,7 @@ After writing UI:
 
 ## Portability (use on any site)
 
-Same system, swap **token values only** (keep token names + component APIs). To rebrand: change OKLCH values in `:root`/`.dark`, `--radius`, font families in `app/layout.tsx`, and `--breakpoint-*` rems if needed. Never rename semantic tokens or hard-code values in components. Full contract: `public/doc/designSystem.md` §15.
+Same system, swap **token values only** (keep token names + component APIs). `app/globals.css` was generated from [shadcn/ui Create](https://ui.shadcn.com/create) — replace `:root`/`.dark` values (or paste a new Create export) freely; do not rename semantic tokens. To rebrand: change OKLCH values, `--radius`, fonts in `app/layout.tsx`, and `--breakpoint-*` rems if needed. Full contract: `public/doc/designSystem.md` §15 (esp. §15.7).
 
 ## Progressive disclosure — open the doc when
 

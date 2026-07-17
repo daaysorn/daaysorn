@@ -7,6 +7,7 @@
 | ------------- | ---------------------------------------------------- |
 | Product       | Daaysorn                                             |
 | UI kit        | shadcn/ui (`radix-vega` style)                       |
+| Theme origin  | [shadcn/ui Create](https://ui.shadcn.com/create) → generated `app/globals.css` + `components.json` |
 | Styling       | Tailwind CSS v4 + CSS variables (OKLCH)              |
 | Base palette  | Neutral (`components.json` → `baseColor: "neutral"`) |
 | Default theme | Dark (`ThemeProvider` `defaultTheme="dark"`)         |
@@ -96,6 +97,25 @@ components.json        ← shadcn config
 | Variants      | `class-variance-authority` (CVA)                  |
 | Themes        | `next-themes` (class strategy on `<html>`)        |
 
+
+### 2.1 Origin: generated from shadcn Create
+
+`app/globals.css` and the initial token set were generated via **[shadcn/ui Create](https://ui.shadcn.com/create)** (style `radix-vega`, base color `neutral`, CSS variables on). That means:
+
+| Artifact | Role |
+|----------|------|
+| `app/globals.css` | Semantic OKLCH tokens + `@theme inline` maps shadcn expects |
+| `components.json` | CLI config (`style`, `baseColor`, aliases, registries) |
+| `components/ui/*` | Components that consume those tokens via Tailwind utilities |
+
+**Daaysorn extensions on top of that scaffold** (do not confuse with the shadcn export itself):
+
+- Font roles: Geist / Montserrat / JetBrains Mono in `app/layout.tsx` + base-layer heading/code rules
+- Breakpoints: `watch` + `xs` in a plain `@theme` block
+- Theme hotkey + default dark in `ThemeProvider`
+- Product shell / nav / dock
+
+Because the token **names** match the shadcn contract, any component from `npx shadcn@latest add …` themes automatically against this file.
 
 ---
 
@@ -823,6 +843,29 @@ className="border border-border dark:bg-input/30"
 
 Avoid pairing two theme variants that set the same CSS property unless the component intentionally needs that override. Button variants already handle their own dark-state details.
 
+### 9.4 Using this system with shadcn
+
+You are already on the shadcn theming path. Components read CSS variables through Tailwind (`bg-primary`, `text-muted-foreground`, `border-border`, …).
+
+**Add components**
+
+```bash
+npx shadcn@latest add button
+npx shadcn@latest add @magicui/<name>   # via components.json registries
+```
+
+**Change the whole visual theme**
+
+Edit or replace the **values** in `app/globals.css` (`:root` + `.dark`). Keep the **same token names**. Every shadcn/Daaysorn component restyles with no TSX edits.
+
+You can regenerate a new palette from [ui.shadcn.com/create](https://ui.shadcn.com/create) and paste the new `:root` / `.dark` (and related) token blocks into `globals.css` — as long as you preserve:
+
+1. Semantic token names (`--background`, `--primary`, `--radius`, …)
+2. `@theme inline` mappings (`--color-primary: var(--primary)`, …)
+3. Our Daaysorn additions you still want (font CSS vars, `watch`/`xs` breakpoints, heading/code base rules)
+
+**Do not** rename tokens or hard-code hex/oklch in `components/ui`. That is what breaks portability and shadcn.
+
 ---
 
 
@@ -1236,6 +1279,18 @@ Treat the token/API surface like an API:
 
 Record every change in the [Changelog](#changelog-design-system-doc).
 
+### 15.7 Full theme replacement (shadcn Create → this repo)
+
+Someone adopting Daaysorn (or rebranding it) can throw away the current look entirely:
+
+1. Open [shadcn/ui Create](https://ui.shadcn.com/create) and pick a new style / base color / radius.
+2. Copy the generated CSS variable blocks into `app/globals.css` (replace `:root` and `.dark` values — keep names).
+3. Keep (or re-apply) Daaysorn-specific layers you still need: font variables in `layout.tsx`, `--breakpoint-watch` / `--breakpoint-xs`, base `h*` / `code` rules.
+4. Leave `components/ui` alone — they already bind to the semantic contract.
+5. Optionally align `components.json` (`style`, `baseColor`) with what you generated so future `shadcn add` stays consistent.
+
+Result: a completely different brand, same design-system architecture, same shadcn workflow.
+
 ---
 
 
@@ -1311,6 +1366,7 @@ The skill carries the non-negotiable rules (tokens-only, font roles, breakpoint 
 | Initial     | Full audit of fonts (Geist / Montserrat / JetBrains Mono), OKLCH tokens, radius scale, shell layout, Button / Tooltip / Dock / Footer, theme provider, Tailwind default breakpoints                                                                                                                                                          |
 | Breakpoints | Deep §7: why Tailwind isn’t “wrong,” what we keep vs extend (`watch`/`xs`), how it helps phones (incl. iPhone 12), wearables, shadcn compatibility, anti-patterns                                                                                                                                                                            |
 | Portability | Added §15 (three-tier tokens, fixed-vs-swappable contract, brand-swap mechanics, a11y contract, versioning) + §16 agent skill usage; skill at [https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md](https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md) |
+| shadcn Create | Documented origin of `globals.css` from [ui.shadcn.com/create](https://ui.shadcn.com/create); §2.1, §9.4, §15.7 — replace theme values freely, keep token names; shadcn `add` works unchanged |
 
 
 ---
