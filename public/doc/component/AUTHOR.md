@@ -66,10 +66,13 @@ Each entry in `registry.json` → one installable component. Anatomy:
   "dependencies": ["swr"],           // npm packages the CLI installs
   "registryDependencies": [],        // OTHER registry items to pull first (bare = shadcn's)
   "files": [
-    { "path": "components/daaysorn-cmp/flipclock/flip-clock.tsx", "type": "registry:component" },
-    { "path": "lib/spotify.ts",        "type": "registry:lib" },
+    // Ship everything inside the feature folder as registry:component
+    { "path": "components/daaysorn-cmp/spotify/now-playing.tsx", "type": "registry:component" },
+    { "path": "components/daaysorn-cmp/spotify/server.ts",       "type": "registry:component" },
+    { "path": "components/daaysorn-cmp/spotify/ui/dialog.tsx",   "type": "registry:component" },
+    // Route handlers must live under app/ → thin shim with an exact target
     { "path": "app/api/now-playing/route.ts", "type": "registry:file",
-      "target": "app/api/now-playing/route.ts" }   // exact destination
+      "target": "app/api/now-playing/route.ts" }
   ],
   "cssVars": { "light": { "shimmer-glint": "..." }, "dark": { "...": "..." } },
   "css": { "@keyframes ...": { ... }, "@utility ...": { ... } },
@@ -81,11 +84,11 @@ Each entry in `registry.json` → one installable component. Anatomy:
 
 | type | Destination | Use for |
 |------|-------------|---------|
-| `registry:component` | components alias (path preserved, e.g. `components/daaysorn-cmp/…`) | Your components |
-| `registry:ui` | ui alias (`components/ui/…`) | Primitives you ship |
-| `registry:lib` | lib alias (`lib/…`) | Helpers |
-| `registry:hook` | hooks alias | Hooks |
-| `registry:file` | **exact `target`** (required) | Anything outside an alias — API routes, config |
+| `registry:component` | components alias (path preserved, e.g. `components/daaysorn-cmp/…`) | **Everything in the feature folder** — components, its `ui/*`, `server.ts`, `auth.ts`, types |
+| `registry:ui` | ui alias (`components/ui/…`) | shadcn default for primitives — **we don't use it** (see convention below) |
+| `registry:lib` | lib alias (`lib/…`) | shadcn default for helpers — **we don't use it** (helpers go in the folder) |
+| `registry:hook` | hooks alias | Hooks (if ever shared app-wide) |
+| `registry:file` | **exact `target`** (required) | Anything that must sit outside the folder — API route shims, config |
 
 > **Self-contained convention.** Everything a component needs is shipped as
 > `registry:component` files **inside its own folder** — including its `ui/`
@@ -213,8 +216,10 @@ Existing installs are copies in other people's repos — they won't auto-update.
 - **Tailwind v4 only.** The `css` payloads use v4 `@utility` / `@theme` syntax.
 - **Semantic tokens only** in components (no raw hex) so installs adapt to any
   theme. See the `daaysorn-design-system` skill.
-- **Ship your own primitives** as `registry:ui` files rather than depending on
-  shadcn's, when yours differ.
+- **Keep components self-contained.** Ship primitives, server logic, and helpers
+  as `registry:component` files **inside the feature folder** (with relative
+  imports), not to `components/ui/` or `lib/`. Route handlers are the only
+  exception — thin `registry:file` shims under `app/`.
 - **Update the host URL.** Docs + `components.json` reference
   `https://daaysorn.com` — that's your domain; keep it correct if it ever moves.
 - **Versioning is optional.** Registry URLs aren't versioned. If you need
