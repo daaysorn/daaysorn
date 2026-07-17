@@ -37,7 +37,10 @@ function timezoneAbbr(timeZone: string) {
         .split(/\s+/)
         .filter(Boolean)
       if (words.length >= 2) {
-        return words.map((w) => w[0]!).join("").toUpperCase()
+        return words
+          .map((w) => w[0]!)
+          .join("")
+          .toUpperCase()
       }
     }
 
@@ -72,9 +75,7 @@ function fromHeaders(headers: Headers): GeoPayload | null {
   }
 
   const timezone =
-    headers.get("x-vercel-ip-timezone") ??
-    headers.get("cf-timezone") ??
-    null
+    headers.get("x-vercel-ip-timezone") ?? headers.get("cf-timezone") ?? null
 
   return payload(code, countryName(code), timezone)
 }
@@ -91,9 +92,10 @@ function isLoopbackOrPrivate(ip: string | null) {
 }
 
 async function fromGeoJs(ip: string | null): Promise<GeoPayload | null> {
-  const url = isLoopbackOrPrivate(ip)
-    ? "https://get.geojs.io/v1/ip/geo.json"
-    : `https://get.geojs.io/v1/ip/geo/${encodeURIComponent(ip)}.json`
+  const url =
+    ip && !isLoopbackOrPrivate(ip)
+      ? `https://get.geojs.io/v1/ip/geo/${encodeURIComponent(ip)}.json`
+      : "https://get.geojs.io/v1/ip/geo.json"
 
   try {
     const res = await fetch(url, {

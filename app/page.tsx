@@ -1,8 +1,17 @@
 import { HomeView } from "@/views"
+import { homeStructuredData } from "@/lib/seo"
 
 const Page = () => {
   return (
-    <HomeView />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(homeStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+      <HomeView />
+    </>
   )
 }
 
