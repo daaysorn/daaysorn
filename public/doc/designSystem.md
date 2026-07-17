@@ -21,16 +21,19 @@
 1. [Principles](#1-principles)
 2. [Architecture & file map](#2-architecture--file-map)
 3. [Color system](#3-color-system)
+   - [3.6 Muted text & quiet chrome](#36-muted-text--quiet-chrome)
 4. [Typography](#4-typography)
 5. [Radius & shape](#5-radius--shape)
 6. [Spacing, layout & shell](#6-spacing-layout--shell)
 7. [Breakpoints — philosophy, approach & how it helps](#7-breakpoints--philosophy-approach--how-it-helps)
 8. [Motion & interaction](#8-motion--interaction)
+   - [8.7 Ghost, loaders & feedback motion](#87-ghost-loaders--feedback-motion)
 9. [Theming](#9-theming)
 10. [Components](#10-components)
 11. [Icons](#11-icons)
 12. [Accessibility](#12-accessibility)
 13. [Usage recipes](#13-usage-recipes)
+    - [13.6 Long strings must wrap](#136-long-strings-must-wrap-tokens-urls-env-lines-mono)
 14. [Extending the system](#14-extending-the-system)
 15. [Portability & multi-brand — use on any site](#15-portability--multi-brand--use-on-any-site)
 16. [Agent usage (skill)](#16-agent-usage-skill)
@@ -239,6 +242,37 @@ Used for sequential data. Same values in light and dark currently:
 - Body copy → `text-muted-foreground`
 - Emphasis (app name, song title) → `font-semibold text-primary`
 - Social icons → `text-primary` with `opacity-80` → `hover:opacity-100`
+
+### 3.6 Muted text & quiet chrome
+
+Muted is the system language for “secondary, not inactive.” Use it for captions, metadata, helper copy, idle icons, and supporting labels — never for primary CTAs.
+
+| Role | Utility | When |
+|------|---------|------|
+| Quiet body / caption | `text-muted-foreground` | Footer copy, dialog descriptions, “by Artist”, empty states |
+| Quiet fill | `bg-muted` | Skeleton bars, soft chips, ghost hover targets |
+| De-emphasized icon (idle) | `text-muted-foreground` | Spotify glyph when not playing |
+| Soft opacity on primary chrome | `text-primary opacity-80` → `hover:opacity-100` | Social icons (still brand-colored, just quieter) |
+| Half-muted indicator | `bg-muted-foreground/50` | Inactive equalizer / status dots |
+
+```tsx
+{/* Hierarchy in one line */}
+<span className="text-sm text-muted-foreground">
+  <span className="font-semibold text-primary">Song Title</span> by Artist
+</span>
+
+{/* Caption */}
+<p className="text-sm text-muted-foreground">Supporting copy</p>
+
+{/* Micro mono hint */}
+<p className="font-mono text-xs text-muted-foreground">Press <kbd>d</kbd>…</p>
+```
+
+**Rules**
+
+- Prefer `text-muted-foreground` over `text-gray-*` / opacity-only greys.
+- Do not use muted for the main action label — that stays `text-primary` or `Button`.
+- Empty / idle UI stays muted; live / playing may promote icon color (e.g. brand accent) while surrounding copy stays muted.
 
 ---
 
@@ -787,6 +821,62 @@ Uses `tw-animate-css` patterns: `animate-in` / `fade-in-0` / `zoom-in-95` on ope
 
 Press `d` (no modifiers, not while typing in inputs) to toggle light ↔ dark. Implemented in `components/theme-provider.tsx` (`ThemeHotkey`). Transitions on theme change are disabled (`disableTransitionOnChange`).
 
+### 8.7 Ghost, loaders & feedback motion
+
+#### Ghost (transparent chrome)
+
+“Ghost” means no permanent fill — presence appears on interaction.
+
+| Pattern | How |
+|---------|-----|
+| **Button `ghost`** | `<Button variant="ghost">` — transparent resting; `hover:bg-muted hover:text-foreground` (dark: `hover:bg-muted/50`) |
+| **Ghost icon / close** | `text-muted-foreground hover:bg-accent hover:text-foreground` (see dialog close) |
+| **Ghost social** | Primary-colored icon at `opacity-80`, full opacity + lift on hover |
+
+```tsx
+<Button variant="ghost" size="icon" aria-label="More">…</Button>
+```
+
+Use ghost for secondary actions in dense chrome (toolbars, dialogs, icon rows). Prefer `default` / `outline` for primary path actions.
+
+#### Loaders & skeletons
+
+| Kind | Classes / utility | Timing | Use |
+|------|-------------------|--------|-----|
+| **Skeleton bar** | `animate-pulse rounded bg-muted` (+ fixed `h-* w-*`) | Tailwind default pulse | Loading placeholders (e.g. now-playing fetch) |
+| **Pulse (live)** | `motion-safe:animate-pulse` or `animate-music-pulse` | music-pulse: **1.8s** ease | Playing indicator / logo while track is live |
+| **Text shimmer** | `motion-safe:animate-text-shimmer` | **5.5s** `ease-in-out` infinite | Sweeping glint on muted live text (artist name) |
+
+```tsx
+{/* Skeleton — keep layout stable */}
+<span className="inline-block h-3 w-40 animate-pulse rounded bg-muted align-middle" />
+
+{/* Live pulse (respect reduced motion) */}
+<Icon className={cn(isPlaying && "motion-safe:animate-pulse")} />
+
+{/* Artist shimmer while playing */}
+<span className={cn(isPlaying && "motion-safe:animate-text-shimmer")}>
+  {artist}
+</span>
+```
+
+**Shimmer tokens** (`app/globals.css`) — theme-aware, derived from muted/foreground:
+
+| Token | Light | Dark |
+|-------|-------|------|
+| `--shimmer-base` | `var(--muted-foreground)` | same |
+| `--shimmer-glint` | `var(--foreground)` | mix of foreground into muted-foreground |
+
+Defined via `@utility animate-text-shimmer` and `@utility animate-music-pulse`.
+
+**Rules**
+
+- Always prefer `motion-safe:` for decorative loops so `prefers-reduced-motion` users get a calm UI.
+- Skeletons use `bg-muted`, never raw greys.
+- Shimmer is for **live muted text**, not for every caption.
+- Keep shimmer slow (`~5.5s ease-in-out`) — do not speed it into a strobe.
+- Stagger related pulses with `animation-delay` when sequencing (e.g. icon then title).
+
 ---
 
 
@@ -880,7 +970,7 @@ Built with CVA + Radix `Slot` (`asChild`). Data attributes: `data-slot="button"`
 | `default`     | Filled primary   | `bg-primary text-primary-foreground hover:bg-primary/80` |
 | `outline`     | Bordered surface | `border-border bg-background shadow-xs` + dark input mix |
 | `secondary`   | Soft fill        | `bg-secondary` + OKLCH mix hover                         |
-| `ghost`       | Transparent      | `hover:bg-muted`                                         |
+| `ghost`       | Transparent      | Resting empty; `hover:bg-muted hover:text-foreground` (see §8.7) |
 | `destructive` | Soft danger      | `bg-destructive/10 text-destructive`                     |
 | `link`        | Text link        | `underline-offset-4 hover:underline`                     |
 
@@ -1132,6 +1222,41 @@ You may now add components…             ← Geist body
 <div className="flex min-h-svh w-full max-w-md min-w-0 flex-col p-6 md:max-w-2xl lg:max-w-4xl">
 ```
 
+### 13.6 Long strings must wrap (tokens, URLs, env lines, mono)
+
+Unbroken strings (API tokens, refresh tokens, env assignments, long URLs, hashes) **must never overflow** their container. This is required on every surface — React UI and standalone HTML helpers.
+
+| Context | Required utilities / CSS |
+|---------|--------------------------|
+| Flex/grid children | `min-w-0` on the shrinking item (and often the parent chain) |
+| Inline / block text | `break-all` or `break-words` + `overflow-wrap` |
+| Prefers hard breaks (tokens, env) | `break-all` + `overflow-wrap-anywhere` (or CSS `overflow-wrap: anywhere; word-break: break-all`) |
+| Preserve newlines but wrap | `whitespace-pre-wrap` **with** break rules above |
+| Containers | `max-w-full` / `w-full` + `overflow-x-hidden` if needed |
+
+```tsx
+{/* React / Tailwind */}
+<pre className="min-w-0 max-w-full overflow-x-hidden whitespace-pre-wrap break-all font-mono text-xs">
+  SPOTIFY_REFRESH_TOKEN="…"
+</pre>
+
+<p className="min-w-0 break-all font-mono text-sm">{longToken}</p>
+```
+
+```css
+/* Standalone HTML (same contract) */
+.mono-block {
+  max-width: 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  overflow-x: hidden;
+}
+```
+
+**Do not** rely on `white-space: pre-wrap` alone — long tokens still overflow without `break-all` / `overflow-wrap: anywhere`.
+
 ---
 
 
@@ -1321,6 +1446,10 @@ The skill carries the non-negotiable rules (tokens-only, font roles, breakpoint 
 | Page background      | `bg-background`                                    |
 | Body text            | `text-foreground` (default)                        |
 | Quiet text           | `text-muted-foreground`                            |
+| Quiet fill / skeleton | `bg-muted` + `animate-pulse`                     |
+| Ghost action         | `<Button variant="ghost">`                         |
+| Live text shimmer    | `motion-safe:animate-text-shimmer` (~5.5s)         |
+| Live pulse           | `motion-safe:animate-pulse` / `animate-music-pulse` |
 | Strong / brand text  | `text-primary` + `font-semibold`                   |
 | Heading              | `<h*>` → Montserrat automatically                  |
 | Body font            | Geist via `font-sans`                              |
@@ -1336,6 +1465,7 @@ The skill carries the non-negotiable rules (tokens-only, font roles, breakpoint 
 | Ultra-narrow / watch | `max-watch:` for simplifications                   |
 | Compact phones       | `xs:` from 360px                                   |
 | Tablet+              | `md:` / `lg:` / `xl:` / `2xl:` (Tailwind defaults) |
+| Long tokens / env / URLs | `min-w-0 break-all` (+ `whitespace-pre-wrap` if needed) — see §13.6 |
 
 
 ---
@@ -1351,6 +1481,8 @@ The skill carries the non-negotiable rules (tokens-only, font roles, breakpoint 
 | Breakpoints | Deep §7: why Tailwind isn’t “wrong,” what we keep vs extend (`watch`/`xs`), how it helps phones (incl. iPhone 12), wearables, shadcn compatibility, anti-patterns                                                                                                                                                                            |
 | Portability | Added §15 (three-tier tokens, fixed-vs-swappable contract, brand-swap mechanics, a11y contract, versioning) + §16 agent skill usage; skill at [https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md](https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md) |
 | shadcn Create | Documented origin of `globals.css` from [ui.shadcn.com/create](https://ui.shadcn.com/create); §2.1, §9.4, §15.7 — replace theme values freely, keep token names; shadcn `add` works unchanged |
+| Overflow wrap | §13.6 — long tokens/URLs/env lines must use `break-all` + `overflow-wrap` / `min-w-0`; Spotify auth callback fixed |
+| Feedback UI | §3.6 muted text hierarchy; §8.7 ghost patterns, skeletons, pulse, text-shimmer (`5.5s ease-in-out`) |
 
 
 ---

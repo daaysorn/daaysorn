@@ -19,7 +19,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 
 1. Use **semantic tokens only** — never hard-code hex/oklch/rgb or raw px colors in components. Use `bg-*`, `text-*`, `border-*` mapped from tokens.
 2. Colors come from these roles: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`, `sidebar*`, `chart-1..5`. Nothing else.
-3. Quiet/secondary text = `text-muted-foreground`. Brand emphasis = `text-primary` (often `font-semibold`).
+3. Quiet/secondary text = `text-muted-foreground`. Quiet fills/skeletons = `bg-muted`. Brand emphasis = `text-primary` (often `font-semibold`). Ghost actions = `<Button variant="ghost">` (transparent until hover).
 4. Type is role-based: **Geist** body (`font-sans`, default), **Montserrat** headings (`<h1>`–`<h6>` auto via base layer), **JetBrains Mono** code (`font-mono`, `<code>`/`<kbd>`/`pre`). Don't introduce other fonts.
 5. Radius uses the scale (`rounded-sm`…`rounded-4xl`) derived from `--radius`. Don't invent arbitrary radii.
 6. Breakpoints are mobile-first: **base → `watch` (300px) → `xs` (360px) → `sm` 640 → `md` 768 → `lg` 1024 → `xl` 1280 → `2xl` 1536**. Phone layout is **base**; `sm:` is NOT "phone".
@@ -30,6 +30,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 11. Reuse existing components (`components/ui/*`) and their APIs before creating new ones. New components use CVA variants consuming tokens.
 12. Respect theming: dark is default; support light via semantic tokens, not per-color overrides. `d` key toggles theme.
 13. Accessibility is non-negotiable: visible focus (`ring-ring`), `aria-label` on icon-only controls, ≥4.5:1 text contrast, external links get `rel="noopener noreferrer"`.
+14. Long unbroken strings (tokens, env lines, URLs, hashes) must wrap — use `min-w-0`, `break-all` / `overflow-wrap-anywhere`, and never let mono blocks overflow. See `public/doc/designSystem.md` §13.6.
 
 ## Token → utility quick map
 
@@ -39,6 +40,10 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 | Elevated surface | `bg-card text-card-foreground` / `bg-popover` |
 | Primary action | `<Button>` (`bg-primary text-primary-foreground`) |
 | Quiet text | `text-muted-foreground` |
+| Quiet fill / skeleton | `bg-muted` (+ `animate-pulse` for loaders) |
+| Ghost action | `<Button variant="ghost">` |
+| Live text shimmer | `motion-safe:animate-text-shimmer` (~5.5s ease-in-out) |
+| Live pulse | `motion-safe:animate-pulse` / `animate-music-pulse` |
 | Brand emphasis | `text-primary font-semibold` |
 | Borders / inputs | `border-border` / `border-input` |
 | Focus ring | `ring-ring` (buttons already handle it) |
@@ -92,6 +97,7 @@ After writing UI:
 - [ ] Focus visible + aria-labels on icon-only controls
 - [ ] Renders in light AND dark (semantic tokens only)
 - [ ] Reads well at base width (iPhone 12 = base + xs:)
+- [ ] Long tokens/URLs/env lines wrap (`min-w-0 break-all`) — no horizontal overflow
 ```
 
 ## Portability (use on any site)
@@ -102,15 +108,15 @@ Same system, swap **token values only** (keep token names + component APIs). `ap
 
 | Task | Read section |
 |------|--------------|
-| Colors / tokens | §3 |
+| Colors / tokens / muted text | §3 (incl. §3.6) |
 | Fonts / type scale | §4 |
 | Radius | §5 |
 | Layout / shell | §6 |
 | Responsive / breakpoints | §7 |
-| Motion | §8 |
+| Motion / ghost / loaders / shimmer | §8 (incl. §8.7) |
 | Theming (light/dark) | §9 |
 | Component variants/APIs | §10 |
 | Accessibility | §12 |
-| Recipes | §13 |
+| Recipes | §13 (incl. §13.6 long-string wrap) |
 | Add token/font/component | §14 |
 | Rebrand / multi-brand / reuse elsewhere | §15 |

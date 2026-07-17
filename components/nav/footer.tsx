@@ -3,6 +3,7 @@ import type { IconType } from "react-icons"
 import { FaEnvelope, FaGithub } from "react-icons/fa6"
 import { RiInstagramFill, RiTwitterXLine } from "react-icons/ri"
 
+import { NowPlaying } from "@/components/custom/spotify"
 import {
   Tooltip,
   TooltipContent,
@@ -51,13 +52,9 @@ const Footer = () => {
         </p>
       </div>
 
-      {/** spotify player */}
+      {/** now playing / last played (Spotify) */}
       <div className="hidden md:block">
-        <p className="text-sm text-muted-foreground">
-          last played -{" "}
-          <span className="font-semibold text-primary">Song Name</span> by
-          Artist Name
-        </p>
+        <NowPlaying />
       </div>
 
       {/** social media */}
@@ -77,7 +74,7 @@ const Footer = () => {
                   aria-label={label}
                   className="inline-flex opacity-80 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-110 hover:opacity-100"
                 >
-                  <Icon className="size-4 text-primary md:size-5" />
+                  <Icon className="size-4 text-primary" />
                 </Link>
               </TooltipTrigger>
               <TooltipContent
