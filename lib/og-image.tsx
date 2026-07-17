@@ -80,6 +80,8 @@ function Portrait({
       }}
     >
       <Noise />
+      {/* next/image is not supported inside next/og ImageResponse output. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt=""
@@ -335,17 +337,7 @@ function LightSwiss({ portrait }: { portrait: string }) {
           position: "relative",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            fontFamily: "Geist",
-            fontSize: 15,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-          }}
-        >
-          Studio / Profile
-        </div>
+        <div style={{ display: "flex" }} />
         <div
           style={{
             display: "flex",

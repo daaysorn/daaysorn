@@ -66,10 +66,10 @@ const SitePreview = ({
     : href
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted dark:border-white/10">
+    <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
       {loading && (isWebsite || isLocalPage) ? (
         <div className="absolute inset-0 z-10 animate-pulse bg-muted">
-          <div className="h-7 border-b border-border/70 bg-background/70" />
+          <div className="h-7 bg-background/70" />
           <div className="space-y-3 p-4">
             <div className="h-4 w-2/3 rounded-full bg-foreground/10" />
             <div className="h-3 w-full rounded-full bg-foreground/8" />
@@ -106,7 +106,7 @@ const SitePreview = ({
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 border-t border-white/10 px-3 py-2 backdrop-blur-xl dark:bg-background/82">
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 px-3 py-2 backdrop-blur-xl dark:bg-background/82">
         <div className="flex min-w-0 items-center gap-2">
           {logoSrc ? (
             <span
@@ -152,7 +152,7 @@ const PreviewLink = ({
     </HoverCardTrigger>
     <HoverCardContent
       side="top"
-      className="w-80 overflow-hidden p-2 shadow-[0_24px_70px_-24px_rgba(0,0,0,0.45)] ring-1 backdrop-blur-2xl dark:border-white/15 dark:bg-card/90 dark:ring-white/10"
+      className="w-80 overflow-hidden border-0 p-2 shadow-[0_24px_70px_-24px_rgba(0,0,0,0.45)] ring-0 backdrop-blur-2xl dark:bg-card/90"
     >
       <Link
         href={href}
