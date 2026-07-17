@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { GoogleAnalytics } from "@next/third-parties/google"
 import { Geist, JetBrains_Mono, Montserrat } from "next/font/google"
 
 import "./globals.css"
@@ -6,6 +7,9 @@ import { AppShell } from "@/components/app-shell"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { siteConfig } from "@/lib/seo"
+
+const googleAnalyticsId =
+  process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim() || "G-MXTGTBLTY4"
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -94,6 +98,7 @@ export default function RootLayout({
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
+      <GoogleAnalytics gaId={googleAnalyticsId} />
     </html>
   )
 }

@@ -16,6 +16,7 @@
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.4.2",
     "@gsap/react": "^2.1.2",
+    "@next/third-parties": "^16.2.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "countries-and-timezones": "^3.9.0",
