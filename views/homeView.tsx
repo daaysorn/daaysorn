@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Fragment, type ReactNode, useState } from "react"
 import {
   PiArrowUpRightBold,
+  PiArticleFill,
   PiBowlFoodFill,
   PiBracketsCurlyDuotone,
   PiBrowserFill,
@@ -13,6 +14,7 @@ import {
   PiEnvelopeSimpleFill,
   PiGithubLogoFill,
   PiInstagramLogoFill,
+  PiImagesSquareFill,
   PiLightningFill,
   PiNotebookFill,
   PiShoppingCartSimpleFill,
@@ -223,7 +225,25 @@ const HomeView = () => {
           My work brings together how a brand feels, how a product looks, and
           how people use it. I care about the details people notice, the parts
           that quietly make everything work, and the clarity that holds it all
-          together.
+          together. You can read my random thoughts in{" "}
+          <PreviewLink
+            href={links.content.articles.href}
+            label={links.content.articles.label}
+            description="Thoughts, lessons, and ideas from what I am learning and making."
+            icon={PiArticleFill}
+          >
+            {links.content.articles.label}
+          </PreviewLink>
+          , contribute your own perspective, and browse a{" "}
+          <PreviewLink
+            href={links.content.gallery.href}
+            label={links.content.gallery.label}
+            description="A visual collection of moments from my life and work."
+            icon={PiImagesSquareFill}
+          >
+            {links.content.gallery.label}
+          </PreviewLink>{" "}
+          of moments from my life.
         </p>
 
         <p className="clear-both mt-5">

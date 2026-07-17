@@ -42,13 +42,15 @@ const navItems: { href: string; icon: IconType; label: string }[] = [
   },
 ]
 
+const subscribeToHydration = () => () => undefined
+
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = React.useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false
+  )
 
   const isDark = resolvedTheme === "dark"
   const label = isDark ? "Light mode" : "Dark mode"
@@ -123,7 +125,7 @@ function CountryBadge() {
   })
 
   React.useEffect(() => {
-    void load()
+    const initialLoad = window.setTimeout(() => void load(), 0)
 
     const onFocus = () => {
       void load()
@@ -138,6 +140,7 @@ function CountryBadge() {
     document.addEventListener("visibilitychange", onVisibility)
 
     return () => {
+      window.clearTimeout(initialLoad)
       window.removeEventListener("focus", onFocus)
       window.removeEventListener("online", onFocus)
       document.removeEventListener("visibilitychange", onVisibility)
@@ -146,23 +149,30 @@ function CountryBadge() {
 
   return (
     <DockIcon>
-      <span
-        aria-label={
-          country
-            ? `${country.name}${country.timezoneAbbr ? ` (${country.timezoneAbbr})` : ""}`
-            : "Country"
-        }
-        className={cn(
-          buttonVariants({ variant: "ghost", size: "icon" }),
-          "size-12 rounded-full"
-        )}
-      >
-        {country ? (
+      {country ? (
+        <Link
+          href={`https://en.wikipedia.org/wiki/${encodeURIComponent(country.name.replaceAll(" ", "_"))}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Read about ${country.name} on Wikipedia${country.timezoneAbbr ? ` (${country.timezoneAbbr})` : ""}`}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon" }),
+            "size-12 rounded-full"
+          )}
+        >
           <span className="text-base leading-none">{country.flag}</span>
-        ) : (
+        </Link>
+      ) : (
+        <span
+          aria-label="Country"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon" }),
+            "size-12 rounded-full"
+          )}
+        >
           <span className="size-4 animate-pulse rounded-full bg-muted" />
-        )}
-      </span>
+        </span>
+      )}
     </DockIcon>
   )
 }

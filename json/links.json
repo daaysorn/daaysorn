@@ -39,6 +39,16 @@
     "label": "Docs",
     "href": "/docs"
   },
+  "content": {
+    "articles": {
+      "label": "Articles",
+      "href": "/articles"
+    },
+    "gallery": {
+      "label": "Gallery",
+      "href": "/gallery"
+    }
+  },
   "platforms": {
     "shadcn": {
       "label": "shadcn/ui",
