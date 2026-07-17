@@ -1,13 +1,14 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
-import { Fragment, type ReactNode } from "react"
+import { Fragment, type ReactNode, useState } from "react"
 import {
   PiArrowUpRightBold,
   PiBowlFoodFill,
   PiBracketsCurlyDuotone,
   PiBrowserFill,
   PiCoatHangerFill,
-  PiCrossFill,
   PiCubeFill,
   PiEnvelopeSimpleFill,
   PiGithubLogoFill,
@@ -46,16 +47,97 @@ type PreviewLinkProps = {
   children?: ReactNode
   external?: boolean
   className?: string
+  logoSrc?: string
+}
+
+const passthroughImageLoader = ({ src }: { src: string }) => src
+
+const SitePreview = ({
+  href,
+  label,
+  icon: Icon,
+  logoSrc,
+}: Pick<PreviewLinkProps, "href" | "label" | "icon" | "logoSrc">) => {
+  const [loading, setLoading] = useState(true)
+  const isWebsite = href.startsWith("http")
+  const isLocalPage = href.startsWith("/")
+  const previewSrc = isWebsite
+    ? `https://api.microlink.io/?url=${encodeURIComponent(href)}&screenshot=true&meta=false&embed=screenshot.url`
+    : href
+
+  return (
+    <div className="relative aspect-[16/9] overflow-hidden rounded-lg border border-black/10 bg-muted dark:border-white/10">
+      {loading && (isWebsite || isLocalPage) ? (
+        <div className="absolute inset-0 z-10 animate-pulse bg-muted">
+          <div className="h-7 border-b border-border/70 bg-background/70" />
+          <div className="space-y-3 p-4">
+            <div className="h-4 w-2/3 rounded-full bg-foreground/10" />
+            <div className="h-3 w-full rounded-full bg-foreground/8" />
+            <div className="h-3 w-4/5 rounded-full bg-foreground/8" />
+            <div className="mt-5 h-10 w-28 rounded-lg bg-primary/10" />
+          </div>
+        </div>
+      ) : null}
+
+      {isWebsite ? (
+        <Image
+          loader={passthroughImageLoader}
+          unoptimized
+          fill
+          src={previewSrc}
+          alt={`Preview of ${label}`}
+          sizes="18rem"
+          className="object-cover object-top"
+          onLoad={() => setLoading(false)}
+          onError={() => setLoading(false)}
+        />
+      ) : isLocalPage ? (
+        <iframe
+          src={previewSrc}
+          title={`Preview of ${label}`}
+          tabIndex={-1}
+          loading="lazy"
+          className="pointer-events-none absolute inset-0 h-[200%] w-[200%] origin-top-left scale-50 border-0 bg-background"
+          onLoad={() => setLoading(false)}
+        />
+      ) : (
+        <div className="flex h-full items-center justify-center bg-linear-to-br from-primary/15 via-card to-muted">
+          <Icon aria-hidden="true" className="size-10 text-primary" />
+        </div>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 border-t border-white/10 bg-background/88 px-3 py-2 backdrop-blur-xl dark:bg-background/82">
+        <div className="flex min-w-0 items-center gap-2">
+          {logoSrc ? (
+            <span
+              aria-hidden="true"
+              className="h-3.5 w-10 shrink-0 bg-[length:auto_100%] bg-left bg-no-repeat"
+              style={{ backgroundImage: `url(${logoSrc})` }}
+            />
+          ) : (
+            <Icon aria-hidden="true" className="size-4 shrink-0 text-primary" />
+          )}
+          <span className="truncate font-heading text-xs font-semibold text-foreground">
+            {label}
+          </span>
+        </div>
+        <PiArrowUpRightBold
+          aria-hidden="true"
+          className="size-3.5 shrink-0 text-muted-foreground"
+        />
+      </div>
+    </div>
+  )
 }
 
 const PreviewLink = ({
   href,
   label,
-  description,
   icon: Icon,
   children,
   external = false,
   className = "",
+  logoSrc,
 }: PreviewLinkProps) => (
   <HoverCard openDelay={120} closeDelay={100}>
     <HoverCardTrigger asChild>
@@ -70,32 +152,17 @@ const PreviewLink = ({
     </HoverCardTrigger>
     <HoverCardContent
       side="top"
-      className="w-72 overflow-hidden border-black/10 bg-background/95 p-2 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/5 backdrop-blur-2xl dark:border-white/15 dark:bg-card/90 dark:ring-white/10"
+      className="w-80 overflow-hidden border-black/10 bg-background/90 p-2 shadow-[0_24px_70px_-24px_rgba(0,0,0,0.45)] ring-1 ring-black/5 backdrop-blur-2xl dark:border-white/15 dark:bg-card/90 dark:ring-white/10"
     >
-      <div className="relative overflow-hidden rounded-lg border border-black/10 bg-linear-to-br from-primary/15 via-card to-muted/80 p-4 dark:border-white/10 dark:from-primary/20 dark:via-card dark:to-muted/60">
-        <div className="absolute -top-12 -right-10 size-28 rounded-full bg-primary/15 blur-2xl dark:bg-primary/20" />
-        <div className="relative flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary shadow-sm dark:border-primary/25 dark:bg-primary/15">
-            <Icon aria-hidden="true" className="size-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className="font-heading text-sm leading-5 font-semibold text-foreground">
-                {label}
-              </p>
-              {external ? (
-                <PiArrowUpRightBold
-                  aria-hidden="true"
-                  className="size-3 text-muted-foreground"
-                />
-              ) : null}
-            </div>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {description}
-            </p>
-          </div>
-        </div>
-      </div>
+      <Link
+        href={href}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noopener noreferrer" : undefined}
+        aria-label={`Open ${label}`}
+        className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <SitePreview href={href} label={label} icon={Icon} logoSrc={logoSrc} />
+      </Link>
     </HoverCardContent>
   </HoverCard>
 )
@@ -131,25 +198,25 @@ const HomeView = () => {
 
         <p>
           I&apos;m a founder, designer, and builder. I create brands that mean
-          something and products that look good and work well. I turn early
-          ideas into clear experiences, from the name and story to the smallest
-          detail someone touches. I enjoy finding the simple thread that makes a
-          big idea feel useful, familiar, and worth returning to. I&apos;m also
-          a Christian, growing in faith with{" "}
+          something and products that look good and work well. I turn ideas into
+          clear experiences people can understand and enjoy. I&apos;m also a
+          Christian, growing in faith with{" "}
           <PreviewLink
             href={links.faith.href}
             label={links.faith.label}
             description="A church family helping me grow in faith and know Christ more deeply."
-            icon={PiCrossFill}
+            icon={PiBrowserFill}
+            logoSrc={links.faith.logoHref}
             external
           >
-            <PiCrossFill
+            <span
               aria-hidden="true"
-              className="mr-1 inline size-[1em] text-primary"
+              className="mr-1 inline-block h-[0.8em] w-9 bg-[length:auto_100%] bg-left bg-no-repeat align-baseline"
+              style={{ backgroundImage: `url(${links.faith.logoHref})` }}
             />
             {links.faith.label}
-          </PreviewLink>{" "}
-          as I learn to know Christ more deeply and live out what I believe.
+          </PreviewLink>
+          .
         </p>
 
         <p className="clear-none mt-5">
@@ -186,13 +253,17 @@ const HomeView = () => {
         </p>
 
         <p className="mt-5">
-          My products include{" "}
+          My product spans across{" "}
           {links.products.map((product, index) => {
             const ProductIcon = productIcons[product.key]
 
             return (
               <Fragment key={product.label}>
-                {index > 0 ? ", " : null}
+                {index > 0
+                  ? index === links.products.length - 1
+                    ? ", and "
+                    : ", "
+                  : null}
                 <PreviewLink
                   href={product.href}
                   label={product.label}
@@ -209,7 +280,9 @@ const HomeView = () => {
               </Fragment>
             )
           })}
-          . Developer-ready documentation for integrating with{" "}
+          . Every product follows the daaysorn design system so it feels clear,
+          familiar, and consistent. Developer-ready documentation for
+          integrating with{" "}
           <PreviewLink
             href={links.brand.href}
             label="daaysorn"

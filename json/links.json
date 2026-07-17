@@ -44,7 +44,8 @@
   },
   "faith": {
     "label": "CCI Global",
-    "href": "https://joincci.org/"
+    "href": "https://joincci.org/",
+    "logoHref": "https://static.wixstatic.com/media/5deb4e_85c702d49bc242e393e6282c8428db49~mv2.png/v1/fill/w_466,h_80,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Asset%20171.png"
   },
   "contact": {
     "href": "mailto:david@daaysorn.com"
