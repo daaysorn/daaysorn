@@ -4,6 +4,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  Daaysorn breakpoint scale (mobile-first, rem-based).
+  Must live in a plain @theme block (not @theme inline) so Tailwind
+  generates watch:/xs:/… variants correctly and sorts them by size.
+
+  Research basis (2026):
+  - Keep Tailwind defaults for sm–2xl (ecosystem / shadcn alignment)
+  - Add xs for modern small phones (~360px+)
+  - Add watch for wearable / ultra-narrow viewports (~300px+)
+  See public/doc/designSystem.md §7
+*/
+@theme {
+  --breakpoint-watch: 18.75rem; /* 300px — wearables / ultra-narrow */
+  --breakpoint-xs: 22.5rem; /* 360px — compact phones (SE-class → modern) */
+  /* sm 40rem / md 48rem / lg 64rem / xl 80rem / 2xl 96rem = Tailwind defaults */
+}
+
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);

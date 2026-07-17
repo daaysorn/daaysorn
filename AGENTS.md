@@ -14,3 +14,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - Fonts are wired via `next/font` CSS variables: `--font-heading` (Montserrat), `--font-sans` (Geist), `--font-mono` (JetBrains Mono).
 - Documentation is intended to live at the `/docs` route, with a framed sidebar layout (Fumadocs; Cencori-style border/frame treatment).
+- Design system: follow the `daaysorn-design-system` skill (`.cursor/skills/daaysorn-design-system/SKILL.md`) for all UI work; deep reference is `public/doc/designSystem.md`, runtime tokens in `app/globals.css`.

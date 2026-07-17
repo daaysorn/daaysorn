@@ -21,7 +21,7 @@
 4. [Typography](#4-typography)
 5. [Radius & shape](#5-radius--shape)
 6. [Spacing, layout & shell](#6-spacing-layout--shell)
-7. [Breakpoints](#7-breakpoints)
+7. [Breakpoints — philosophy, approach & how it helps](#7-breakpoints--philosophy-approach--how-it-helps)
 8. [Motion & interaction](#8-motion--interaction)
 9. [Theming](#9-theming)
 10. [Components](#10-components)
@@ -29,6 +29,8 @@
 12. [Accessibility](#12-accessibility)
 13. [Usage recipes](#13-usage-recipes)
 14. [Extending the system](#14-extending-the-system)
+15. [Portability & multi-brand — use on any site](#15-portability--multi-brand--use-on-any-site)
+16. [Agent usage (skill)](#16-agent-usage-skill)
 
 ---
 
@@ -343,49 +345,258 @@ Tooltip:        rounded-md (+ arrow rounded-[2px])
 
 ---
 
-## 7. Breakpoints
+## 7. Breakpoints — philosophy, approach & how it helps
 
-No custom breakpoints are defined. Tailwind v4 defaults apply (**min-width**, mobile-first):
+> **Source of truth:** `app/globals.css` → plain `@theme { --breakpoint-* }` block  
+> **Principle:** Extend Tailwind where phones and wearables need language; keep Tailwind where the ecosystem already agrees.
 
-| Prefix | Min width | Approx px |
-|--------|-----------|-----------|
-| *(base)* | `0` | 0 |
-| `sm:` | `40rem` | 640 |
-| `md:` | `48rem` | 768 |
-| `lg:` | `64rem` | 1024 |
-| `xl:` | `80rem` | 1280 |
-| `2xl:` | `96rem` | 1536 |
+---
 
-### How to use
+### 7.1 The misconception: “Tailwind doesn’t follow standard screen sizes”
 
-```tsx
-{/* stacked → row from tablet up */}
-<div className="flex flex-col md:flex-row gap-4" />
+It doesn’t follow **device marketing names** — and neither does Bootstrap, MUI, or most mature systems. What looks like a bug is a deliberate design choice.
 
-{/* hide on small, show from md */}
-<nav className="hidden md:flex" />
+| Expectation | Reality |
+|-------------|---------|
+| “`sm` = smartphone” | In Tailwind, `sm` ≈ **640px** = large phone *landscape* / small tablet |
+| “There is one industry standard” | Tailwind ≠ Bootstrap ≠ MUI — they disagree on the first tier |
+| “Breakpoints should match iPhone 12 (390)” | Frameworks break where **layouts** usually reflow, not per SKU |
+| “CSS px = physical pixels” | CSS pixels are density-independent; iPhone 12 is **390 CSS px** wide, not 1170 |
 
-{/* only below md */}
-<div className="max-md:px-4" />
+**Framework comparison (first useful tier upward):**
 
-{/* arbitrary */}
-<section className="min-[900px]:grid-cols-2" />
+| System | First named tier | Tablet-ish | Laptop-ish | Desktop | Wide |
+|--------|------------------|------------|------------|---------|------|
+| **Tailwind CSS** | `sm` 640px | `md` 768 | `lg` 1024 | `xl` 1280 | `2xl` 1536 |
+| **Bootstrap 5** | `sm` 576px | `md` 768 | `lg` 992 | `xl` 1200 | `xxl` 1400 |
+| **MUI** | `sm` 600px | `md` 900 | `lg` 1200 | `xl` 1536 | — |
+
+There is no single “correct” pixel table. Industry guidance (2025–2026) converges on:
+
+1. **Mobile-first** (`min-width`)  
+2. Break where **your content** breaks  
+3. Keep the scale **lean**  
+4. In Tailwind v4, define breakpoints in **rem** so variants sort correctly  
+
+So: Tailwind *is* a mainstream standard for utility CSS — it just isn’t an Apple/Google device catalog.
+
+---
+
+### 7.2 Are we “not following Tailwind”?
+
+**No — we follow Tailwind’s defaults for `sm` → `2xl`, and only extend below them.**
+
+| Layer | Decision | Why |
+|-------|----------|-----|
+| `sm` / `md` / `lg` / `xl` / `2xl` | **Keep Tailwind values** | shadcn, Magic UI, docs, and muscle memory all assume these |
+| `xs` | **Add** (`22.5rem` / 360px) | Tailwind has no phone-tier between 0 and 640 — but real phones live there |
+| `watch` | **Add** (`18.75rem` / 300px) | Wearables / ultra-narrow need an escape hatch Tailwind never shipped |
+
+We are **not**:
+
+- Replacing Tailwind’s scale with Bootstrap’s  
+- Renaming `sm` to mean “iPhone”  
+- Inventing a 12-step device matrix  
+- Hard-coding px breakpoints (breaks Tailwind’s rem sort order)
+
+We **are**:
+
+- Speaking clearly about phones (`xs`) and ultra-narrow (`watch`)  
+- Staying compatible with every `md:flex` example in the ecosystem  
+- Documenting that **phone UI = unprefixed base styles**, enhanced by `xs:` when needed  
+
+Think of it as:
+
 ```
-
-**Status:** No `sm:` / `md:` / `lg:` classes are used in components yet. Layout width is controlled by `max-w-md`, not by breakpoints.
-
-### Customize later
-
-```css
-/* app/globals.css */
-@theme {
-  --breakpoint-sm: 40rem;
-  --breakpoint-md: 48rem;
-  --breakpoint-3xl: 120rem; /* unlocks 3xl: utilities */
-}
+Tailwind defaults ………………………………… kept intact (ecosystem)
+         ↓
+Daaysorn extensions ……… watch + xs (product reality below 640px)
 ```
 
 ---
+
+### 7.3 The problem Tailwind leaves open (and why that hurt us)
+
+Tailwind’s first named breakpoint is **640px**. Everything below that is one bucket: “base.”
+
+But our product reality includes:
+
+| Viewport | Example | Tailwind language available? |
+|----------|---------|------------------------------|
+| ~150px | Native Apple Watch (adaptations off) | ❌ none |
+| 320px | iPhone SE, watchOS default emulation | ❌ none (still “base”) |
+| 360–390px | Most modern phones, **iPhone 12 = 390** | ❌ none (still “base”) |
+| 430px | Pro Max class | ❌ none (still “base”) |
+| 640px+ | Landscape phones / small tablets | ✅ `sm:` |
+
+Without `xs` / `watch`, teams either:
+
+1. Stuff all phone work into unprefixed classes (fine until you need a *second* phone step), or  
+2. Misuse `sm:` for “phone,” which **never fires on iPhone 12**, or  
+3. Sprinkle arbitrary `min-[390px]:` everywhere — unmaintainable  
+
+That is the gap Daaysorn closes.
+
+---
+
+### 7.4 Our approach (concrete)
+
+#### Design rules
+
+1. **Base first** — every layout must read well from 0px up (true mobile-first).  
+2. **`xs:` for modern phones** — use when 360px+ deserves a step up from SE-class / ultra-tight.  
+3. **`sm:` and above = Tailwind meaning** — never redefine them as “phones.”  
+4. **`max-watch:` for glanceable mode** — hide chrome, tighten type; don’t rebuild the brand for the wrist.  
+5. **Prefer few breakpoints per component** — usually base + one of `xs` / `md` / `lg`.  
+
+#### Implemented tokens (`app/globals.css`)
+
+```css
+@theme {
+  --breakpoint-watch: 18.75rem; /* 300px — wearables / ultra-narrow */
+  --breakpoint-xs: 22.5rem;     /* 360px — compact → modern phones */
+  /* sm 40rem · md 48rem · lg 64rem · xl 80rem · 2xl 96rem = Tailwind defaults */
+}
+```
+
+> **Implementation note:** Breakpoints must live in a plain `@theme { }` block, **not** `@theme inline`. Inline theme maps colors/fonts; breakpoint namespaces need the standard `@theme` so Tailwind generates `watch:` / `xs:` / `max-*` variants and sorts them by size.
+
+#### Full scale
+
+| Prefix | Min width | ≈ px | Role in Daaysorn |
+|--------|-----------|------|------------------|
+| *(base)* | `0` | 0 | Default phone / tiny UI — **always start here** |
+| `watch:` | `18.75rem` | **300** | Crossed “ultra-narrow” floor (rarely used as min-width) |
+| `xs:` | `22.5rem` | **360** | Modern compact phones (includes iPhone 12 at 390) |
+| `sm:` | `40rem` | **640** | Large phone landscape / small tablet — **Tailwind** |
+| `md:` | `48rem` | **768** | Tablet portrait — **Tailwind** |
+| `lg:` | `64rem` | **1024** | Laptop / tablet landscape — **Tailwind** |
+| `xl:` | `80rem` | **1280** | Desktop — **Tailwind** |
+| `2xl:` | `96rem` | **1536** | Wide / 1440p+ — **Tailwind** |
+
+#### Mental model
+
+```
+0 ──────── 300 ────── 360 ──────────── 640 ── 768 ── 1024 ── 1280 ── 1536
+│  base    │  watch:  │  xs:           │ sm: │ md: │  lg:  │  xl:  │ 2xl:
+│          │          │                │     │     │       │       │
+│  SE 320  │          │  iPhone 12 390 │     │ iPad│laptop │desk   │wide
+│  watch*  │          │  Pro Max 430   │     │     │       │       │
+│          └ Daaysorn extensions ──────┘     └──── Tailwind defaults ────┘
+```
+
+\*Native watch CSS widths (~136–184) sit **below** 300 when `disabled-adaptations` is on.
+
+---
+
+### 7.5 How this helps (product & engineering)
+
+| Benefit | Without our scale | With `watch` + `xs` + Tailwind defaults |
+|---------|-------------------|----------------------------------------|
+| **Correct phone targeting** | Devs put “phone” styles in `sm:` → invisible on iPhone 12 | Phone = base; polish = `xs:` |
+| **iPhone 12 clarity** | “Which breakpoint is 390?” → confusion | Documented: **base + `xs:`**, never `sm:` |
+| **SE vs modern phones** | One cramped base for 320 and 430 | `xs:` can loosen type/spacing from 360 up |
+| **Wearable / ultra-narrow** | Arbitrary `max-[300px]:` or ignored | Named `max-watch:` for intentional glance UI |
+| **shadcn / docs compatibility** | Custom full scale breaks copy-paste examples | `md:` / `lg:` still mean what Tailwind means |
+| **Fewer magic numbers** | `min-[390px]:`, `min-[375px]:` scattered | One token language for the team |
+| **Onboarding** | “Why doesn’t `sm:` work on my phone?” | Design system answers in one place |
+| **Shell strategy** | `max-w-md` alone, no responsive vocabulary | Same shell + clear when to widen (`md:`, `lg:`) |
+
+**Especially for Daaysorn’s current shell** (`max-w-md` / 448px phone column): almost all real phones never hit `sm:`. Extending *below* Tailwind is what makes responsive language useful for this product shape.
+
+---
+
+### 7.6 Device ground truth → which prefixes fire?
+
+| Device / class | CSS width | Active prefixes |
+|----------------|-----------|-----------------|
+| Apple Watch (native, adaptations off) | ~136–184 | base only → style with **`max-watch:`** |
+| Apple Watch (default WebKit) | **320** (emulated) | base + `watch:` |
+| iPhone SE (older) | 320 | base + `watch:` |
+| Compact Android | 360 | base + `watch:` + **`xs:`** |
+| **iPhone 12 / 13 / 14** | **390** | base + `watch:` + **`xs:`** |
+| iPhone 14/15 Pro Max | 430 | same |
+| Phone landscape / small tablet | ≥640 | + `sm:` |
+| iPad portrait | 768 | + `md:` |
+| Laptop | 1024+ | + `lg:` |
+
+**iPhone 12 Pro checklist**
+
+```tsx
+// ✅ Correct — fires at 390
+<p className="text-sm xs:text-base">…</p>
+
+// ❌ Wrong — sm starts at 640; never runs on iPhone 12 portrait
+<p className="text-sm sm:text-base">…</p>
+```
+
+---
+
+### 7.7 Smartwatches — why we include them (and how far)
+
+**Include the token. Don’t rebuild the site for the wrist.**
+
+| Fact | Design implication |
+|------|--------------------|
+| watchOS Safari **fakes 320px** and shrink-to-fit by default | Most visitors never hit true watch width |
+| True ~136–184px needs `<meta name="disabled-adaptations" content="watch">` | Opt-in only for specialist / glance pages |
+| Traffic share is tiny for portfolio/marketing | Optimize *selectively*, not globally |
+
+**Recommended use of `watch`:**
+
+| Pattern | When |
+|---------|------|
+| `max-watch:hidden` | Hide footer socials, dock, secondary chrome |
+| `max-watch:text-*` | Shorter, denser glance copy |
+| Unprefixed base | Must already be readable if scaled down at 320 |
+
+Do **not** put primary brand layout inside `watch:` min-width alone — that would target “everything ≥300px,” which is almost the whole web.
+
+---
+
+### 7.8 Usage recipes
+
+```tsx
+{/* Phone default → modern phone polish → tablet */}
+<div className="flex flex-col gap-3 xs:gap-4 md:flex-row md:gap-6" />
+
+{/* Desktop nav: hidden on phones, shown from tablet */}
+<nav className="hidden md:flex" />
+
+{/* Phone-only padding */}
+<div className="max-md:px-4" />
+
+{/* Ultra-narrow / watch glance mode */}
+<header className="max-watch:py-2" />
+<nav className="max-watch:hidden" />
+
+{/* Widen the app shell only when the viewport can use it */}
+<div className="mx-auto max-w-md md:max-w-2xl lg:max-w-4xl" />
+```
+
+`max-watch:`, `max-xs:`, `max-sm:`, … are generated automatically from the same tokens.
+
+---
+
+### 7.9 Anti-patterns (don’t do these)
+
+| Anti-pattern | Why it fails |
+|--------------|--------------|
+| Using `sm:` to mean “smartphone” | Misses every iPhone portrait viewport |
+| Overriding `sm`/`md` to 390/768 “because Apple” | Breaks shadcn examples and team intuition |
+| Defining breakpoints in `px` while keeping rem defaults | Tailwind may **mis-sort** variants |
+| Putting breakpoints only in `@theme inline` | Variants may not generate as expected |
+| Designing desktop-first then fighting with `max-*` everywhere | Fights mobile-first cascade |
+| Ten device-specific breakpoints | Unmaintainable; devices change yearly |
+
+---
+
+### 7.10 Summary — our stance in one paragraph
+
+**We follow Tailwind for tablet → wide (`sm`–`2xl`) so the ecosystem stays coherent. We do not pretend Tailwind’s `sm` means “phone.”** Phones (including iPhone 12 at 390 CSS px) live in **base**, with **`xs:`** as our named step for modern compact screens, and **`watch:` / `max-watch:`** as an intentional ultra-narrow / wearable escape hatch. That combination is more honest about real CSS viewports, keeps shadcn compatible, and gives Daaysorn a precise language for the widths we actually ship to.
+
+---
+
 
 ## 8. Motion & interaction
 
@@ -738,6 +949,114 @@ Edit `--radius` in `:root`; the entire `sm`–`4xl` scale recalculates.
 
 ---
 
+## 15. Portability & multi-brand — use on any site
+
+> **Goal:** the *same* system drops into any website by swapping **token values only**. The architecture (token names, roles, scales, component APIs) stays fixed. This is exactly what already ships in Daaysorn — this section just formalizes the contract so it travels.
+
+### 15.1 Three-tier token model
+
+The system is layered so branding changes never touch component code.
+
+| Tier | What it is | Where it lives | Swappable? |
+|------|------------|----------------|------------|
+| **1. Primitive** | Raw values (an OKLCH color, a rem size, a font family) | `:root` / `.dark` / `@theme` in `app/globals.css` | ✅ Per brand |
+| **2. Semantic** | Role names that map to primitives (`--primary`, `--muted-foreground`, `--font-heading`, `--radius`) | `@theme inline` mapping in `app/globals.css` | ⚠️ Rename rarely |
+| **3. Component** | Utilities/variants consuming semantics (`bg-primary`, CVA button variants) | `components/**` | ❌ Do not hard-code values here |
+
+**Rule:** components only ever read **tier 2** (semantic). They must never contain a raw hex/oklch/px color. That single discipline is what makes the system portable.
+
+### 15.2 Fixed vs swappable (the contract)
+
+| Layer | Fixed (the “system”) | Swappable (the “brand”) |
+|-------|----------------------|--------------------------|
+| Color | Semantic role names (`background`, `foreground`, `primary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`, `card`, `popover`, `sidebar*`, `chart-1..5`) | Their OKLCH values in `:root` / `.dark` |
+| Type | Role variables (`--font-sans`, `--font-heading`, `--font-mono`) + base-layer mapping (`h*`→heading, `code`→mono) | The actual font families loaded in `app/layout.tsx` |
+| Radius | Derivation scale (`sm`–`4xl` from `--radius`) | The `--radius` base value |
+| Breakpoints | The named ladder (`watch`, `xs`, `sm`–`2xl`) | The rem values per name |
+| Components | Public APIs (Button variants/sizes, Tooltip parts, Dock props) | Which variants a brand uses |
+| Motion | Interaction rules (focus ring, press, hover lift) | Timing/easing values |
+
+If you only change the **right column**, any site looks on-brand while behaving identically.
+
+### 15.3 Port to a new site (checklist)
+
+```
+- [ ] Copy app/globals.css (token blocks + @theme) and lib/utils.ts (cn)
+- [ ] Copy components/ui + components/theme-provider.tsx
+- [ ] In app/layout.tsx: load the new brand's 3 font roles (sans/heading/mono)
+- [ ] In :root and .dark: replace OKLCH values only (keep the token NAMES)
+- [ ] Set --radius to the brand's roundness
+- [ ] Adjust --breakpoint-* rem values only if the brand needs it
+- [ ] Verify contrast (see 15.5) and focus visibility
+- [ ] Do NOT rename semantic tokens or hard-code values in components
+```
+
+### 15.4 Brand-swap mechanics (Tailwind v4)
+
+A brand is just a values file. Keep names identical; change values.
+
+```css
+/* brand-acme.css — swap in per site, names never change */
+:root {
+  --background: oklch(0.99 0.01 95);
+  --foreground: oklch(0.20 0.02 260);
+  --primary: oklch(0.55 0.20 265);      /* brand hue */
+  --primary-foreground: oklch(0.98 0 0);
+  --radius: 0.375rem;                    /* tighter brand */
+  /* …rest of the SAME token names… */
+}
+.dark { /* same names, dark values */ }
+```
+
+Because `@theme inline` maps `--color-*` → these variables, **every** `bg-primary` / `text-muted-foreground` across the app re-skins with zero component edits. Multi-brand = load a different values file (or a `[data-brand="acme"]` scope).
+
+### 15.5 Accessibility as part of the contract
+
+Portability must not break a11y. Any brand swap must still pass:
+
+| Check | Target |
+|-------|--------|
+| Body text vs background | ≥ 4.5:1 contrast |
+| Large text / UI vs background | ≥ 3:1 |
+| `primary-foreground` on `primary` | ≥ 4.5:1 |
+| `destructive` legibility | ≥ 4.5:1 in both themes |
+| Focus ring visibility | `ring-ring` visible on all surfaces |
+| Not color-only meaning | Pair with icon/label |
+
+### 15.6 Versioning the contract
+
+Treat the token/API surface like an API:
+
+- **Patch** — value tweaks (recolor, radius nudge) → no code changes needed.
+- **Minor** — add a new semantic token or component variant (backwards compatible).
+- **Major** — rename/remove a semantic token or change a component API → update consumers + changelog.
+
+Record every change in the [Changelog](#changelog-design-system-doc).
+
+---
+
+## 16. Agent usage (skill)
+
+This design system is exposed to AI coding agents as a **project skill** so any agent building UI in this repo follows it automatically.
+
+| Item | Value |
+|------|-------|
+| Skill location | `.cursor/skills/daaysorn-design-system/SKILL.md` |
+| Skill name | `daaysorn-design-system` |
+| Source of truth it points to | this file (`public/doc/designSystem.md`) |
+| Runtime source of truth | `app/globals.css` |
+
+### 16.1 How to invoke
+
+- **Humans:** ask the agent to *“use the daaysorn-design-system skill”* (or mention design system / tokens / breakpoints / theming), then describe the UI.
+- **Agents:** read `.cursor/skills/daaysorn-design-system/SKILL.md` first; consult the relevant section of this doc via progressive disclosure before writing UI code.
+
+### 16.2 What the skill enforces (summary)
+
+The skill carries the non-negotiable rules (tokens-only, font roles, breakpoint ladder incl. `xs`/`watch`, radius scale, `cn()` usage, component APIs) plus a pre/post build checklist. This doc remains the deep reference the skill links into.
+
+---
+
 ## Quick reference card
 
 | Need | Use |
@@ -756,6 +1075,10 @@ Edit `--radius` in `:root`; the entire `sm`–`4xl` scale recalculates.
 | Icon shelf | `<Dock>` + `<DockIcon>` |
 | Toggle theme | Press `d` |
 | Merge classes | `cn(...)` from `@/lib/utils` |
+| iPhone 12 (~390) | Base + `xs:` (not `sm:`) |
+| Ultra-narrow / watch | `max-watch:` for simplifications |
+| Compact phones | `xs:` from 360px |
+| Tablet+ | `md:` / `lg:` / `xl:` / `2xl:` (Tailwind defaults) |
 
 ---
 
@@ -764,6 +1087,8 @@ Edit `--radius` in `:root`; the entire `sm`–`4xl` scale recalculates.
 | Date | Change |
 |------|--------|
 | Initial | Full audit of fonts (Geist / Montserrat / JetBrains Mono), OKLCH tokens, radius scale, shell layout, Button / Tooltip / Dock / Footer, theme provider, Tailwind default breakpoints |
+| Breakpoints | Deep §7: why Tailwind isn’t “wrong,” what we keep vs extend (`watch`/`xs`), how it helps phones (incl. iPhone 12), wearables, shadcn compatibility, anti-patterns |
+| Portability | Added §15 (three-tier tokens, fixed-vs-swappable contract, brand-swap mechanics, a11y contract, versioning) + §16 agent skill usage; created `.cursor/skills/daaysorn-design-system` |
 
 ---
 
