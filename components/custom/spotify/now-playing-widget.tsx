@@ -6,13 +6,19 @@ import type { Track } from "./types"
 interface NowPlayingWidgetProps {
   track: Track
   className?: string
+  /** Hover popup only — omit in the modal. */
+  showCaption?: boolean
 }
 
 /**
  * The glassmorphism card shown inside the popover / modal: provider embed
  * player. Renders the correct iframe for the track's provider.
  */
-export function NowPlayingWidget({ track, className }: NowPlayingWidgetProps) {
+export function NowPlayingWidget({
+  track,
+  className,
+  showCaption = false,
+}: NowPlayingWidgetProps) {
   const meta = PROVIDERS[track.provider]
   const Icon = meta.icon
 
@@ -45,6 +51,20 @@ export function NowPlayingWidget({ track, className }: NowPlayingWidgetProps) {
           <p className="text-sm text-muted-foreground">
             No preview available for this track.
           </p>
+        </div>
+      )}
+
+      {showCaption && (
+        <div className="flex items-center justify-center gap-1.5 pt-2 pb-1 text-xs text-muted-foreground">
+          <Icon
+            aria-hidden
+            className="size-3.5 text-muted-foreground"
+            style={track.isPlaying ? { color: meta.brandColor } : undefined}
+          />
+          <span>
+            {track.isPlaying ? "Now playing" : "Last played"} · powered by{" "}
+            {meta.label}
+          </span>
         </div>
       )}
     </div>

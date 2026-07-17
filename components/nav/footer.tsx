@@ -3,6 +3,7 @@ import type { IconType } from "react-icons"
 import { FaEnvelope, FaGithub } from "react-icons/fa6"
 import { RiInstagramFill, RiTwitterXLine } from "react-icons/ri"
 
+import { FlipClock } from "@/components/custom/flipclock"
 import { NowPlaying } from "@/components/custom/spotify"
 import {
   Tooltip,
@@ -49,12 +50,15 @@ const Footer = () => {
         <NowPlaying />
       </div>
 
-      {/** copyright */}
-      <div className="order-2 md:order-1">
+      {/** copyright + local time */}
+      <div className="order-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 md:order-1 md:justify-start">
         <p className="text-sm text-muted-foreground">
           &copy; {currentYear} /{" "}
-          <span className="font-semibold text-primary">{appName}</span>{" "}
+          <span className="font-semibold text-primary">{appName}</span>
         </p>
+        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          @ <FlipClock />
+        </span>
       </div>
 
       {/** social media */}

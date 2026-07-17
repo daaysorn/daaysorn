@@ -161,7 +161,7 @@ function NowPlayingLine({
           align="start"
           className="w-auto border-0 bg-transparent p-0 shadow-none"
         >
-          <NowPlayingWidget track={track} />
+          <NowPlayingWidget track={track} showCaption />
         </HoverCardContent>
       </HoverCard>
 

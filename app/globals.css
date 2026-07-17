@@ -177,6 +177,30 @@
   animation: music-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Flip-clock split-flap motion — the top flap folds down as the bottom
+   flap folds up, hinged at the unit's center line. */
+@keyframes flip-fold-top {
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(-90deg); }
+}
+@keyframes flip-fold-bottom {
+  from { transform: rotateX(90deg); }
+  to { transform: rotateX(0deg); }
+}
+
+@utility animate-flip-top {
+  transform-origin: bottom;
+  backface-visibility: hidden;
+  animation: flip-fold-top 0.28s ease-in forwards;
+}
+
+@utility animate-flip-bottom {
+  transform-origin: top;
+  backface-visibility: hidden;
+  /* Starts as the top flap finishes, so the halves hand off at the hinge. */
+  animation: flip-fold-bottom 0.28s ease-out 0.28s forwards;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

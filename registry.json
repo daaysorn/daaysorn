@@ -1,0 +1,140 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "daaysorn",
+  "homepage": "https://daaysorn.com",
+  "items": [
+    {
+      "name": "spotify-now-playing",
+      "type": "registry:block",
+      "title": "Spotify Now Playing",
+      "description": "A live 'now playing / last played' footer line powered by the Spotify Web API, with a hover preview and a centered glassmorphism modal. Pulses green while playing; static grey otherwise.",
+      "dependencies": ["swr", "react-icons", "radix-ui"],
+      "files": [
+        {
+          "path": "components/custom/spotify/now-playing.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/custom/spotify/now-playing-widget.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/custom/spotify/providers.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/custom/spotify/types.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/custom/spotify/index.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/ui/hover-card.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "components/ui/dialog.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "lib/spotify.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "app/api/now-playing/route.ts",
+          "type": "registry:file",
+          "target": "app/api/now-playing/route.ts"
+        },
+        {
+          "path": "app/api/spotify-auth/login/route.ts",
+          "type": "registry:file",
+          "target": "app/api/spotify-auth/login/route.ts"
+        },
+        {
+          "path": "app/api/spotify-auth/callback/route.ts",
+          "type": "registry:file",
+          "target": "app/api/spotify-auth/callback/route.ts"
+        }
+      ],
+      "envVars": {
+        "SPOTIFY_CLIENT_ID": "",
+        "SPOTIFY_CLIENT_SECRET": "",
+        "SPOTIFY_REFRESH_TOKEN": ""
+      },
+      "cssVars": {
+        "light": {
+          "shimmer-base": "var(--muted-foreground)",
+          "shimmer-glint": "var(--foreground)"
+        },
+        "dark": {
+          "shimmer-base": "var(--muted-foreground)",
+          "shimmer-glint": "color-mix(in oklch, var(--foreground) 65%, var(--muted-foreground))"
+        }
+      },
+      "css": {
+        "@keyframes text-shimmer": {
+          "from": { "background-position": "100% center" },
+          "to": { "background-position": "-100% center" }
+        },
+        "@utility animate-text-shimmer": {
+          "background-image": "linear-gradient(90deg, var(--shimmer-base) 0%, var(--shimmer-base) 25%, var(--shimmer-glint) 50%, var(--shimmer-base) 75%, var(--shimmer-base) 100%)",
+          "background-size": "200% auto",
+          "background-clip": "text",
+          "-webkit-background-clip": "text",
+          "color": "transparent",
+          "animation": "text-shimmer 6s linear infinite"
+        },
+        "@keyframes music-pulse": {
+          "0%, 100%": { "opacity": "1" },
+          "50%": { "opacity": "0.4" }
+        },
+        "@utility animate-music-pulse": {
+          "animation": "music-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+        }
+      }
+    },
+    {
+      "name": "flip-clock",
+      "type": "registry:block",
+      "title": "Flip Clock",
+      "description": "A split-flap HH:MM:SS clock that flips each digit on change, based on the viewer's own timezone (no geolocation prompt).",
+      "dependencies": [],
+      "files": [
+        {
+          "path": "components/custom/flipclock/flip-clock.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/custom/flipclock/flip-unit.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "components/custom/flipclock/index.ts",
+          "type": "registry:component"
+        }
+      ],
+      "css": {
+        "@keyframes flip-fold-top": {
+          "from": { "transform": "rotateX(0deg)" },
+          "to": { "transform": "rotateX(-90deg)" }
+        },
+        "@keyframes flip-fold-bottom": {
+          "from": { "transform": "rotateX(90deg)" },
+          "to": { "transform": "rotateX(0deg)" }
+        },
+        "@utility animate-flip-top": {
+          "transform-origin": "bottom",
+          "backface-visibility": "hidden",
+          "animation": "flip-fold-top 0.28s ease-in forwards"
+        },
+        "@utility animate-flip-bottom": {
+          "transform-origin": "top",
+          "backface-visibility": "hidden",
+          "animation": "flip-fold-bottom 0.28s ease-out 0.28s forwards"
+        }
+      }
+    }
+  ]
+}
