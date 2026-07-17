@@ -44,22 +44,22 @@ const Footer = () => {
 
   return (
     <footer className="flex w-full flex-col gap-3 py-8 text-center font-medium md:fixed md:bottom-5 md:flex-row md:gap-4 md:py-0 md:text-left">
+      {/** now playing / last played (Spotify) — before copyright on mobile */}
+      <div className="order-1 flex justify-center md:order-2 md:justify-start">
+        <NowPlaying />
+      </div>
+
       {/** copyright */}
-      <div>
+      <div className="order-2 md:order-1">
         <p className="text-sm text-muted-foreground">
           &copy; {currentYear} /{" "}
           <span className="font-semibold text-primary">{appName}</span>{" "}
         </p>
       </div>
 
-      {/** now playing / last played (Spotify) */}
-      <div className="hidden md:block">
-        <NowPlaying />
-      </div>
-
       {/** social media */}
       <TooltipProvider delayDuration={150} skipDelayDuration={100}>
-        <div className="flex items-center justify-center gap-5 text-primary md:justify-start md:gap-3">
+        <div className="order-3 flex items-center justify-center gap-5 text-primary md:justify-start md:gap-3">
           {socialLinks.map(({ href, icon: Icon, label }) => (
             <Tooltip key={label}>
               <TooltipTrigger asChild>

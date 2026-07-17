@@ -9,8 +9,8 @@ interface NowPlayingWidgetProps {
 }
 
 /**
- * The glassmorphism card shown inside the popover: provider embed player plus a
- * "powered by …" caption. Renders the correct iframe for the track's provider.
+ * The glassmorphism card shown inside the popover / modal: provider embed
+ * player. Renders the correct iframe for the track's provider.
  */
 export function NowPlayingWidget({ track, className }: NowPlayingWidgetProps) {
   const meta = PROVIDERS[track.provider]
@@ -47,25 +47,6 @@ export function NowPlayingWidget({ track, className }: NowPlayingWidgetProps) {
           </p>
         </div>
       )}
-
-      <div className="flex items-center justify-center gap-1.5 pt-2 pb-1 text-xs text-muted-foreground">
-        <span
-          aria-hidden
-          className={cn(
-            "size-1.5 rounded-full",
-            track.isPlaying ? "bg-primary" : "bg-muted-foreground/50",
-          )}
-        />
-        <Icon
-          aria-hidden
-          className="size-3.5 text-muted-foreground"
-          style={track.isPlaying ? { color: meta.brandColor } : undefined}
-        />
-        <span>
-          {track.isPlaying ? "Now playing" : "Last played"} · powered by{" "}
-          {meta.label}
-        </span>
-      </div>
     </div>
   )
 }
