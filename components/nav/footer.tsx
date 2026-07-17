@@ -31,7 +31,7 @@ const socialLinks: {
     label: "X",
   },
   {
-    href: `mailto:${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}@example.com`,
+    href: `mailto:${process.env.NEXT_PUBLIC_APP_NAME?.split(" ")[0]?.toLowerCase()}@${process.env.NEXT_PUBLIC_SOCIAL_USERNAME}.com`,
     icon: FaEnvelope,
     label: "Email",
   },
@@ -42,7 +42,7 @@ const Footer = () => {
   const appName = process.env.NEXT_PUBLIC_APP_NAME
 
   return (
-    <footer className="flex w-full flex-col gap-3 py-5 text-center font-medium md:fixed md:bottom-5 md:flex-row md:gap-4 md:py-0 md:text-left">
+    <footer className="flex w-full flex-col gap-3 py-8 text-center font-medium md:fixed md:bottom-5 md:flex-row md:gap-4 md:py-0 md:text-left">
       {/** copyright */}
       <div>
         <p className="text-sm text-muted-foreground">
