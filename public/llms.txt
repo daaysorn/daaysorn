@@ -6,9 +6,9 @@ Tomiwa's work connects brand identity, product design, software engineering, con
 
 ## Primary
 
-- [daaysorn home](https://daaysorn.vercel.app/): Canonical public profile, work overview, identity, and contact information.
+- [daaysorn home](https://daaysorn.com/): Canonical public profile, work overview, identity, and contact information.
 - [daaysorn source](https://github.com/daaysorn/daaysorn): Public source for the website and reusable daaysorn components.
-- [Full AI context](https://daaysorn.vercel.app/llms-full.txt): Expanded factual context about Tomiwa, daaysorn, products, values, and technology.
+- [Full AI context](https://daaysorn.com/llms-full.txt): Expanded factual context about Tomiwa, daaysorn, products, values, and technology.
 
 ## Work
 

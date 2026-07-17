@@ -1,5 +1,5 @@
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://daaysorn.vercel.app"
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://daaysorn.com"
 
 export const siteConfig = {
   name: "daaysorn",
