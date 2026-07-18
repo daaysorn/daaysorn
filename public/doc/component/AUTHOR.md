@@ -211,6 +211,168 @@ Existing installs are copies in other people's repos — they won't auto-update.
   `globals.css` (top flap + delayed bottom flap). Change one, change the other.
 - Full options: [flip-clock.md](./flip-clock.md#customization).
 
+### Keeps publishing pipeline
+
+Keeps is Tomiwa's public collection of useful posts, articles, videos, and
+ideas. It is not a product for visitors to save their own links. Telegram is the
+private publishing input; `/keeps` is the public reading surface.
+
+The complete flow is:
+
+```text
+Tomiwa shares a link with the Telegram bot
+  → Telegram POSTs the update to /api/telegram/keeps
+  → the route verifies Telegram's secret and Tomiwa's Telegram user ID
+  → the route acknowledges Telegram immediately
+  → background processing reads safe public metadata from the link
+  → Cencori + gpt-5-mini creates a structured title, summary, author, and tags
+  → PostgreSQL inserts the Keep or refreshes an existing matching URL
+  → /api/keeps returns the public fields
+  → /keeps refreshes through SWR and displays the Magic UI Bento Grid
+```
+
+Relevant files:
+
+| Path                                    | Purpose                                              |
+| --------------------------------------- | ---------------------------------------------------- |
+| `app/api/telegram/keeps/route.ts`       | Private Telegram webhook and owner verification      |
+| `app/api/keeps/route.ts`                | Read-only public Keeps feed                          |
+| `lib/keeps/enrich.ts`                   | Safe metadata fetch and Cencori structured summary   |
+| `lib/keeps/db.ts`                       | PostgreSQL schema initialization, reads, and upserts |
+| `database/keeps.sql`                    | Standalone copy of the PostgreSQL schema             |
+| `components/keeps/keeps-view.tsx`       | Public search, filtering, refresh, and Bento Grid    |
+| `components/keeps/keeps-skeleton.tsx`   | Loading state matching the final layout              |
+| `scripts/set-telegram-keeps-webhook.ts` | Registers the deployed webhook with Telegram         |
+
+#### Environment variables
+
+Keep all credentials server-side. Never put them in `NEXT_PUBLIC_*` variables,
+commit them, paste them into documentation, or share them in chat.
+
+```env
+DATABASE_URL=
+CENCORI_API_KEY=
+CENCORI_KEEPS_MODEL=gpt-5-mini
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_OWNER_ID=
+```
+
+- `DATABASE_URL` is a PostgreSQL connection string. Neon is the recommended
+  host, but another hosted PostgreSQL service can be used.
+- `CENCORI_API_KEY` is a server-side `csk_...` project key.
+- `CENCORI_KEEPS_MODEL` defaults to `gpt-5-mini`. It is fast and economical for
+  short classification and summarization while supporting structured output.
+- `TELEGRAM_BOT_TOKEN` comes from the verified `@BotFather` account.
+- `TELEGRAM_WEBHOOK_SECRET` authenticates webhook requests from Telegram.
+- `TELEGRAM_OWNER_ID` restricts publishing to Tomiwa's Telegram account.
+
+Add the same production values to Vercel under **Project → Settings →
+Environment Variables**, then redeploy. `.env.example` contains blank names only
+and is safe to commit. `.env.local` is ignored by Git and stores local values.
+
+#### Create the Telegram bot
+
+1. Open the verified `@BotFather` account in Telegram.
+2. Send `/newbot`.
+3. Choose a display name, such as `daaysorn Keeps`.
+4. Choose an available username ending in `bot`.
+5. Copy the bot token into `TELEGRAM_BOT_TOKEN` in `.env.local`.
+6. Treat the token like a password. Regenerate it through BotFather if exposed.
+
+Confirm the token belongs to the expected bot:
+
+```bash
+bun -e 'const token=process.env.TELEGRAM_BOT_TOKEN; const response=await fetch(`https://api.telegram.org/bot${token}/getMe`); console.log(await response.json())'
+```
+
+#### Find the Telegram owner ID
+
+Do this before registering the webhook because `getUpdates` cannot be used while
+a webhook is active.
+
+1. Open the new bot and tap **Start**.
+2. Send `/start`, followed by a fresh message such as `hello keeps`.
+3. Run:
+
+```bash
+bun -e 'const token=process.env.TELEGRAM_BOT_TOKEN; const response=await fetch(`https://api.telegram.org/bot${token}/getUpdates`); console.log(JSON.stringify(await response.json(),null,2))'
+```
+
+4. Find `result[].message.from.id` and save the number as
+   `TELEGRAM_OWNER_ID`.
+
+An empty result is not an error:
+
+```json
+{ "ok": true, "result": [] }
+```
+
+It means there is no pending message. Send a new direct message to the correct
+bot and run the command again. If it remains empty, inspect the bot and webhook:
+
+```bash
+# Confirm which bot owns the token
+bun -e 'const token=process.env.TELEGRAM_BOT_TOKEN; const response=await fetch(`https://api.telegram.org/bot${token}/getMe`); console.log(await response.json())'
+
+# Check whether a webhook is already active
+bun -e 'const token=process.env.TELEGRAM_BOT_TOKEN; const response=await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`); console.log(await response.json())'
+
+# Temporarily remove an existing webhook before using getUpdates
+bun -e 'const token=process.env.TELEGRAM_BOT_TOKEN; const response=await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`); console.log(await response.json())'
+```
+
+#### Generate the webhook secret
+
+Generate a secret containing only characters Telegram accepts:
+
+```bash
+openssl rand -hex 32
+```
+
+Store the result in `TELEGRAM_WEBHOOK_SECRET`. If it is ever shown publicly,
+generate a new value and replace it locally and on Vercel.
+
+#### Connect the deployed webhook
+
+The production deployment must contain `/api/telegram/keeps`, and
+`NEXT_PUBLIC_SITE_URL` must be `https://daaysorn.com`.
+
+After adding all environment values to Vercel and redeploying, run:
+
+```bash
+bun run telegram:webhook
+```
+
+Expected output:
+
+```text
+Telegram Keeps webhook set to https://daaysorn.com/api/telegram/keeps
+```
+
+Telegram will then send supported updates directly to the deployed API. The
+script registers `message`, `edited_message`, and `channel_post` updates and
+passes `TELEGRAM_WEBHOOK_SECRET` as Telegram's `secret_token`.
+
+#### Test publishing
+
+1. Send an Instagram, X, YouTube, TikTok, or ordinary article link directly to
+   the bot.
+2. A successful background job replies with `Kept: <generated title>`.
+3. Open `https://daaysorn.com/keeps`.
+4. The public feed refreshes on focus and every 30 seconds.
+
+If a message has no link, the bot asks for a post or page link. If processing
+fails, it asks the owner to try again. Check the Vercel function logs and the
+Cencori project logs for the underlying error. Common causes are missing
+environment variables, an invalid PostgreSQL connection, a private or blocked
+URL, and social platforms refusing metadata access.
+
+The webhook returns to Telegram before link reading, AI generation, and database
+work finish. This prevents Telegram from retrying simply because enrichment took
+several seconds. Next.js `after()` keeps the background work within the route's
+configured execution window.
+
 ---
 
 ## Rules & gotchas

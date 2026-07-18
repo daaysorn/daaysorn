@@ -22,35 +22,27 @@ export default function Template({ children }: { children: ReactNode }) {
         return
       }
 
-      const media = gsap.matchMedia()
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches
 
-      media.add(
-        {
-          allowMotion: "(prefers-reduced-motion: no-preference)",
-          reduceMotion: "(prefers-reduced-motion: reduce)",
-        },
-        ({ conditions }) => {
-          if (conditions?.allowMotion) {
-            gsap.fromTo(
-              targets,
-              { autoAlpha: 0, y: 14 },
-              {
-                autoAlpha: 1,
-                y: 0,
-                duration: 0.5,
-                stagger: 0.04,
-                ease: "power3.out",
-                willChange: "transform, opacity",
-                clearProps: "transform,opacity,visibility,willChange",
-              }
-            )
+      containerRef.current?.classList.remove("page-transition-pending")
+
+      if (!reduceMotion) {
+        gsap.fromTo(
+          targets,
+          { autoAlpha: 0, y: 14 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.5,
+            stagger: 0.04,
+            ease: "power3.out",
+            willChange: "transform, opacity",
+            clearProps: "transform,opacity,visibility,willChange",
           }
-
-          containerRef.current?.classList.remove("page-transition-pending")
-        }
-      )
-
-      return () => media.revert()
+        )
+      }
     },
     { scope: containerRef }
   )

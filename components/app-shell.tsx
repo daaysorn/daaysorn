@@ -25,36 +25,29 @@ export function AppShell({ children }: { children: ReactNode }) {
       const targets = [header, ...pageElements, footer].filter(Boolean)
       if (!targets.length) return
 
-      const media = gsap.matchMedia()
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches
 
-      media.add(
-        {
-          allowMotion: "(prefers-reduced-motion: no-preference)",
-          reduceMotion: "(prefers-reduced-motion: reduce)",
-        },
-        ({ conditions }) => {
-          if (conditions?.allowMotion) {
-            gsap.fromTo(
-              targets,
-              { autoAlpha: 0, y: 12 },
-              {
-                autoAlpha: 1,
-                y: 0,
-                duration: 0.6,
-                stagger: 0.06,
-                ease: "power3.out",
-                willChange: "transform, opacity",
-                clearProps: "transform,opacity,visibility,willChange",
-              }
-            )
+      shellRef.current?.classList.remove("shell-transition-pending")
+
+      if (!reduceMotion) {
+        gsap.fromTo(
+          targets,
+          { autoAlpha: 0, y: 12 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.6,
+            stagger: 0.06,
+            ease: "power3.out",
+            willChange: "transform, opacity",
+            clearProps: "transform,opacity,visibility,willChange",
           }
+        )
+      }
 
-          shellRef.current?.classList.remove("shell-transition-pending")
-          setIsInitialPageLoad(false)
-        }
-      )
-
-      return () => media.revert()
+      setIsInitialPageLoad(false)
     },
     { scope: shellRef }
   )

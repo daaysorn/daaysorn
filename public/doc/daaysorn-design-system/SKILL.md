@@ -33,6 +33,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 14. Long unbroken strings (tokens, env lines, URLs, hashes) must wrap — use `min-w-0`, `break-all` / `overflow-wrap-anywhere`, and never let mono blocks overflow. See `public/doc/designSystem.md` §13.6.
 
 15. The brand name is always written as lowercase **daaysorn**, including at the beginning of a sentence and in names such as **daaysorn account** and **daaysorn-cmp**.
+16. Page body content must stay inside the shared `<main>` column used by Home: `w-full min-w-0`, with the same left and right edges. Do not use viewport-width breakout layouts, negative translation, or page-specific horizontal offsets unless the user explicitly requests a wider page.
 
 ## Token → utility quick map
 

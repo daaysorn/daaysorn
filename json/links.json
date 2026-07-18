@@ -7,16 +7,16 @@
       "description": "Software, tools, and engineering work made to solve real problems."
     },
     {
-      "key": "energy",
-      "label": "Internet of Things",
-      "href": "/internet-of-things",
-      "description": "Connected devices and thoughtful systems for the physical world."
-    },
-    {
       "key": "ecommerce",
       "label": "Ecommerce",
       "href": "/ecommerce",
       "description": "Simple shopping experiences for products people care about."
+    },
+    {
+      "key": "energy",
+      "label": "Internet of Things",
+      "href": "/internet-of-things",
+      "description": "Connected devices and thoughtful systems for the physical world."
     },
     {
       "key": "wears",

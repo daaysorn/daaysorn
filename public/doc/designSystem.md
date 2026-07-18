@@ -384,7 +384,7 @@ Tooltip:        rounded-md (+ arrow rounded-[2px])
 | Width      | `max-w-md`             | Caps at `28rem` / **448px**                 |
 | Flex       | `flex-col` + `min-w-0` | Vertical stack; prevents flex overflow bugs |
 
-> **Design note:** The product currently reads as a **narrow, phone-first column** on all viewports. Widen intentionally with responsive utilities (e.g. `max-w-md lg:max-w-3xl`) when desktop layouts are needed.
+> **Design rule:** Every page body stays within the shared `<main>` column used by Home so its left and right edges remain consistent. Page roots use `w-full min-w-0`. Do not create viewport-width breakouts, negative translations, or page-specific horizontal offsets unless a wider page is explicitly requested.
 
 ### 6.2 Spacing rhythm in use
 
