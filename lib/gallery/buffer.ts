@@ -49,6 +49,12 @@ export async function publishGalleryMediaToInstagram(media: GalleryMediaDraft) {
           schedulingType: "automatic",
           mode: "shareNow",
           assets: [asset],
+          metadata: {
+            instagram: {
+              type: media.type === "video" ? "reel" : "post",
+              shouldShareToFeed: true,
+            },
+          },
           source: "daaysorn-gallery",
         },
       },

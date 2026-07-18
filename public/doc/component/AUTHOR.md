@@ -894,6 +894,8 @@ BUFFER_INSTAGRAM_CHANNEL_ID=
 The integration uses Buffer's current GraphQL `createPost` mutation with
 automatic publishing and `shareNow`. Images use the optimized public R2 image;
 videos use the original public R2 video URL and a two-second thumbnail offset.
+Instagram metadata explicitly publishes images as feed posts and videos as
+Reels shared to the feed; Buffer rejects Instagram mutations without this type.
 Instagram may require notification publishing when the connected account or
 media does not meet Meta's automatic-publishing rules.
 
