@@ -1,4 +1,4 @@
-const CACHE_VERSION = "daaysorn-v3"
+const CACHE_VERSION = "daaysorn-v4"
 const PAGE_CACHE = `${CACHE_VERSION}-pages`
 const ASSET_CACHE = `${CACHE_VERSION}-assets`
 const KEEPS_SYNC_DATABASE = "daaysorn-keeps-sync"
@@ -304,29 +304,27 @@ self.addEventListener("fetch", (event) => {
     return
   }
 
-  const isOwnOrigin = url.origin === self.location.origin
-  const isGalleryAsset = url.origin === "https://images.daaysorn.com"
-
-  if (!isOwnOrigin && !isGalleryAsset) return
+  // Let Cloudflare and the browser handle remote Gallery media directly.
+  // Intercepting cross-origin image responses and video range requests here can
+  // turn valid media into unusable opaque or partial responses.
+  if (url.origin !== self.location.origin) return
   if (
-    isOwnOrigin &&
-    (url.pathname.startsWith("/api/") ||
-      url.pathname.startsWith("/_next/image"))
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/_next/image")
   )
     return
 
-  if (isOwnOrigin && request.mode === "navigate") {
+  if (request.mode === "navigate") {
     event.respondWith(networkFirst(request, event.preloadResponse))
     return
   }
 
-  if (isOwnOrigin && url.pathname.startsWith("/_next/static/")) {
+  if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(staleWhileRevalidate(request))
     return
   }
 
   if (
-    isGalleryAsset ||
     url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/images/") ||
     request.destination === "image"
