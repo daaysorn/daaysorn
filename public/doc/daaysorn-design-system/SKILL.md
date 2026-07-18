@@ -34,23 +34,25 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 
 15. The brand name is always written as lowercase **daaysorn**, including at the beginning of a sentence and in names such as **daaysorn account** and **daaysorn-cmp**.
 16. Page body content must stay inside the shared `<main>` column used by Home: `w-full min-w-0`, with the same left and right edges. Do not use viewport-width breakout layouts, negative translation, or page-specific horizontal offsets unless the user explicitly requests a wider page.
+17. Every actionable link must show a pointer cursor. The runtime enforces this globally with `a[href] { cursor: pointer; }`; preserve that rule and use `cursor-pointer` when a component must state the behavior locally.
 
 ## Token → utility quick map
 
-| Need                  | Utility                                                |
-| --------------------- | ------------------------------------------------------ |
-| Page canvas           | `bg-background text-foreground`                        |
-| Elevated surface      | `bg-card text-card-foreground` / `bg-popover`          |
-| Primary action        | `<Button>` (`bg-primary text-primary-foreground`)      |
-| Quiet text            | `text-muted-foreground`                                |
-| Quiet fill / skeleton | `bg-muted` (+ `animate-pulse` for loaders)             |
-| Ghost action          | `<Button variant="ghost">`                             |
-| Live text shimmer     | `motion-safe:animate-text-shimmer` (~5.5s ease-in-out) |
-| Live pulse            | `motion-safe:animate-pulse` / `animate-music-pulse`    |
-| Brand emphasis        | `text-primary font-semibold`                           |
-| Borders / inputs      | `border-border` / `border-input`                       |
-| Focus ring            | `ring-ring` (buttons already handle it)                |
-| Danger                | `variant="destructive"` / `text-destructive`           |
+| Need                  | Utility                                                 |
+| --------------------- | ------------------------------------------------------- |
+| Page canvas           | `bg-background text-foreground`                         |
+| Elevated surface      | `bg-card text-card-foreground` / `bg-popover`           |
+| Primary action        | `<Button>` (`bg-primary text-primary-foreground`)       |
+| Quiet text            | `text-muted-foreground`                                 |
+| Quiet fill / skeleton | `bg-muted` (+ `animate-pulse` for loaders)              |
+| Ghost action          | `<Button variant="ghost">`                              |
+| Live text shimmer     | `motion-safe:animate-text-shimmer` (~5.5s ease-in-out)  |
+| Live pulse            | `motion-safe:animate-pulse` / `animate-music-pulse`     |
+| Brand emphasis        | `text-primary font-semibold`                            |
+| Borders / inputs      | `border-border` / `border-input`                        |
+| Focus ring            | `ring-ring` (buttons already handle it)                 |
+| Danger                | `variant="destructive"` / `text-destructive`            |
+| Actionable link       | `cursor-pointer` (also enforced globally for `a[href]`) |
 
 ## Typography
 
@@ -103,6 +105,7 @@ After writing UI:
 - [ ] No hard-coded hex/oklch/px colors
 - [ ] Classes merged with cn(); conditional classes clean
 - [ ] Focus visible + aria-labels on icon-only controls
+- [ ] Every actionable link uses the pointer cursor
 - [ ] Renders in light AND dark (semantic tokens only)
 - [ ] Reads well at base width (iPhone 12 = base + xs:)
 - [ ] Long tokens/URLs/env lines wrap (`min-w-0 break-all`) — no horizontal overflow

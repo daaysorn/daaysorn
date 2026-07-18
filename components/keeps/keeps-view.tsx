@@ -113,8 +113,8 @@ function KeepCard({ keep }: { keep: Keep }) {
         aria-label={`View ${keep.title}`}
         className="block min-w-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
       >
-        <div className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] gap-4 xs:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-muted">
+        <div className="min-w-0 after:clear-both after:block md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6 md:after:hidden">
+          <div className="relative float-left mr-4 mb-2 aspect-[4/5] w-24 overflow-hidden rounded-md bg-muted xs:mb-3 xs:w-28 md:float-none md:m-0 md:w-auto">
             {showImage && keep.imageUrl ? (
               <Image
                 loader={({ src }) => src}
@@ -142,8 +142,8 @@ function KeepCard({ keep }: { keep: Keep }) {
             )}
           </div>
 
-          <div className="flex min-w-0 flex-col pb-11">
-            <div className="flex flex-col gap-2">
+          <div className="min-w-0 pb-11 md:flex md:flex-col">
+            <div className="md:flex md:flex-col md:gap-2">
               <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                 <Icon
                   aria-label={keep.source}
@@ -160,11 +160,11 @@ function KeepCard({ keep }: { keep: Keep }) {
                 <span aria-hidden="true">·</span>
                 <time className="font-mono">{keep.savedAt}</time>
               </div>
-              <h2 className="text-lg leading-tight font-semibold transition-colors group-hover:text-primary xs:text-xl md:text-2xl">
+              <h2 className="mt-2 text-lg leading-tight font-semibold transition-colors group-hover:text-primary xs:text-xl md:mt-0 md:text-2xl">
                 {keep.title}
               </h2>
             </div>
-            <div className="mt-3 flex min-w-0 flex-col gap-3">
+            <div className="mt-3 min-w-0 space-y-3 md:flex md:flex-col md:gap-3 md:space-y-0">
               <p className="text-sm leading-6 text-muted-foreground md:text-base">
                 {keep.summary}
               </p>
@@ -276,7 +276,7 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
             <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
               Keeps
             </h1>
-            <p className="text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
+            <p className="text-xs leading-5 whitespace-nowrap text-muted-foreground md:text-lg md:leading-8">
               Posts, articles, videos, and ideas I found worth keeping.
             </p>
           </div>
@@ -305,7 +305,7 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
                   type="button"
                   aria-pressed={activeTag === tag}
                   onClick={() => setActiveTag(tag)}
-                  className="shrink-0 rounded-sm text-sm font-medium text-muted-foreground no-underline transition-colors hover:text-foreground hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:font-semibold aria-pressed:text-foreground"
+                  className="shrink-0 rounded-sm text-xs font-medium text-muted-foreground no-underline transition-colors hover:text-foreground hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:font-semibold aria-pressed:text-foreground md:text-sm"
                 >
                   {tag}
                 </button>

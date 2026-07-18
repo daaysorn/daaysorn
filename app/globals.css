@@ -278,6 +278,9 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  a[href] {
+    cursor: pointer;
+  }
   html {
     @apply font-sans;
   }
