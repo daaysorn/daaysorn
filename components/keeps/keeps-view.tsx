@@ -57,6 +57,8 @@ const sourceIconColors: Record<string, string> = {
 
 function KeepCard({ keep }: { keep: Keep }) {
   const Icon = sourceIcons[keep.source] ?? PiBookmarkSimpleFill
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const showImage = Boolean(keep.imageUrl && keep.imageUrl !== failedImageUrl)
   const shareText = `${keep.title} ${keep.href}`
   const socialShares = [
     {
@@ -113,7 +115,7 @@ function KeepCard({ keep }: { keep: Keep }) {
       >
         <div className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] gap-4 xs:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6">
           <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-muted">
-            {keep.imageUrl ? (
+            {showImage && keep.imageUrl ? (
               <Image
                 loader={({ src }) => src}
                 unoptimized
@@ -122,15 +124,19 @@ function KeepCard({ keep }: { keep: Keep }) {
                 alt=""
                 sizes="(min-width: 768px) 10rem, 7rem"
                 className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.02]"
+                onError={() => setFailedImageUrl(keep.imageUrl)}
               />
             ) : (
-              <span className="flex size-full items-center justify-center">
+              <span
+                role="img"
+                aria-label={`${keep.source} preview unavailable`}
+                className="flex size-full items-center justify-center"
+              >
                 <Icon
                   className={cn(
-                    "size-7",
+                    "size-9 md:size-10",
                     sourceIconColors[keep.source] ?? "text-primary"
                   )}
-                  aria-hidden="true"
                 />
               </span>
             )}
