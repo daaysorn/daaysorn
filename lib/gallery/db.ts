@@ -105,7 +105,7 @@ function toGalleryMedia(row: GalleryRow): GalleryMedia {
   }
 }
 
-async function queryGalleryMedia(): Promise<GalleryMedia[]> {
+export async function listGalleryMediaFresh(): Promise<GalleryMedia[]> {
   const sql = database()
   if (!sql) return []
 
@@ -122,7 +122,7 @@ async function queryGalleryMedia(): Promise<GalleryMedia[]> {
 }
 
 export const listGalleryMedia = unstable_cache(
-  queryGalleryMedia,
+  listGalleryMediaFresh,
   ["gallery-list"],
   { tags: ["gallery"], revalidate: 86400 }
 )

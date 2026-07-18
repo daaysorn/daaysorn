@@ -1,10 +1,13 @@
 import { readdir } from "node:fs/promises"
 import { join } from "node:path"
 import type { Metadata } from "next"
-import Image from "next/image"
+import sharp from "sharp"
 
-import { listGalleryMedia } from "@/lib/gallery/db"
-import { cn } from "@/lib/utils"
+import {
+  GalleryView,
+  type GalleryViewItem,
+} from "@/components/gallery/gallery-view"
+import { listGalleryMedia, listGalleryMediaFresh } from "@/lib/gallery/db"
 
 const galleryDirectory = join(process.cwd(), "public", "images", "gallery")
 const supportedImagePattern = /\.(?:avif|gif|jpe?g|png|webp)$/i
@@ -34,8 +37,7 @@ export const metadata: Metadata = {
 async function getGalleryMedia() {
   try {
     const entries = await readdir(galleryDirectory, { withFileTypes: true })
-
-    return entries
+    const files = entries
       .filter((entry) => {
         if (!entry.isFile()) return false
 
@@ -44,18 +46,41 @@ async function getGalleryMedia() {
           supportedVideoPattern.test(entry.name)
         )
       })
-      .map((entry) => ({
-        id: `local:${entry.name}`,
-        filename: entry.name,
-        type: supportedVideoPattern.test(entry.name) ? "video" : "image",
-        src: `/images/gallery/${encodeURIComponent(entry.name)}`,
-        poster: null,
-        label: mediaLabel(entry.name),
-        remote: false,
-      }))
       .sort((a, b) =>
-        a.filename.localeCompare(b.filename, undefined, { numeric: true })
+        a.name.localeCompare(b.name, undefined, { numeric: true })
       )
+
+    return Promise.all(
+      files.map(async (entry): Promise<GalleryViewItem> => {
+        const type: GalleryViewItem["type"] = supportedVideoPattern.test(
+          entry.name
+        )
+          ? "video"
+          : "image"
+        let width: number | null = null
+        let height: number | null = null
+
+        if (type === "image") {
+          const metadata = await sharp(
+            join(galleryDirectory, entry.name)
+          ).metadata()
+          width = metadata.width ?? null
+          height = metadata.height ?? null
+        }
+
+        return {
+          id: `local:${entry.name}`,
+          type,
+          src: `/images/gallery/${encodeURIComponent(entry.name)}`,
+          previewSrc: `/images/gallery/${encodeURIComponent(entry.name)}`,
+          poster: null,
+          label: mediaLabel(entry.name),
+          remote: false,
+          width,
+          height,
+        }
+      })
+    )
   } catch {
     return []
   }
@@ -72,7 +97,9 @@ function mediaLabel(filename: string) {
 
 export default async function GalleryPage() {
   const [remoteMedia, localMedia] = await Promise.all([
-    listGalleryMedia(),
+    process.env.NODE_ENV === "development"
+      ? listGalleryMediaFresh()
+      : listGalleryMedia(),
     getGalleryMedia(),
   ])
   const media = [
@@ -86,12 +113,14 @@ export default async function GalleryPage() {
       return [
         {
           id: item.id,
-          filename: item.id,
           type: item.type,
           src,
+          previewSrc: item.type === "image" ? (item.largeUrl ?? src) : src,
           poster: item.posterUrl,
           label: item.altText,
           remote: true,
+          width: item.width,
+          height: item.height,
         },
       ]
     }),
@@ -109,40 +138,7 @@ export default async function GalleryPage() {
           Nothing yet
         </p>
       ) : (
-        <div className="mt-8 grid auto-rows-[11rem] grid-cols-2 gap-3 md:mt-7 md:auto-rows-[13rem] md:grid-cols-3 md:gap-4">
-          {media.map((item, index) => (
-            <figure
-              key={item.id}
-              className={cn(
-                "relative min-w-0 overflow-hidden rounded-xl bg-muted",
-                index % 7 === 0 && "col-span-2 row-span-2",
-                index % 7 === 3 && "row-span-2",
-                index % 7 === 5 && "md:col-span-2"
-              )}
-            >
-              {item.type === "video" ? (
-                <video
-                  controls
-                  playsInline
-                  preload="metadata"
-                  src={item.src}
-                  poster={item.poster ?? undefined}
-                  aria-label={item.label}
-                  className="size-full object-cover"
-                />
-              ) : (
-                <Image
-                  fill
-                  unoptimized={item.remote}
-                  src={item.src}
-                  alt={item.label}
-                  sizes="(min-width: 768px) 384px, (min-width: 360px) 50vw, 100vw"
-                  className="object-cover transition-transform duration-500 ease-out motion-safe:hover:scale-[1.025]"
-                />
-              )}
-            </figure>
-          ))}
-        </div>
+        <GalleryView media={media} />
       )}
     </article>
   )
