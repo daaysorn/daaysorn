@@ -418,12 +418,24 @@ export function KeepsView({
   const [savedKeepIds, setSavedKeepIds] = useState<string[]>([])
   const [syncStatus, setSyncStatus] = useState("")
   const [syncSession, setSyncSession] = useState<KeepsSyncSession | null>(null)
-  const { data } = useSWR("/api/keeps", fetcher, {
+  const { data, mutate } = useSWR("/api/keeps", fetcher, {
     fallbackData: { keeps: initialKeeps },
     refreshInterval: 120_000,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
   })
+
+  const refreshPublicKeeps = useCallback(async () => {
+    try {
+      const fresh = await fetcher(`/api/keeps?live=${Date.now()}`)
+      await mutate(fresh, { revalidate: false })
+      trackKeepsEvent("keeps_realtime", { outcome: "public_feed_updated" })
+    } catch {
+      trackKeepsEvent("keeps_realtime", {
+        outcome: "public_feed_refresh_failed",
+      })
+    }
+  }, [mutate])
 
   const syncCollection = useCallback(async (session: KeepsSyncSession) => {
     if (!navigator.onLine) return
@@ -553,12 +565,14 @@ export function KeepsView({
 
     let realtime: import("ably").Realtime | undefined
     let channel: import("ably").RealtimeChannel | undefined
+    let publicChannel: import("ably").RealtimeChannel | undefined
     let cancelled = false
     const receiveChange = () => {
       trackKeepsEvent("keeps_realtime", { outcome: "update_received" })
       void syncCollection(syncSession)
     }
     const reconnect = () => void syncCollection(syncSession)
+    const receivePublicChange = () => void refreshPublicKeeps()
 
     const connect = async () => {
       try {
@@ -575,6 +589,8 @@ export function KeepsView({
         realtime.connection.on("connected", reconnect)
         channel = realtime.channels.get(`private:keeps:${syncSession.id}`)
         await channel.subscribe("changed", receiveChange)
+        publicChannel = realtime.channels.get("public:keeps")
+        await publicChannel.subscribe("changed", receivePublicChange)
 
         if (!cancelled) {
           setSyncStatus("Saved Keeps are syncing live.")
@@ -593,10 +609,53 @@ export function KeepsView({
     return () => {
       cancelled = true
       channel?.unsubscribe("changed", receiveChange)
+      publicChannel?.unsubscribe("changed", receivePublicChange)
       realtime?.connection.off("connected", reconnect)
       realtime?.close()
     }
-  }, [syncCollection, syncSession])
+  }, [refreshPublicKeeps, syncCollection, syncSession])
+
+  useEffect(() => {
+    if (syncSession) return
+
+    let realtime: import("ably").Realtime | undefined
+    let channel: import("ably").RealtimeChannel | undefined
+    let cancelled = false
+    const receiveChange = () => void refreshPublicKeeps()
+
+    const connect = async () => {
+      try {
+        const Ably = await import("ably")
+        if (cancelled) return
+
+        realtime = new Ably.Realtime({
+          authUrl: "/api/keeps/public-realtime-token",
+          authMethod: "GET",
+        })
+        channel = realtime.channels.get("public:keeps")
+        await channel.subscribe("changed", receiveChange)
+        if (!cancelled) {
+          trackKeepsEvent("keeps_realtime", {
+            outcome: "public_feed_connected",
+          })
+        }
+      } catch {
+        if (!cancelled) {
+          trackKeepsEvent("keeps_realtime", {
+            outcome: "public_feed_connection_failed",
+          })
+        }
+      }
+    }
+
+    void connect()
+
+    return () => {
+      cancelled = true
+      channel?.unsubscribe("changed", receiveChange)
+      realtime?.close()
+    }
+  }, [refreshPublicKeeps, syncSession])
 
   const toggleSaved = (keep: Keep) => {
     setSavedKeepIds((current) => {

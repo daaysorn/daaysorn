@@ -236,12 +236,14 @@ apply local changes immediately and flush them as soon as connectivity returns.
 The last change received for the same Keep wins; changes to different Keeps are
 merged independently.
 
-The public Keeps feed refreshes `/api/keeps` every two minutes, when the tab
-regains focus, and when the device reconnects. The response is cached at the
-edge for one minute and can be served stale while it refreshes for ten minutes.
-Do not restore the old two-second SSE database polling: every reader held a
-function open and repeatedly queried Postgres, which is unsuitable for the
-Vercel free plan.
+Telegram additions, edits, and deletions publish a lightweight `changed` event
+to the subscribe-only `public:keeps` Ably channel. Connected readers immediately
+fetch a fresh, query-keyed `/api/keeps` response. The public feed still refreshes
+every two minutes, on focus, and on reconnect as a durability fallback. Normal
+responses are cached at the edge for one minute and can be served stale while
+they refresh for ten minutes. Do not restore the old two-second SSE database
+polling: every reader held a function open and repeatedly queried Postgres,
+which is unsuitable for the Vercel free plan.
 
 #### Keeps analytics
 
@@ -380,27 +382,29 @@ Tomiwa shares a link with the Telegram bot
   → background processing reads safe public metadata from the link
   → Cencori + gpt-4o-mini creates a structured title, summary, author, and tags
   → PostgreSQL inserts the Keep or refreshes an existing matching URL
+  → the webhook publishes changed on Ably's public:keeps channel
   → /api/keeps returns the public fields
-  → /keeps refreshes the cached feed and displays the editorial Keep list
+  → connected /keeps readers fetch the fresh feed and update immediately
 ```
 
 Relevant files:
 
-| Path                                    | Purpose                                               |
-| --------------------------------------- | ----------------------------------------------------- |
-| `app/api/telegram/keeps/route.ts`       | Private Telegram webhook and owner verification       |
-| `app/api/keeps/route.ts`                | Read-only public Keeps feed                           |
-| `app/api/keeps/sync/route.ts`           | Anonymous Saved Keeps cross-device synchronization    |
-| `app/api/keeps/realtime-token/route.ts` | Scoped, short-lived Ably subscriber tokens            |
-| `lib/keeps/enrich.ts`                   | Safe metadata fetch and Cencori structured summary    |
-| `lib/keeps/text.ts`                     | Enforces the two-sentence summary limit               |
-| `lib/keeps/db.ts`                       | PostgreSQL schema initialization, reads, and upserts  |
-| `lib/keeps/sync-db.ts`                  | Saved Keeps sync groups and per-Keep changes          |
-| `lib/keeps/realtime.ts`                 | Ably token creation, private channels, and publishing |
-| `database/keeps.sql`                    | Standalone copy of the PostgreSQL schema              |
-| `components/keeps/keeps-view.tsx`       | Public list, search, Saved Keeps, export, and sync    |
-| `components/keeps/keeps-skeleton.tsx`   | Loading state matching the final layout               |
-| `scripts/set-telegram-keeps-webhook.ts` | Registers the deployed webhook with Telegram          |
+| Path                                           | Purpose                                               |
+| ---------------------------------------------- | ----------------------------------------------------- |
+| `app/api/telegram/keeps/route.ts`              | Private Telegram webhook and owner verification       |
+| `app/api/keeps/route.ts`                       | Read-only public Keeps feed                           |
+| `app/api/keeps/sync/route.ts`                  | Anonymous Saved Keeps cross-device synchronization    |
+| `app/api/keeps/realtime-token/route.ts`        | Scoped, short-lived Ably subscriber tokens            |
+| `app/api/keeps/public-realtime-token/route.ts` | Public-feed, subscribe-only Ably tokens               |
+| `lib/keeps/enrich.ts`                          | Safe metadata fetch and Cencori structured summary    |
+| `lib/keeps/text.ts`                            | Enforces the two-sentence summary limit               |
+| `lib/keeps/db.ts`                              | PostgreSQL schema initialization, reads, and upserts  |
+| `lib/keeps/sync-db.ts`                         | Saved Keeps sync groups and per-Keep changes          |
+| `lib/keeps/realtime.ts`                        | Ably token creation, private channels, and publishing |
+| `database/keeps.sql`                           | Standalone copy of the PostgreSQL schema              |
+| `components/keeps/keeps-view.tsx`              | Public list, search, Saved Keeps, export, and sync    |
+| `components/keeps/keeps-skeleton.tsx`          | Loading state matching the final layout               |
+| `scripts/set-telegram-keeps-webhook.ts`        | Registers the deployed webhook with Telegram          |
 
 #### Environment variables
 
@@ -450,12 +454,27 @@ and is safe to commit. `.env.local` is ignored by Git and stores local values.
 7. Save or remove a Keep. The other online device should update immediately.
 8. Turn one device offline, make changes, and reconnect. Its queued changes
    should flush immediately and notify the other device through Ably.
+9. Keep `/keeps` open in a browser, then add or delete a Keep through Telegram.
+   The public list should refresh immediately without reloading the page.
 
 The browser authenticates through `/api/keeps/realtime-token`. That route first
 verifies the private Saved Keeps group secret, then returns a one-hour Ably
-token restricted to subscribing to only `private:keeps:<group-id>`. Publishing
-remains server-only. If Ably is unavailable, Neon plus the two-minute/focus/
-reconnect reconciliation keeps the collection correct.
+token restricted to `private:keeps:<group-id>` and `public:keeps`. Visitors who
+have not exported Saved Keeps authenticate through
+`/api/keeps/public-realtime-token`, which grants subscribe-only access to
+`public:keeps`. Publishing remains server-only. If Ably is unavailable, Neon
+plus the two-minute/focus/reconnect reconciliation keeps both collections
+correct.
+
+Realtime deployment checks:
+
+- `/api/keeps/public-realtime-token` returns `200` with a token when the latest
+  code and `ABLY_API_KEY` are deployed.
+- A `404` means the deployment predates the public realtime route.
+- A `503` means `ABLY_API_KEY` is missing from that Vercel environment or the
+  project was not redeployed after adding it.
+- `/api/keeps/realtime-token` requires a valid private Saved Keeps bearer token,
+  so an unauthenticated `401` is expected.
 
 #### Create the Telegram bot
 

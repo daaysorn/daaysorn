@@ -3,6 +3,7 @@ import { after } from "next/server"
 import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
+import { publishPublicKeepsChanged } from "@/lib/keeps/realtime"
 
 export const maxDuration = 60
 
@@ -80,6 +81,16 @@ async function reply(chatId: number, text: string) {
   })
 }
 
+async function notifyPublicKeepsChanged() {
+  try {
+    await publishPublicKeepsChanged()
+  } catch (error) {
+    console.error("Public Keeps realtime publish failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    })
+  }
+}
+
 export async function POST(request: Request) {
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim()
   const receivedSecret = request.headers.get("x-telegram-bot-api-secret-token")
@@ -119,6 +130,7 @@ export async function POST(request: Request) {
           hrefs.map((href) => deleteKeepByHref(href))
         )
         const deletedCount = deleted.filter(Boolean).length
+        if (deletedCount) await notifyPublicKeepsChanged()
         await reply(
           message.chat.id,
           deletedCount
@@ -185,6 +197,8 @@ export async function POST(request: Request) {
       )
       return
     }
+
+    await notifyPublicKeepsChanged()
 
     const titles = saved.map((keep) => `• ${keep.title}`).join("\n")
     const failureNote = failed.length
