@@ -28,10 +28,14 @@ export function normalizeKeepUrl(value: string) {
   }
 
   if (url.hostname === "youtu.be" || url.hostname === "youtube.com") {
+    const segments = url.pathname.split("/").filter(Boolean)
+    const pathVideoId = ["live", "shorts", "embed"].includes(segments[0] ?? "")
+      ? segments[1]
+      : undefined
     const videoId =
       url.hostname === "youtu.be"
-        ? url.pathname.split("/").filter(Boolean)[0]
-        : url.searchParams.get("v")
+        ? segments[0]
+        : url.searchParams.get("v") || pathVideoId
     url.hostname = "youtube.com"
     url.pathname = videoId ? "/watch" : url.pathname
     url.search = videoId ? `?v=${encodeURIComponent(videoId)}` : ""

@@ -436,11 +436,42 @@ enforce uniqueness on each canonical URL.
   response handler, and database read layer all enforce this rule, so older
   saved summaries are also limited when displayed.
 - The source is identified by its filled platform icon without a source badge.
-  The saved creator name is not displayed on the public card.
+  The saved creator name is hidden, while the saved date remains visible beside
+  the platform.
 - Custom topic tags remain available below the summary for searching and
   filtering.
 - The share controls and **View** action sit on opposite edges of the same card
   footer row and use the same compact text scale.
+- Keep order is randomized once per page visit and remains stable while the
+  visitor searches, filters, or receives live updates.
+- The **Latest** filter sits immediately after **All** and restores the
+  database's newest-first order. **All** returns to the visit's randomized
+  discovery order.
+
+#### Supported link types
+
+Keeps accepts any public `http://` or `https://` URL. Enrichment follows a
+layered fallback chain so a provider-specific failure does not become a generic
+page-shell summary:
+
+1. Dedicated public embed metadata for YouTube, Instagram, and TikTok.
+2. A page-advertised JSON oEmbed endpoint when available. This covers many
+   video, audio, design, and publishing services without provider-specific
+   scraping.
+3. Open Graph, X card, standard description, author, and readable HTML text.
+4. Direct-file handling for images, video, audio, PDF, JSON, and text files.
+5. A deterministic hostname and URL-title fallback when a public server blocks
+   metadata access.
+
+YouTube watch, `youtu.be`, Live, Shorts, and embed URLs are normalized to the
+same canonical video URL before duplicate checking. Recognized platform labels
+and icons include YouTube, Instagram, TikTok, X, Behance, Dribbble, Facebook,
+GitHub, LinkedIn, Reddit, SoundCloud, Spotify, Threads, and Vimeo.
+
+No metadata system can read content behind a login, private account, paywall,
+CAPTCHA, expired signed URL, or site-level bot block. In those cases, add a
+factual note after the URL in Telegram; Keeps treats that note as the trusted
+context and still links to the original.
 
 #### Delete a Keep
 

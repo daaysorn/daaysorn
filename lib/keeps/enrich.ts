@@ -3,7 +3,11 @@ import { isIP } from "node:net"
 import { Cencori } from "cencori"
 
 import type { KeepDraft } from "@/lib/keeps/types"
-import { challengeFallback, isChallengeContent } from "@/lib/keeps/fallback"
+import {
+  challengeFallback,
+  isChallengeContent,
+  titleFromKeepUrl,
+} from "@/lib/keeps/fallback"
 import { limitSentences } from "@/lib/keeps/text"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 
@@ -114,6 +118,66 @@ async function readInstagramEmbed(url: URL) {
   }
 }
 
+async function readYouTubeEmbed(url: URL) {
+  const response = await fetch(
+    `https://www.youtube.com/oembed?url=${encodeURIComponent(url.toString())}&format=json`,
+    { signal: AbortSignal.timeout(8000) }
+  )
+  if (!response.ok) return null
+
+  const data = (await response.json()) as {
+    title?: string
+    author_name?: string
+    thumbnail_url?: string
+  }
+
+  return {
+    title: data.title?.trim() ?? "",
+    author: data.author_name?.trim() ?? "",
+    imageUrl: data.thumbnail_url?.trim() || null,
+  }
+}
+
+async function readDiscoveredEmbed(html: string, pageUrl: URL) {
+  const tag = html.match(
+    /<link[^>]+type=["']application\/json\+oembed["'][^>]*>/i
+  )?.[0]
+  const href = tag?.match(/href=["']([^"']+)["']/i)?.[1]
+  if (!href) return null
+
+  const endpoint = await assertPublicUrl(
+    decodeHtml(new URL(href, pageUrl).toString())
+  )
+  const response = await fetch(endpoint, {
+    signal: AbortSignal.timeout(8000),
+    headers: { Accept: "application/json" },
+  })
+  if (!response.ok) return null
+
+  const data = (await response.json()) as {
+    title?: string
+    author_name?: string
+    provider_name?: string
+    thumbnail_url?: string
+  }
+
+  return {
+    title: data.title?.trim() ?? "",
+    author: data.author_name?.trim() || data.provider_name?.trim() || "",
+    imageUrl: data.thumbnail_url?.trim() || null,
+  }
+}
+
+function contentTypeLabel(contentType: string) {
+  if (contentType.startsWith("image/")) return "image"
+  if (contentType.startsWith("video/")) return "video"
+  if (contentType.startsWith("audio/")) return "audio file"
+  if (contentType.includes("pdf")) return "PDF document"
+  if (contentType.includes("json")) return "JSON resource"
+  if (contentType.startsWith("text/")) return "text document"
+  return "file"
+}
+
 async function readPage(initialUrl: string) {
   let url = await assertPublicUrl(normalizeKeepUrl(initialUrl))
 
@@ -137,7 +201,19 @@ async function readPage(initialUrl: string) {
     }
 
     const type = response.headers.get("content-type") ?? ""
-    if (!response.ok || !type.includes("text/html")) break
+    if (!response.ok) break
+    if (!type.includes("text/html")) {
+      const href = normalizeKeepUrl(url.toString())
+      const label = contentTypeLabel(type)
+      return {
+        href,
+        title: titleFromKeepUrl(href),
+        description: `A saved ${label} from ${url.hostname.replace(/^www\./, "")}.`,
+        author: url.hostname.replace(/^www\./, ""),
+        imageUrl: type.startsWith("image/") ? href : null,
+        body: "",
+      }
+    }
 
     const html = (await response.text()).slice(0, 500_000)
     const title =
@@ -159,6 +235,22 @@ async function readPage(initialUrl: string) {
 
     const source = sourceFrom(url)
 
+    if (source === "YouTube") {
+      const embed = await readYouTubeEmbed(url)
+      if (embed?.title) {
+        const context = description || embed.title
+        return {
+          href: normalizeKeepUrl(url.toString()),
+          title: embed.title,
+          description: context,
+          author: embed.author || author,
+          imageUrl:
+            embed.imageUrl || (image ? new URL(image, url).toString() : null),
+          body: context,
+        }
+      }
+    }
+
     if (source === "Instagram") {
       const embed = await readInstagramEmbed(url)
       if (embed?.title) {
@@ -170,6 +262,23 @@ async function readPage(initialUrl: string) {
           imageUrl: embed.imageUrl,
           body: embed.title,
         }
+      }
+    }
+
+    const discoveredEmbed = await readDiscoveredEmbed(html, url).catch(
+      () => null
+    )
+    if (discoveredEmbed?.title) {
+      const context = description || discoveredEmbed.title
+      return {
+        href: normalizeKeepUrl(url.toString()),
+        title: discoveredEmbed.title,
+        description: context,
+        author: discoveredEmbed.author || author,
+        imageUrl:
+          discoveredEmbed.imageUrl ||
+          (image ? new URL(image, url).toString() : null),
+        body: context,
       }
     }
 
@@ -222,11 +331,12 @@ async function readPage(initialUrl: string) {
     }
   }
 
+  const href = normalizeKeepUrl(url.toString())
   return {
-    href: normalizeKeepUrl(url.toString()),
-    title: "",
-    description: "",
-    author: "",
+    href,
+    title: titleFromKeepUrl(href),
+    description: `A saved link from ${url.hostname.replace(/^www\./, "")}. Open the original for full context.`,
+    author: url.hostname.replace(/^www\./, ""),
     imageUrl: null,
     body: "",
   }
@@ -237,7 +347,15 @@ function sourceFrom(url: URL) {
   if (host === "x.com" || host === "twitter.com") return "X"
   if (host === "behance.net") return "Behance"
   if (host === "dribbble.com") return "Dribbble"
+  if (host === "facebook.com") return "Facebook"
+  if (host === "github.com") return "GitHub"
   if (host === "instagram.com") return "Instagram"
+  if (host === "linkedin.com") return "LinkedIn"
+  if (host === "open.spotify.com") return "Spotify"
+  if (host === "reddit.com") return "Reddit"
+  if (host === "soundcloud.com") return "SoundCloud"
+  if (host === "threads.net") return "Threads"
+  if (host === "vimeo.com") return "Vimeo"
   if (host === "youtube.com" || host === "youtu.be") return "YouTube"
   if (host === "tiktok.com") return "TikTok"
   return "Article"

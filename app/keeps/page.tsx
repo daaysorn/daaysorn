@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { randomUUID } from "node:crypto"
 
 import { KeepsView } from "@/components/keeps/keeps-view"
 import { listKeeps } from "@/lib/keeps/db"
@@ -29,5 +30,5 @@ export const metadata: Metadata = {
 export default async function KeepsPage() {
   const keeps = await listKeeps()
 
-  return <KeepsView initialKeeps={keeps} />
+  return <KeepsView initialKeeps={keeps} shuffleSeed={randomUUID()} />
 }

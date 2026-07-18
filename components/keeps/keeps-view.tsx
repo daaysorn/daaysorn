@@ -9,8 +9,14 @@ import {
   FaBehance,
   FaDribbble,
   FaFacebookF,
+  FaGithub,
   FaLinkedinIn,
+  FaRedditAlien,
+  FaSoundcloud,
+  FaSpotify,
+  FaThreads,
   FaTiktok,
+  FaVimeoV,
   FaWhatsapp,
 } from "react-icons/fa6"
 import {
@@ -39,8 +45,16 @@ const sourceIcons: Record<string, IconType> = {
   Article: PiArticleFill,
   Behance: FaBehance,
   Dribbble: FaDribbble,
+  Facebook: FaFacebookF,
+  GitHub: FaGithub,
   Instagram: PiInstagramLogoFill,
+  LinkedIn: FaLinkedinIn,
+  Reddit: FaRedditAlien,
+  SoundCloud: FaSoundcloud,
+  Spotify: FaSpotify,
+  Threads: FaThreads,
   TikTok: FaTiktok,
+  Vimeo: FaVimeoV,
   X: PiXLogoFill,
   YouTube: PiYoutubeLogoFill,
 }
@@ -49,8 +63,16 @@ const sourceIconColors: Record<string, string> = {
   Article: "text-primary",
   Behance: "text-[#1769ff]",
   Dribbble: "text-[#ea4c89]",
+  Facebook: "text-[#1877f2]",
+  GitHub: "text-foreground",
   Instagram: "text-[#e4405f]",
+  LinkedIn: "text-[#0a66c2]",
+  Reddit: "text-[#ff4500]",
+  SoundCloud: "text-[#ff5500]",
+  Spotify: "text-[#1db954]",
+  Threads: "text-foreground",
   TikTok: "text-[#fe2c55]",
+  Vimeo: "text-[#1ab7ea]",
   X: "text-foreground",
   YouTube: "text-[#ff0000]",
 }
@@ -223,7 +245,24 @@ const fetcher = async (url: string): Promise<{ keeps: Keep[] }> => {
   return response.json() as Promise<{ keeps: Keep[] }>
 }
 
-export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
+function seededOrder(value: string) {
+  let hash = 2166136261
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return hash >>> 0
+}
+
+export function KeepsView({
+  initialKeeps,
+  shuffleSeed,
+}: {
+  initialKeeps: Keep[]
+  shuffleSeed: string
+}) {
   const [query, setQuery] = useState("")
   const [activeTag, setActiveTag] = useState("All")
   const { data, mutate } = useSWR("/api/keeps", fetcher, {
@@ -249,15 +288,28 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
     return () => events.close()
   }, [mutate])
   const keeps = data?.keeps ?? initialKeeps
+  const shuffledKeeps = useMemo(
+    () =>
+      [...keeps].sort(
+        (first, second) =>
+          seededOrder(`${shuffleSeed}:${first.id}`) -
+          seededOrder(`${shuffleSeed}:${second.id}`)
+      ),
+    [keeps, shuffleSeed]
+  )
   const tags = useMemo(
-    () => ["All", ...new Set(keeps.flatMap((keep) => keep.tags))],
+    () => ["All", "Latest", ...new Set(keeps.flatMap((keep) => keep.tags))],
     [keeps]
   )
   const filteredKeeps = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
+    const orderedKeeps = activeTag === "Latest" ? keeps : shuffledKeeps
 
-    return keeps.filter((keep) => {
-      const matchesTag = activeTag === "All" || keep.tags.includes(activeTag)
+    return orderedKeeps.filter((keep) => {
+      const matchesTag =
+        activeTag === "All" ||
+        activeTag === "Latest" ||
+        keep.tags.includes(activeTag)
       const matchesQuery =
         !normalizedQuery ||
         [keep.title, keep.summary, keep.source, keep.author, ...keep.tags].some(
@@ -266,7 +318,7 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
 
       return matchesTag && matchesQuery
     })
-  }, [activeTag, keeps, query])
+  }, [activeTag, keeps, query, shuffledKeeps])
 
   return (
     <article className="w-full min-w-0 pb-8 md:pb-24">
