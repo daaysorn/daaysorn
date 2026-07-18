@@ -48,13 +48,13 @@ const sourceIcons: Record<string, IconType> = {
 }
 
 const sourceIconColors: Record<string, string> = {
-  Article: "text-chart-1",
-  Behance: "text-chart-2",
-  Dribbble: "text-chart-3",
-  Instagram: "text-chart-4",
-  TikTok: "text-chart-5",
-  X: "text-chart-5",
-  YouTube: "text-destructive",
+  Article: "text-primary",
+  Behance: "text-[#1769ff]",
+  Dribbble: "text-[#ea4c89]",
+  Instagram: "text-[#e4405f]",
+  TikTok: "text-[#fe2c55]",
+  X: "text-foreground",
+  YouTube: "text-[#ff0000]",
 }
 
 function KeepCard({ keep }: { keep: Keep }) {
@@ -64,25 +64,25 @@ function KeepCard({ keep }: { keep: Keep }) {
     {
       label: "Facebook",
       icon: FaFacebookF,
-      iconClassName: "text-chart-1",
+      iconClassName: "text-[#1877f2]",
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(keep.href)}`,
     },
     {
       label: "X",
       icon: PiXLogoFill,
-      iconClassName: "text-chart-5",
+      iconClassName: "text-foreground",
       href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`,
     },
     {
       label: "WhatsApp",
       icon: FaWhatsapp,
-      iconClassName: "text-chart-2",
+      iconClassName: "text-[#25d366]",
       href: `https://wa.me/?text=${encodeURIComponent(shareText)}`,
     },
     {
       label: "LinkedIn",
       icon: FaLinkedinIn,
-      iconClassName: "text-chart-4",
+      iconClassName: "text-[#0a66c2]",
       href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(keep.href)}`,
     },
   ]
@@ -182,7 +182,7 @@ function KeepCard({ keep }: { keep: Keep }) {
           aria-label={`Share ${keep.title}`}
           className="rounded-full"
         >
-          <PiShareNetworkFill className="text-chart-3" />
+          <PiShareNetworkFill className="text-primary" />
         </Button>
         {socialShares.map(({ label, icon: ShareIcon, iconClassName, href }) => (
           <Button
