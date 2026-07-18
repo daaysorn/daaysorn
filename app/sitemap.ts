@@ -5,6 +5,7 @@ import type { MetadataRoute } from "next"
 import { siteConfig } from "@/lib/seo"
 
 const pageFilePattern = /^page\.(?:[cm]?[jt]sx?)$/
+const excludedRoutes = new Set(["/offline"])
 
 function isRouteGroup(segment: string) {
   return segment.startsWith("(") && segment.endsWith(")")
@@ -50,9 +51,12 @@ async function discoverStaticRoutes(
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes = await discoverStaticRoutes(join(process.cwd(), "app"))
 
-  return [...new Set(routes)].sort().map((route) => ({
-    url: new URL(route, siteConfig.url).toString(),
-    changeFrequency: route === "/" ? "monthly" : "weekly",
-    priority: route === "/" ? 1 : 0.7,
-  }))
+  return [...new Set(routes)]
+    .filter((route) => !excludedRoutes.has(route))
+    .sort()
+    .map((route) => ({
+      url: new URL(route, siteConfig.url).toString(),
+      changeFrequency: route === "/" ? "monthly" : "weekly",
+      priority: route === "/" ? 1 : 0.7,
+    }))
 }

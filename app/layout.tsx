@@ -1,15 +1,27 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { GoogleAnalytics } from "@next/third-parties/google"
 import { Geist, JetBrains_Mono, Montserrat } from "next/font/google"
 
 import "./globals.css"
 import { AppShell } from "@/components/app-shell"
+import { PWARegister } from "@/components/pwa-register"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { siteConfig } from "@/lib/seo"
 
 const googleAnalyticsId =
   process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim() || "G-MXTGTBLTY4"
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#080808" },
+  ],
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -59,6 +71,14 @@ export const metadata: Metadata = {
     },
   },
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: siteConfig.name,
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 const montserratHeading = Montserrat({
@@ -96,6 +116,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <AppShell>{children}</AppShell>
+          <PWARegister />
         </ThemeProvider>
       </body>
       <GoogleAnalytics gaId={googleAnalyticsId} />

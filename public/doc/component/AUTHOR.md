@@ -781,6 +781,193 @@ Rerun `bun run telegram:webhook` after changing the deployed webhook URL or its
 registered commands. Do not use `getUpdates` while a webhook is active; remove
 the webhook first only when owner-ID troubleshooting requires it.
 
+### Gallery publishing pipeline (planned)
+
+The Gallery currently reads supported image and video files from
+`public/images/gallery/` during the production build. Until the upload pipeline
+below is implemented, adding or removing media requires committing the file
+and deploying the site again. An empty folder displays `Nothing yet` at
+`/gallery`.
+
+The planned publishing flow reuses the owner-only Telegram bot but keeps Gallery
+messages explicitly separate from Keeps:
+
+```text
+Tomiwa sends images, videos, or a Telegram media album
+  → Telegram POSTs the update to the existing webhook
+  → the route verifies Telegram's secret and TELEGRAM_OWNER_ID
+  → photo[], video, or an image/video document routes automatically to Gallery
+  → updates sharing a media_group_id are collected as one album
+  → the Gallery branch downloads and validates every attached media file
+  → images get responsive variants; videos get a poster and web-safe output
+  → immutable AVIF/WebP variants are uploaded to Cloudflare R2
+  → PostgreSQL stores the image metadata, album relationship, and display order
+  → the Gallery cache is invalidated
+  → /gallery reads the updated metadata and renders the Bento layout
+```
+
+#### Keeps isolation
+
+Gallery uploads must not change link bookmarking:
+
+- A message containing Telegram `photo` sizes, `video`, or a document whose
+  MIME type starts with `image/` or `video/` goes only to the Gallery handler.
+  No command is required.
+- Ordinary link messages continue through the existing Keeps handler.
+- `/delete <url>` remains a Keeps deletion command.
+- `/gallery-delete <gallery-id>` deletes only a Gallery item.
+- A non-image document receives usage instructions and is not inserted into
+  either collection unless its text or caption contains a valid Keep URL.
+- Gallery and Keeps use separate database tables, validation, storage helpers,
+  cache tags, and Ably events if Gallery realtime updates are added later.
+
+Media-first routing prevents a media caption containing a URL from accidentally
+creating a Keep. The Telegram webhook can be shared safely; the processing
+branches must remain independent. If a message contains both images and links,
+the images and caption belong to Gallery and its links are not sent to Keeps.
+
+#### Telegram Gallery messages
+
+The intended owner-only formats require no upload command:
+
+```text
+# Add one image or video. The caption becomes its accessible description.
+[attach image or video]
+Weekend in Lagos
+
+# Add several images and videos as one Gallery album.
+[select several media files and send them together as a Telegram album]
+Weekend in Lagos
+
+# Delete an uploaded image by the ID returned by the bot.
+/gallery-delete <gallery-id>
+```
+
+Telegram sends an album as multiple webhook updates with the same
+`media_group_id`, not as one message. The Gallery implementation must hold that
+group briefly, process it once, preserve Telegram's image order, and send one
+summary reply. Processing each update immediately would create several replies
+and could invalidate the Gallery cache repeatedly. Use a durable database-backed
+album queue rather than an in-memory timer because Vercel can run album updates
+on different function instances.
+
+For a single Telegram photo, select the largest entry in its `photo[]` array;
+the smaller entries are Telegram thumbnails, not separate Gallery images. For a
+Telegram album, select the largest entry from each album message and deduplicate
+using `file_unique_id` before uploading. Videos use Telegram's video
+`file_unique_id` and thumbnail when available.
+
+#### Duplicate protection
+
+Duplicate checks happen before any expensive transformation or R2 write:
+
+1. Put a unique database constraint on Telegram's `file_unique_id`. Resending
+   the same Telegram media returns the existing Gallery item.
+2. Download new IDs once and compute a SHA-256 content hash. Put a second unique
+   constraint on that hash to catch the same file uploaded under another name.
+3. Deduplicate every Telegram album before processing, then insert all accepted
+   items in one transaction.
+4. Use the SHA-256 hash in immutable R2 object keys. Never upload when that hash
+   already exists.
+
+These checks reliably stop repeated sends and byte-identical files. A photo or
+video that has been re-exported, recompressed, cropped, or edited has different
+bytes and is treated as new. Perceptual duplicate detection can be added later,
+but video fingerprinting is computationally expensive and is intentionally not
+part of the free-plan baseline.
+
+Send media as a Telegram **document** when the original quality matters.
+Sending it as a normal photo or video may let Telegram compress it. The hosted Telegram Bot
+API currently allows bots to download files up to 20 MB, so the handler must
+reject a larger attachment with a clear response instead of attempting the R2
+upload.
+
+#### Cloudflare R2 setup
+
+Use an R2 Standard bucket and connect a production custom domain such as
+`images.daaysorn.com`. Do not use an `r2.dev` URL in production because it does
+not provide Cloudflare Cache, WAF, or the same production controls.
+
+Keep the bucket credentials server-side:
+
+```env
+CLOUDFLARE_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=daaysorn-gallery
+R2_PUBLIC_BASE_URL=https://images.daaysorn.com
+```
+
+Never prefix R2 credentials with `NEXT_PUBLIC_`. Only
+`R2_PUBLIC_BASE_URL` is safe for browser-visible image URLs. Add the same
+server-side values to Vercel Production and Preview only where the Gallery
+upload pipeline should operate.
+
+R2 public buckets cannot be used as a public directory listing. PostgreSQL must
+remain the Gallery index and store, at minimum:
+
+- Gallery ID, media type, and immutable object keys
+- Small, medium, and large image URLs or video and poster URLs
+- Width, height, format, and byte size for each variant
+- Caption and accessible alternative text
+- Display order, visibility, and creation time
+- Telegram message ID, `file_unique_id`, and SHA-256 content hash
+
+#### Image performance and caching
+
+Optimize each upload once instead of paying to transform it again for every
+visitor:
+
+1. Correct orientation from EXIF data and discard unnecessary metadata.
+2. Never enlarge an image beyond its original dimensions.
+3. Generate bounded small, medium, and large variants appropriate for the
+   Gallery's Bento cells.
+4. Prefer AVIF, with WebP as a compatibility fallback when required.
+5. Put a content hash in every object key, for example
+   `gallery/<hash>/medium.avif`.
+6. Serve immutable variants with
+   `Cache-Control: public, max-age=31536000, immutable`.
+7. Use responsive `sizes`, lazy loading below the fold, explicit dimensions or
+   aspect ratios, and a lightweight placeholder to prevent layout movement.
+8. Never overwrite an existing object key. Upload a new hashed key so cached
+   visitors cannot receive stale bytes.
+9. After a delete, remove the database row immediately. Delete the R2 objects
+   and purge their Cloudflare cache entries when immediate removal is required.
+
+#### Video performance and caching
+
+- Accept Telegram `video` objects and documents with a `video/*` MIME type.
+- Prefer MP4 with H.264 video, AAC audio, and fast-start metadata for broad
+  browser support. Preserve a compatible upload instead of re-encoding it.
+- Do not perform heavy video transcoding inside a Vercel Function. Reject an
+  incompatible file with a clear Telegram response or move transcoding to a
+  dedicated asynchronous service later.
+- Store and serve a lightweight poster image. Use Telegram's thumbnail when it
+  is suitable; otherwise generate one frame during background processing.
+- Render videos with `playsInline`, controls, no autoplay, and
+  `preload="metadata"` or `preload="none"` below the fold.
+- Use the same content-hashed immutable keys and one-year cache header as image
+  variants. Video byte-range requests must remain enabled for seeking.
+
+Because the variants are already optimized, the Gallery should serve them
+directly from the Cloudflare custom domain rather than run every request through
+Vercel Image Optimization. This avoids Vercel transformation usage while the
+Cloudflare edge cache handles repeated delivery. The Gallery metadata query can
+use a long server cache tagged `gallery`; successful Telegram additions and
+deletions invalidate only that tag.
+
+Cloudflare R2 Standard currently includes 10 GB-month of storage, one million
+Class A operations, ten million Class B operations, and free internet egress per
+month. Recheck the official R2 pricing page before relying on those limits in a
+future production launch.
+
+Official references:
+
+- [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/)
+- [Enable Cloudflare Cache for R2](https://developers.cloudflare.com/cache/interaction-cloudflare-products/r2/)
+- [Cloudflare R2 public buckets](https://developers.cloudflare.com/r2/buckets/public-buckets/)
+- [Telegram Bot API `getFile`](https://core.telegram.org/bots/api#getfile)
+
 ---
 
 ## Rules & gotchas
