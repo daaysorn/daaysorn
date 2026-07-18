@@ -5,13 +5,19 @@ import {
   claimGalleryBatch,
   deleteGalleryMedia,
   finishGalleryBatch,
+  markGalleryMediaBatchPublishedToBuffer,
   queueGalleryAttachment,
 } from "@/lib/gallery/db"
+import { publishGalleryMediaToInstagram } from "@/lib/gallery/buffer"
 import {
   deleteGalleryObjects,
   processGalleryAttachment,
 } from "@/lib/gallery/storage"
 import type { TelegramGalleryAttachment } from "@/lib/gallery/types"
+import {
+  parseGalleryPostInstructions,
+  telegramBotHelp,
+} from "@/lib/gallery/telegram"
 import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
@@ -198,35 +204,91 @@ function invalidateGallery() {
 
 async function processGalleryMedia(
   chatId: number,
-  caption: string,
+  rawText: string,
   attachments: TelegramGalleryAttachment[]
 ) {
+  const instructions = parseGalleryPostInstructions(rawText)
+  if (
+    instructions.destinations.instagram &&
+    attachments.length > 1 &&
+    (attachments.length > 10 ||
+      attachments.some((attachment) => attachment.type !== "image"))
+  ) {
+    await reply(
+      chatId,
+      attachments.length > 10
+        ? "Instagram carousels can contain at most 10 photos. Please send a smaller album."
+        : "Instagram carousels can only contain photos, not videos or mixed media."
+    )
+    return
+  }
+
   const results = []
   for (const attachment of attachments) {
     try {
-      results.push(await processGalleryAttachment(attachment, caption))
+      results.push(
+        await processGalleryAttachment(
+          attachment,
+          instructions.caption,
+          instructions.destinations
+        )
+      )
     } catch (error) {
       console.error("Gallery media processing failed", {
         message: error instanceof Error ? error.message : "Unknown error",
         telegramMessageId: attachment.telegramMessageId,
       })
-      results.push("failed" as const)
+      results.push({ status: "failed" as const })
     }
   }
 
-  const added = results.filter((result) => result === "added").length
-  const duplicates = results.filter((result) => result === "duplicate").length
-  const failed = results.filter((result) => result === "failed").length
-  if (added) invalidateGallery()
+  const addedMedia = results.flatMap((result) =>
+    result.status === "added" ? [result.media] : []
+  )
+  const added = addedMedia.length
+  const duplicates = results.filter(
+    (result) => result.status === "duplicate"
+  ).length
+  let failed = results.filter((result) => result.status === "failed").length
+  if (added && instructions.destinations.gallery) invalidateGallery()
+
+  let instagramPublished = false
+  if (addedMedia.length && instructions.destinations.instagram) {
+    try {
+      const published = await publishGalleryMediaToInstagram(
+        addedMedia,
+        instructions.caption
+      )
+      if (published === "unconfigured") {
+        throw new Error("Buffer is not configured")
+      }
+      await markGalleryMediaBatchPublishedToBuffer(
+        addedMedia.map((media) => media.id),
+        published.postId
+      )
+      instagramPublished = true
+    } catch (error) {
+      failed += 1
+      console.error("Buffer Instagram publishing failed", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        galleryMediaIds: addedMedia.map((media) => media.id),
+      })
+    }
+  }
 
   const notes = [
-    added ? `${added} added` : "",
-    duplicates ? `${duplicates} already in Gallery` : "",
+    added && instructions.destinations.gallery
+      ? `${added} added to Gallery`
+      : "",
+    instagramPublished
+      ? `${addedMedia.length > 1 ? "carousel" : "post"} sent to Instagram`
+      : "",
+    duplicates ? `${duplicates} already received` : "",
     failed ? `${failed} failed` : "",
   ].filter(Boolean)
   await reply(
     chatId,
-    notes.length ? `Gallery: ${notes.join(", ")}.` : "Nothing was added."
+    notes.length ? `${notes.join(", ")}.` : "Nothing was added."
   )
 }
 
@@ -251,6 +313,12 @@ export async function POST(request: Request) {
   const rawText = message.text ?? message.caption ?? ""
   const galleryAttachment = findGalleryAttachment(message)
   const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
+  const isHelpCommand = /^\/(?:help|start)(?:@\w+)?\b/i.test(rawText)
+
+  if (isHelpCommand) {
+    after(() => reply(message.chat.id, telegramBotHelp))
+    return Response.json({ ok: true })
+  }
 
   if (isDeleteCommand) {
     const repliedGalleryMessage = message.reply_to_message

@@ -795,14 +795,15 @@ messages explicitly separate from Keeps:
 Tomiwa sends images, videos, or a Telegram media album
   → Telegram POSTs the update to the existing webhook
   → the route verifies Telegram's secret and TELEGRAM_OWNER_ID
-  → photo[], video, or an image/video document routes automatically to Gallery
+  → photo[], video, or an image/video document enters the media workflow
+  → the caption command selects Gallery, Instagram, or both destinations
   → updates sharing a media_group_id are collected as one album
-  → the Gallery branch downloads and validates every attached media file
+  → the media branch downloads and validates every attached media file
   → images get responsive WebP variants; videos retain their Telegram poster
   → immutable media files are uploaded to Cloudflare R2
-  → PostgreSQL stores the media metadata and Telegram message ID
-  → Buffer publishes the new public R2 asset to the configured Instagram channel
-  → the Gallery cache is invalidated
+  → PostgreSQL stores routing flags, media metadata, and Telegram message IDs
+  → Gallery-targeted media invalidates the Gallery cache
+  → Instagram-targeted media is published through Buffer
   → /gallery reads the updated metadata and renders the masonry layout
 ```
 
@@ -811,8 +812,8 @@ Tomiwa sends images, videos, or a Telegram media album
 Gallery uploads must not change link bookmarking:
 
 - A message containing Telegram `photo` sizes, `video`, or a document whose
-  MIME type starts with `image/` or `video/` goes only to the Gallery handler.
-  No command is required.
+  MIME type starts with `image/` or `video/` goes only to the media workflow.
+  No command is required for the default Gallery-only destination.
 - Ordinary link messages continue through the existing Keeps handler.
 - `/delete <url>` deletes a Keep.
 - Replying `/delete` to the original image or video message, or resending the
@@ -827,20 +828,46 @@ Gallery uploads must not change link bookmarking:
 Media-first routing prevents a media caption containing a URL from accidentally
 creating a Keep. The Telegram webhook can be shared safely; the processing
 branches must remain independent. If a message contains both images and links,
-the images and caption belong to Gallery and its links are not sent to Keeps.
+the media caption controls its destination and its links are not sent to Keeps.
 
-#### Telegram Gallery messages
+#### Telegram media commands
 
-The intended owner-only formats require no upload command:
+The bot command menu and `/help` response contain the same quick reference.
+Commands can be placed in the media caption. Rerun
+`bun run telegram:webhook` after deploying command-menu changes.
+
+| Caption command                    | Destination and behavior                                       |
+| ---------------------------------- | -------------------------------------------------------------- |
+| No command                         | Gallery only                                                   |
+| `/insta`                           | Instagram only                                                 |
+| `/instagal`                        | Gallery and Instagram                                          |
+| `/intatag "life update"`           | Instagram carousel with the caption `life update`              |
+| `/instagal /intatag "life update"` | Gallery plus Instagram carousel captioned `life update`        |
+| `/help` or `/start`                | Show the complete command guide in Telegram                    |
+| `/delete`                          | Delete replied-to Gallery media, or delete a supplied Keep URL |
+
+Examples:
 
 ```text
-# Add one image or video. The caption becomes its accessible description.
+# Add one image or video to Gallery only.
 [attach image or video]
 Weekend in Lagos
 
-# Add several images and videos as one Gallery album.
-[select several media files and send them together as a Telegram album]
-Weekend in Lagos
+# Post one image or video to Instagram only.
+[attach image or video]
+/insta Weekend in Lagos
+
+# Post to both Gallery and Instagram.
+[attach image or video]
+/instagal Weekend in Lagos
+
+# Post one Instagram carousel with an exact caption.
+[select 2–10 photos and send them together as one Telegram album]
+/intatag "life update"
+
+# Save that carousel to Gallery too.
+[select 2–10 photos and send them together as one Telegram album]
+/instagal /intatag "life update"
 
 # Delete an uploaded image or video.
 [reply /delete to the original media message]
@@ -851,14 +878,18 @@ Weekend in Lagos
 
 Reply to the original upload, not the bot's `Gallery: 1 added` confirmation.
 For a Telegram album, reply to each original album item that should be removed.
+Instagram carousels support 2–10 photos. Do not mix photos and videos in one
+Instagram carousel. A single video sent with `/insta` or `/instagal` publishes
+as a Reel.
 
 #### Buffer Instagram publishing
 
-Every newly accepted Gallery image or video is sent to exactly one Buffer
-channel. The mutation uses only `BUFFER_INSTAGRAM_CHANNEL_ID`; it never lists or
-selects the connected X channel. Duplicate Gallery uploads are not republished.
-Buffer failure is logged without undoing the Gallery upload, so Instagram being
-temporarily unavailable cannot lose the original media.
+Only media explicitly addressed to Instagram with `/insta`, `/instagal`, or
+`/intatag` is sent to Buffer. A normal Telegram upload remains Gallery-only.
+The mutation uses only `BUFFER_INSTAGRAM_CHANNEL_ID`; it never lists or selects
+the connected X channel. A Telegram photo album becomes one ordered Buffer
+post, which Instagram publishes as a carousel. Duplicate uploads are not
+republished. Buffer failure is logged without removing Gallery-targeted media.
 
 1. Open Buffer's **Settings → API** page and create a personal API key.
 2. Add the key to `.env.local` as `BUFFER_API_KEY`, then restart the local
@@ -882,8 +913,9 @@ temporarily unavailable cannot lose the original media.
    `BUFFER_API_KEY` and `BUFFER_INSTAGRAM_CHANNEL_ID` to Production. Redeploy
    after saving them because an existing deployment cannot see newly added
    environment variables.
-7. Send one new image to the Telegram bot and confirm it appears in Gallery and
-   on Instagram. Never put the connected X channel ID in
+7. Send one new image with `/instagal` to the Telegram bot and confirm it
+   appears in Gallery and on Instagram. Then send an ordinary image and confirm
+   it appears only in Gallery. Never put the connected X channel ID in
    `BUFFER_INSTAGRAM_CHANNEL_ID`.
 
 ```env
@@ -915,9 +947,58 @@ bun run buffer:sync-gallery --publish
 
 Use `--limit=10` (or another value from 1 to 50) to send a smaller batch. Each
 successful Buffer post ID is stored on its Gallery row, so rerunning the command
-selects only media that has not already been synced. The script stops on the
-first failure instead of continuing blindly. New Telegram uploads use the same
-tracking fields automatically.
+selects only media that has not already been synced — a re-run resumes after
+the last successful post. Videos publish as Instagram Reels and must be at
+least **3 seconds**; shorter videos are rejected by Instagram. By default the
+script stops on the first failure. To skip failures (for example a too-short
+Reel) and finish the rest of the batch:
+
+```bash
+bun run buffer:sync-gallery --publish --continue-on-error
+```
+
+Skipped items stay unsynced (`buffer_post_id` remains null), so they appear
+again on the next dry run until you replace or remove them. New Telegram
+uploads use the same tracking fields automatically.
+
+#### Delete all Instagram posts
+
+Buffer's `deletePost` mutation only removes **queued / unpublished** Buffer
+posts. It does **not** delete posts that already went live on Instagram via
+`shareNow`. To wipe the Instagram profile after a Gallery backfill:
+
+1. Open the Instagram profile on mobile or [instagram.com](https://www.instagram.com/)
+   while logged into the connected account.
+2. Prefer Meta Business Suite when available:
+   [business.facebook.com](https://business.facebook.com/) → the Instagram
+   asset → **Content** / posts, then select and delete in bulk if the UI
+   offers multi-select.
+3. Otherwise delete from the Instagram profile grid one by one (or in small
+   batches): open each post → **⋯** → **Delete**.
+4. Reels live under the Reels tab as well as the grid — clear both if you
+   published videos.
+5. Clearing Instagram does **not** clear Gallery or R2. The site Gallery keeps
+   its media. Buffer sync state still has `buffer_post_id` set on those rows,
+   so a later `buffer:sync-gallery --publish` will **not** re-post them.
+6. To allow a full re-publish to Instagram after deleting the live posts, clear
+   Buffer tracking in Postgres for the rows you want to send again (only after
+   Instagram is empty, and only if you intend to republish):
+
+   ```sql
+   UPDATE gallery_media
+   SET buffer_post_id = NULL, buffer_published_at = NULL
+   WHERE buffer_post_id IS NOT NULL;
+   ```
+
+   Then dry-run and publish again:
+
+   ```bash
+   bun run buffer:sync-gallery
+   bun run buffer:sync-gallery --publish --continue-on-error
+   ```
+
+Do not run that SQL unless you really want Buffer to create new Instagram
+posts for every previously synced Gallery item.
 
 Telegram sends an album as multiple webhook updates with the same
 `media_group_id`, not as one message. The Gallery stores those items in a

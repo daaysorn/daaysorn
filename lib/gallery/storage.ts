@@ -7,12 +7,7 @@ import {
 } from "@aws-sdk/client-s3"
 import sharp from "sharp"
 
-import { publishGalleryMediaToInstagram } from "@/lib/gallery/buffer"
-import {
-  galleryMediaExists,
-  markGalleryMediaPublishedToBuffer,
-  saveGalleryMedia,
-} from "@/lib/gallery/db"
+import { galleryMediaExists, saveGalleryMedia } from "@/lib/gallery/db"
 import type {
   GalleryMediaDraft,
   TelegramGalleryAttachment,
@@ -135,14 +130,19 @@ function safeVideoExtension(mimeType: string, filePath: string) {
 
 export async function processGalleryAttachment(
   attachment: TelegramGalleryAttachment,
-  caption: string
-): Promise<"added" | "duplicate"> {
-  if (await galleryMediaExists(attachment.fileUniqueId)) return "duplicate"
+  caption: string,
+  destinations: { gallery: boolean; instagram: boolean }
+): Promise<
+  { status: "added"; media: GalleryMediaDraft } | { status: "duplicate" }
+> {
+  if (await galleryMediaExists(attachment.fileUniqueId)) {
+    return { status: "duplicate" }
+  }
 
   const { buffer, filePath } = await downloadTelegramFile(attachment.fileId)
   const contentHash = createHash("sha256").update(buffer).digest("hex")
   if (await galleryMediaExists(attachment.fileUniqueId, contentHash)) {
-    return "duplicate"
+    return { status: "duplicate" }
   }
 
   const id = crypto.randomUUID()
@@ -222,21 +222,6 @@ export async function processGalleryAttachment(
     createdAt: new Date().toISOString(),
   }
 
-  const saved = await saveGalleryMedia(draft)
-  if (!saved) return "duplicate"
-
-  try {
-    const published = await publishGalleryMediaToInstagram(draft)
-    if (published !== "unconfigured") {
-      await markGalleryMediaPublishedToBuffer(draft.id, published.postId)
-    }
-  } catch (error) {
-    // Gallery publishing must remain successful if Buffer is unavailable.
-    console.error("Buffer Instagram publishing failed", {
-      message: error instanceof Error ? error.message : "Unknown error",
-      galleryMediaId: draft.id,
-    })
-  }
-
-  return "added"
+  const saved = await saveGalleryMedia(draft, destinations)
+  return saved ? { status: "added", media: draft } : { status: "duplicate" }
 }

@@ -5,6 +5,7 @@ import {
 } from "@/lib/gallery/db"
 
 const publish = process.argv.includes("--publish")
+const continueOnError = process.argv.includes("--continue-on-error")
 const limitArgument = process.argv.find((argument) =>
   argument.startsWith("--limit=")
 )
@@ -39,12 +40,16 @@ console.table(
 if (!publish) {
   console.log(
     `\nDry run only. Publish these ${pending.length} items with:\n` +
-      `bun run buffer:sync-gallery --publish --limit=${limit}`
+      `bun run buffer:sync-gallery --publish --limit=${limit}\n` +
+      `Add --continue-on-error to skip failed items and keep going.`
   )
   process.exit(0)
 }
 
 let publishedCount = 0
+let skippedCount = 0
+const failures: Array<{ id: string; reason: string }> = []
+
 for (const item of pending) {
   try {
     const result = await publishGalleryMediaToInstagram(item)
@@ -55,14 +60,31 @@ for (const item of pending) {
     publishedCount += 1
     console.log(`Published ${publishedCount}/${pending.length}: ${item.id}`)
   } catch (error) {
-    console.error(
-      `Stopped after ${publishedCount} successful posts. Failed on ${item.id}:`,
-      error instanceof Error ? error.message : error
-    )
-    process.exit(1)
+    const reason = error instanceof Error ? error.message : String(error)
+    failures.push({ id: item.id, reason })
+    console.error(`Failed on ${item.id}: ${reason}`)
+
+    if (!continueOnError) {
+      console.error(
+        `Stopped after ${publishedCount} successful posts.` +
+          (failures.length
+            ? " Re-run with --continue-on-error to skip failures and finish the rest."
+            : "")
+      )
+      process.exit(1)
+    }
+
+    skippedCount += 1
+    console.warn(`Skipped ${item.id}; continuing (${skippedCount} skipped).`)
   }
 }
 
 console.log(
-  `Synced ${publishedCount} Gallery items to Instagram through Buffer.`
+  `Synced ${publishedCount} Gallery items to Instagram through Buffer.` +
+    (skippedCount ? ` Skipped ${skippedCount}.` : "")
 )
+
+if (failures.length) {
+  console.table(failures)
+  process.exit(skippedCount === pending.length ? 1 : 0)
+}

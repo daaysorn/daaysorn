@@ -40,7 +40,20 @@ const commandsResponse = await fetch(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       commands: [
-        { command: "delete", description: "Delete a Keep by its link" },
+        { command: "insta", description: "Post media to Instagram only" },
+        {
+          command: "instagal",
+          description: "Post media to Gallery and Instagram",
+        },
+        {
+          command: "intatag",
+          description: "Post an Instagram carousel with a caption",
+        },
+        {
+          command: "delete",
+          description: "Delete Gallery media or a Keep",
+        },
+        { command: "help", description: "Show all posting instructions" },
       ],
     }),
   }
