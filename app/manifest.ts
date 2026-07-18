@@ -26,12 +26,13 @@ export default function manifest(): DaaysornManifest {
       preferred_width: 400,
     },
     share_target: {
-      action: "/keeps",
-      method: "GET",
+      action: "/api/keeps/share-target",
+      method: "POST",
+      enctype: "multipart/form-data",
       params: {
-        title: "shared_title",
-        text: "shared_text",
-        url: "shared_url",
+        title: "title",
+        text: "text",
+        url: "url",
       },
     },
     prefer_related_applications: false,

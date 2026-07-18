@@ -979,6 +979,12 @@ responses.
 
 The worker provides only capabilities that match this project:
 
+- The OS share target posts `title`, `text`, and `url` as
+  `multipart/form-data` to `/api/keeps/share-target`. The handler validates and
+  bounds the strings, redirects to a temporary fragment on `/keeps`, and the
+  client removes that fragment immediately after finding the shared link. File
+  parameters are intentionally omitted because Keeps accepts links; owner media
+  publishing remains in the Telegram Gallery workflow.
 - Home, Keeps, Gallery, the offline fallback, manifest, icons, visited Next.js
   assets, local images, and Cloudflare Gallery media are cached.
 - Navigations use network-first delivery and fall back to the cached page or

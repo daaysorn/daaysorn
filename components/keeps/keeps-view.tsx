@@ -88,6 +88,16 @@ const sourceIconColors: Record<string, string> = {
   YouTube: "text-[#ff0000]",
 }
 
+function removeHashtags(value: string) {
+  return value
+    .replace(/(^|\s)#[\p{L}\p{N}_-]+/gu, "$1")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/([,;:])(?=[.!?])/g, "")
+    .replace(/[,:;]\s*([”"']?)$/u, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}
+
 function KeepCard({
   keep,
   isSaved,
@@ -102,7 +112,9 @@ function KeepCard({
   const impressionSent = useRef(false)
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const showImage = Boolean(keep.imageUrl && keep.imageUrl !== failedImageUrl)
-  const shareText = `${keep.title} ${keep.href}`
+  const displayTitle = removeHashtags(keep.title) || keep.source
+  const displaySummary = removeHashtags(keep.summary)
+  const shareText = `${displayTitle} ${keep.href}`
   const socialShares = [
     {
       label: "Facebook",
@@ -134,8 +146,8 @@ function KeepCard({
     try {
       if (navigator.share) {
         await navigator.share({
-          title: keep.title,
-          text: keep.summary,
+          title: displayTitle,
+          text: displaySummary,
           url: keep.href,
         })
         trackKeepsEvent("keep_share", {
@@ -191,7 +203,7 @@ function KeepCard({
         href={keep.href}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`View ${keep.title}`}
+        aria-label={`View ${displayTitle}`}
         onClick={() =>
           trackKeepsEvent("keep_open", {
             content_id: keep.id,
@@ -201,8 +213,8 @@ function KeepCard({
         }
         className="block min-w-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
       >
-        <div className="min-w-0 after:clear-both after:block md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6 md:after:hidden">
-          <div className="relative float-left mr-4 mb-2 aspect-4/5 w-24 overflow-hidden rounded-md bg-muted xs:mb-3 xs:w-28 md:float-none md:m-0 md:w-auto">
+        <div className="min-w-0 after:clear-both after:block">
+          <div className="relative float-left mr-4 mb-2 aspect-4/5 w-24 overflow-hidden rounded-md bg-muted xs:mb-3 xs:w-28 md:mr-6 md:mb-3 md:w-40">
             {showImage && keep.imageUrl ? (
               <Image
                 loader={({ src }) => src}
@@ -237,8 +249,8 @@ function KeepCard({
             )}
           </div>
 
-          <div className="min-w-0 pb-11 md:flex md:flex-col">
-            <div className="md:flex md:flex-col md:gap-2">
+          <div className="min-w-0 pb-11">
+            <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                 <Icon
                   aria-label={keep.source}
@@ -255,14 +267,16 @@ function KeepCard({
                 <span aria-hidden="true">·</span>
                 <time className="font-mono">{keep.savedAt}</time>
               </div>
-              <h2 className="mt-2 text-lg leading-tight font-semibold transition-colors group-hover:text-primary xs:text-xl md:mt-0 md:text-2xl">
-                {keep.title}
+              <h2 className="mt-2 text-lg leading-tight font-semibold transition-colors group-hover:text-primary xs:text-xl md:text-2xl">
+                {displayTitle}
               </h2>
             </div>
-            <div className="mt-3 min-w-0 space-y-3 md:flex md:flex-col md:gap-3 md:space-y-0">
-              <p className="text-sm leading-6 text-muted-foreground md:text-base">
-                {keep.summary}
-              </p>
+            <div className="mt-3 min-w-0 space-y-3">
+              {displaySummary ? (
+                <p className="text-sm leading-6 text-muted-foreground md:text-base">
+                  {displaySummary}
+                </p>
+              ) : null}
               {keep.tags.length ? (
                 <p className="min-w-0 text-xs leading-5 text-muted-foreground">
                   {keep.tags.join(" · ")}
@@ -278,7 +292,7 @@ function KeepCard({
           variant="ghost"
           size="icon-xs"
           onClick={() => onToggleSaved(keep)}
-          aria-label={`${isSaved ? "Remove" : "Save"} ${keep.title} ${isSaved ? "from" : "to"} favourites`}
+          aria-label={`${isSaved ? "Remove" : "Save"} ${displayTitle} ${isSaved ? "from" : "to"} favourites`}
           aria-pressed={isSaved}
           className="rounded-full"
         >
@@ -291,7 +305,7 @@ function KeepCard({
           variant="ghost"
           size="icon-xs"
           onClick={() => void share()}
-          aria-label={`Share ${keep.title}`}
+          aria-label={`Share ${displayTitle}`}
           className="rounded-full"
         >
           <PiShareNetworkFill className="text-primary" />
@@ -308,7 +322,7 @@ function KeepCard({
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`Share ${keep.title} on ${label}`}
+              aria-label={`Share ${displayTitle} on ${label}`}
               onClick={() =>
                 trackKeepsEvent("keep_share", {
                   method: label.toLowerCase(),
@@ -621,24 +635,58 @@ export function KeepsView({
 
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search)
-      const sharedTitle = params.get("shared_title")?.trim() ?? ""
-      const sharedText = params.get("shared_text")?.trim() ?? ""
+      const hashParams = new URLSearchParams(window.location.hash.slice(1))
+      const encodedShare = hashParams.get("share-target")
+      let fragmentShare: { title?: unknown; text?: unknown; url?: unknown } = {}
+
+      if (encodedShare) {
+        try {
+          const normalized = encodedShare
+            .replaceAll("-", "+")
+            .replaceAll("_", "/")
+            .padEnd(Math.ceil(encodedShare.length / 4) * 4, "=")
+          const bytes = Uint8Array.from(atob(normalized), (character) =>
+            character.charCodeAt(0)
+          )
+          fragmentShare = JSON.parse(
+            new TextDecoder().decode(bytes)
+          ) as typeof fragmentShare
+        } catch {
+          fragmentShare = {}
+        }
+      }
+
+      const sharedTitle =
+        (typeof fragmentShare.title === "string"
+          ? fragmentShare.title
+          : params.get("shared_title")
+        )?.trim() ?? ""
+      const sharedText =
+        (typeof fragmentShare.text === "string"
+          ? fragmentShare.text
+          : params.get("shared_text")
+        )?.trim() ?? ""
       const sharedUrl =
-        params.get("shared_url")?.trim() ||
+        (typeof fragmentShare.url === "string"
+          ? fragmentShare.url
+          : params.get("shared_url")
+        )?.trim() ||
         sharedText.match(/https?:\/\/[^\s<>]+/i)?.[0] ||
         ""
-      if (!sharedUrl) return
+      if (!sharedUrl) {
+        if (encodedShare || sharedTitle || sharedText) {
+          setShareStatus("That shared item does not contain a valid link.")
+          window.history.replaceState(null, "", window.location.pathname)
+        }
+        return
+      }
 
       let normalizedSharedUrl = ""
       try {
         normalizedSharedUrl = normalizeKeepUrl(sharedUrl)
       } catch {
         setShareStatus("That shared item does not contain a valid link.")
-        window.history.replaceState(
-          null,
-          "",
-          `${window.location.pathname}${window.location.hash}`
-        )
+        window.history.replaceState(null, "", window.location.pathname)
         return
       }
 
@@ -683,11 +731,7 @@ export function KeepsView({
         setShareStatus(`Saved “${matchedKeep.title}” to this device.`)
       }
 
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${window.location.hash}`
-      )
+      window.history.replaceState(null, "", window.location.pathname)
     }, 0)
 
     return () => window.clearTimeout(timer)
