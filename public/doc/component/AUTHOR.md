@@ -836,23 +836,31 @@ The bot command menu and `/help` response contain the same quick reference.
 Commands can be placed in the media caption. Rerun
 `bun run telegram:webhook` after deploying command-menu changes.
 
-| Bot input                          | Destination and behavior                                       |
-| ---------------------------------- | -------------------------------------------------------------- |
-| `/start`                           | Show the complete bot guide                                    |
-| `/help`                            | Show every command and example                                 |
-| `/keep <link>`                     | Add one link to Keeps                                          |
-| `/keep <link> #design #tools`      | Add a Keep with custom tags                                    |
-| No command                         | Gallery only                                                   |
-| `/insta`                           | Instagram only                                                 |
-| `/instagal`                        | Gallery and Instagram                                          |
-| `/intatag "life update"`           | Instagram carousel with the caption `life update`              |
-| `/instagal /intatag "life update"` | Gallery plus Instagram carousel captioned `life update`        |
-| `/delete`                          | Delete replied-to Gallery media, or delete a supplied Keep URL |
+| Bot input                     | Destination and behavior                                |
+| ----------------------------- | ------------------------------------------------------- |
+| `/start`                      | Show the complete bot guide                             |
+| `/help`                       | Show every command and example                          |
+| `/keep <link>`                | Add one link to Keeps                                   |
+| `/keep <link> #design #tools` | Add a Keep with custom tags                             |
+| `/deletekeep <link>`          | Delete a Keep using its original link                   |
+| No command                    | Gallery only                                            |
+| `/gallery`                    | Gallery only                                            |
+| `/insta`                      | Instagram only                                          |
+| `/instagal`                   | Gallery and Instagram                                   |
+| `/intatag "life update"`      | Instagram carousel with the caption `life update`       |
+| `/instagal_tag "life update"` | Gallery plus Instagram carousel captioned `life update` |
+| `/deletegallery`              | Reply to original Gallery media to delete it            |
+| `/delete`                     | Backward-compatible shortcut for either delete action   |
+
+Telegram command names may contain only lowercase letters, digits, and
+underscores, so the registered menu command is `/instagal_tag`. The webhook
+also accepts manually typed `/instagal-tag` as an alias.
 
 The bot also accepts up to five links in one message without `/keep`. A
 media-free message containing links always enters the Keeps workflow. Hashtags
-become custom Keep tags. `/delete <link>` removes a Keep; replying `/delete` to
-the original Gallery upload removes that Gallery item.
+become custom Keep tags. `/deletekeep <link>` removes a Keep. Replying
+`/deletegallery` to the original Gallery upload removes that Gallery item.
+`/delete` remains available as a shortcut for both forms.
 
 Examples:
 
@@ -863,6 +871,9 @@ Examples:
 # Add one Keep with custom tags.
 /keep https://example.com/tool #design #tools
 
+# Delete a Keep using its original link.
+/deletekeep https://example.com/tool
+
 # Up to five bare links also work without a command.
 https://example.com/one
 https://example.com/two
@@ -870,6 +881,10 @@ https://example.com/two
 # Add one image or video to Gallery only.
 [attach image or video]
 Weekend in Lagos
+
+# The explicit Gallery-only command does the same thing.
+[attach image or video]
+/gallery Weekend in Lagos
 
 # Post one image or video to Instagram only.
 [attach image or video]
@@ -885,10 +900,10 @@ Weekend in Lagos
 
 # Save that carousel to Gallery too.
 [select 2–10 photos and send them together as one Telegram album]
-/instagal /intatag "life update"
+/instagal_tag "life update"
 
 # Delete an uploaded image or video.
-[reply /delete to the original media message]
+[reply /deletegallery to the original media message]
 
 # Or resend the media with this caption.
 /delete
@@ -902,8 +917,9 @@ as a Reel.
 
 #### Buffer Instagram publishing
 
-Only media explicitly addressed to Instagram with `/insta`, `/instagal`, or
-`/intatag` is sent to Buffer. A normal Telegram upload remains Gallery-only.
+Only media explicitly addressed to Instagram with `/insta`, `/instagal`,
+`/intatag`, or `/instagal_tag` is sent to Buffer. A normal Telegram upload
+remains Gallery-only.
 The mutation uses only `BUFFER_INSTAGRAM_CHANNEL_ID`; it never lists or selects
 the connected X channel. A Telegram photo album becomes one ordered Buffer
 post, which Instagram publishes as a carousel. Duplicate uploads are not

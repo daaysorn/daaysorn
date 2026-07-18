@@ -312,15 +312,22 @@ export async function POST(request: Request) {
 
   const rawText = message.text ?? message.caption ?? ""
   const galleryAttachment = findGalleryAttachment(message)
-  const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
+  const isDeleteKeepCommand = /^\/deletekeep(?:@\w+)?\b/i.test(rawText)
+  const isDeleteGalleryCommand = /^\/deletegallery(?:@\w+)?\b/i.test(rawText)
+  const isLegacyDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
   const isHelpCommand = /^\/(?:help|start)(?:@\w+)?\b/i.test(rawText)
+  const isKeepCommand = /^\/keep(?:@\w+)?\b/i.test(rawText)
+  const isMediaCommand =
+    /^\/(?:gallery|insta|instagal(?:-|_)tag|instagal|intatag)(?:@\w+)?\b/i.test(
+      rawText
+    )
 
   if (isHelpCommand) {
     after(() => reply(message.chat.id, telegramBotHelp))
     return Response.json({ ok: true })
   }
 
-  if (isDeleteCommand) {
+  if (isDeleteGalleryCommand || isLegacyDeleteCommand) {
     const repliedGalleryMessage = message.reply_to_message
     const repliedGalleryAttachment = repliedGalleryMessage
       ? findGalleryAttachment(repliedGalleryMessage)
@@ -365,6 +372,16 @@ export async function POST(request: Request) {
         }
       })
 
+      return Response.json({ ok: true })
+    }
+
+    if (isDeleteGalleryCommand) {
+      after(() =>
+        reply(
+          message.chat.id,
+          "Reply /deletegallery to the original Gallery photo or video message."
+        )
+      )
       return Response.json({ ok: true })
     }
   }
@@ -419,14 +436,26 @@ export async function POST(request: Request) {
     return Response.json({ ok: true })
   }
 
+  if (isMediaCommand) {
+    after(() =>
+      reply(
+        message.chat.id,
+        "Attach a photo, video, or Telegram photo album and put the media command in its caption. Send /help for examples."
+      )
+    )
+    return Response.json({ ok: true })
+  }
+
   const hrefs = findLinks(message)
 
-  if (isDeleteCommand) {
+  if (isDeleteKeepCommand || isLegacyDeleteCommand) {
     if (!hrefs.length) {
       after(() =>
         reply(
           message.chat.id,
-          "Send /delete followed by a Keep link, or reply /delete to the original link, image, or video message."
+          isDeleteKeepCommand
+            ? "Send /deletekeep followed by the Keep link, or reply /deletekeep to the original link message."
+            : "Send /delete followed by a Keep link, or reply /delete to the original link, image, or video message."
         )
       )
       return Response.json({ ok: true })
@@ -465,7 +494,12 @@ export async function POST(request: Request) {
 
   if (!hrefs.length) {
     after(() =>
-      reply(message.chat.id, "Send me a post or page link to add it to Keeps.")
+      reply(
+        message.chat.id,
+        isKeepCommand
+          ? "Send /keep followed by a post or page link. You can add optional #tags."
+          : "Send me a post or page link to add it to Keeps. Send /help for every command."
+      )
     )
     return Response.json({ ok: true })
   }

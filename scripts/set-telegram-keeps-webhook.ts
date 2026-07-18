@@ -46,6 +46,15 @@ const commandsResponse = await fetch(
           command: "keep",
           description: "Add a link to Keeps; optional #tags",
         },
+        {
+          command: "deletekeep",
+          description: "Delete a Keep using its link",
+        },
+        { command: "gallery", description: "Post media to Gallery only" },
+        {
+          command: "deletegallery",
+          description: "Reply to Gallery media to delete it",
+        },
         { command: "insta", description: "Post media to Instagram only" },
         {
           command: "instagal",
@@ -56,8 +65,12 @@ const commandsResponse = await fetch(
           description: "Post an Instagram carousel with a caption",
         },
         {
+          command: "instagal_tag",
+          description: "Post a captioned carousel to Gallery and Instagram",
+        },
+        {
           command: "delete",
-          description: "Delete Gallery media or a Keep",
+          description: "Delete shortcut for Keeps or Gallery",
         },
       ],
     }),
