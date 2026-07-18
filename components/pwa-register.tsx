@@ -1,50 +1,36 @@
-"use client"
+const registrationScript = `
+(() => {
+  if (!("serviceWorker" in navigator)) return;
 
-import { useEffect } from "react"
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
 
-export function PWARegister() {
-  useEffect(() => {
-    if (
-      process.env.NODE_ENV !== "production" ||
-      !("serviceWorker" in navigator)
-    ) {
-      return
-    }
-
-    let reloading = false
-    const onControllerChange = () => {
-      if (reloading) return
-      reloading = true
-      window.location.reload()
-    }
-
-    const register = async () => {
+  const register = async () => {
+    try {
       const registration = await navigator.serviceWorker.register("/sw.js", {
         scope: "/",
         updateViaCache: "none",
-      })
-      await registration.update()
+      });
+      await registration.update();
+    } catch (error) {
+      console.error("Service worker registration failed", error);
     }
+  };
 
-    navigator.serviceWorker.addEventListener(
-      "controllerchange",
-      onControllerChange
-    )
+  if (document.readyState === "complete") void register();
+  else window.addEventListener("load", register, { once: true });
+})();
+`
 
-    if (document.readyState === "complete") {
-      void register()
-    } else {
-      window.addEventListener("load", register, { once: true })
-    }
-
-    return () => {
-      window.removeEventListener("load", register)
-      navigator.serviceWorker.removeEventListener(
-        "controllerchange",
-        onControllerChange
-      )
-    }
-  }, [])
-
-  return null
+export function PWARegister() {
+  return (
+    <script
+      id="daaysorn-pwa-register"
+      dangerouslySetInnerHTML={{ __html: registrationScript }}
+    />
+  )
 }

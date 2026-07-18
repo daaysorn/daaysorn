@@ -49,6 +49,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { trackKeepsEvent } from "@/lib/analytics"
 import type { Keep } from "@/lib/keeps/types"
+import { normalizeKeepUrl } from "@/lib/keeps/url"
 import { cn } from "@/lib/utils"
 
 const sourceIcons: Record<string, IconType> = {
@@ -417,6 +418,8 @@ export function KeepsView({
   const [activeTag, setActiveTag] = useState("All")
   const [savedKeepIds, setSavedKeepIds] = useState<string[]>([])
   const [syncStatus, setSyncStatus] = useState("")
+  const [shareStatus, setShareStatus] = useState("")
+  const [storageReady, setStorageReady] = useState(false)
   const [syncSession, setSyncSession] = useState<KeepsSyncSession | null>(null)
   const { data, mutate } = useSWR("/api/keeps", fetcher, {
     fallbackData: { keeps: initialKeeps },
@@ -424,6 +427,7 @@ export function KeepsView({
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
   })
+  const keeps = data?.keeps ?? initialKeeps
 
   const refreshPublicKeeps = useCallback(async () => {
     try {
@@ -528,22 +532,101 @@ export function KeepsView({
         session = { id, secret }
         window.localStorage.setItem(syncSessionKey, JSON.stringify(session))
         savedIds.forEach((keepId) => queueSyncChange({ keepId, saved: true }))
-        setSyncStatus("This device is now connected to Saved Keeps.")
+        queueMicrotask(() =>
+          setSyncStatus("This device is now connected to Saved Keeps.")
+        )
         trackKeepsEvent("keeps_device_join", {
           local_saved_count: savedIds.length,
         })
       }
     }
 
-    setSavedKeepIds(savedIds)
     storeFavouriteIds(savedIds)
-    setSyncSession(session)
-    if (session) void syncCollection(session)
+    queueMicrotask(() => {
+      setSavedKeepIds(savedIds)
+      setStorageReady(true)
+      setSyncSession(session)
+    })
+    if (session) queueMicrotask(() => void syncCollection(session))
 
     if (syncToken || legacyFragment) {
       window.history.replaceState(null, "", window.location.pathname)
     }
   }, [syncCollection])
+
+  useEffect(() => {
+    if (!storageReady) return
+
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search)
+      const sharedTitle = params.get("shared_title")?.trim() ?? ""
+      const sharedText = params.get("shared_text")?.trim() ?? ""
+      const sharedUrl =
+        params.get("shared_url")?.trim() ||
+        sharedText.match(/https?:\/\/[^\s<>]+/i)?.[0] ||
+        ""
+      if (!sharedUrl) return
+
+      let normalizedSharedUrl = ""
+      try {
+        normalizedSharedUrl = normalizeKeepUrl(sharedUrl)
+      } catch {
+        setShareStatus("That shared item does not contain a valid link.")
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}${window.location.hash}`
+        )
+        return
+      }
+
+      const matchedKeep = keeps.find((keep) => {
+        try {
+          return normalizeKeepUrl(keep.href) === normalizedSharedUrl
+        } catch {
+          return false
+        }
+      })
+
+      if (!matchedKeep) {
+        setShareStatus(
+          sharedTitle
+            ? `“${sharedTitle}” is not in Keeps yet.`
+            : "That link is not in Keeps yet."
+        )
+      } else {
+        setSavedKeepIds((current) => {
+          if (current.includes(matchedKeep.id)) return current
+          const next = [...current, matchedKeep.id]
+          storeFavouriteIds(next)
+          if (syncSession) {
+            queueSyncChange({ keepId: matchedKeep.id, saved: true })
+            void syncCollection(syncSession)
+          }
+          trackKeepsEvent("keep_favourite", {
+            action: "save",
+            content_id: matchedKeep.id,
+            content_name: matchedKeep.title,
+            content_source: matchedKeep.source,
+            saved_count: next.length,
+            sync_enabled: Boolean(syncSession),
+            location: "share_target",
+          })
+          return next
+        })
+        setActiveTag("Saved Keeps")
+        setShareStatus(`Saved “${matchedKeep.title}” to this device.`)
+      }
+
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${window.location.hash}`
+      )
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [keeps, storageReady, syncCollection, syncSession])
 
   useEffect(() => {
     if (!syncSession) return
@@ -730,7 +813,6 @@ export function KeepsView({
     }
   }
 
-  const keeps = data?.keeps ?? initialKeeps
   const shuffledKeeps = useMemo(
     () =>
       [...keeps].sort(
@@ -747,7 +829,7 @@ export function KeepsView({
       "Latest",
       ...new Set(keeps.flatMap((keep) => keep.tags)),
     ],
-    [keeps, savedKeepIds.length]
+    [keeps]
   )
   const filteredKeeps = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -818,6 +900,15 @@ export function KeepsView({
             </p>
           </div>
         </div>
+
+        {shareStatus ? (
+          <p
+            role="status"
+            className="rounded-lg bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground"
+          >
+            {shareStatus}
+          </p>
+        ) : null}
 
         <div className="flex min-w-0 flex-col border-b border-border">
           <label className="block w-full">

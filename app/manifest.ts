@@ -2,7 +2,11 @@ import type { MetadataRoute } from "next"
 
 import { siteConfig } from "@/lib/seo"
 
-export default function manifest(): MetadataRoute.Manifest {
+type DaaysornManifest = MetadataRoute.Manifest & {
+  edge_side_panel: { preferred_width: number }
+}
+
+export default function manifest(): DaaysornManifest {
   return {
     id: "/",
     name: `${siteConfig.name} | ${siteConfig.creator.name}`,
@@ -17,6 +21,18 @@ export default function manifest(): MetadataRoute.Manifest {
     display_override: ["window-controls-overlay", "standalone"],
     launch_handler: {
       client_mode: "focus-existing",
+    },
+    edge_side_panel: {
+      preferred_width: 400,
+    },
+    share_target: {
+      action: "/keeps",
+      method: "GET",
+      params: {
+        title: "shared_title",
+        text: "shared_text",
+        url: "shared_url",
+      },
     },
     prefer_related_applications: false,
     background_color: "#000000",
