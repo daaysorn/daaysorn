@@ -23,6 +23,7 @@ import {
   PiArrowUpRightBold,
   PiArticleFill,
   PiBookmarkSimpleFill,
+  PiDevicesFill,
   PiInstagramLogoFill,
   PiShareNetworkFill,
   PiXLogoFill,
@@ -77,7 +78,15 @@ const sourceIconColors: Record<string, string> = {
   YouTube: "text-[#ff0000]",
 }
 
-function KeepCard({ keep }: { keep: Keep }) {
+function KeepCard({
+  keep,
+  isSaved,
+  onToggleSaved,
+}: {
+  keep: Keep
+  isSaved: boolean
+  onToggleSaved: (keep: Keep) => void
+}) {
   const Icon = sourceIcons[keep.source] ?? PiBookmarkSimpleFill
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const showImage = Boolean(keep.imageUrl && keep.imageUrl !== failedImageUrl)
@@ -204,6 +213,19 @@ function KeepCard({ keep }: { keep: Keep }) {
           type="button"
           variant="ghost"
           size="icon-xs"
+          onClick={() => onToggleSaved(keep)}
+          aria-label={`${isSaved ? "Remove" : "Save"} ${keep.title} ${isSaved ? "from" : "to"} favourites`}
+          aria-pressed={isSaved}
+          className="rounded-full"
+        >
+          <PiBookmarkSimpleFill
+            className={cn(isSaved ? "text-primary" : "text-muted-foreground")}
+          />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
           onClick={() => void share()}
           aria-label={`Share ${keep.title}`}
           className="rounded-full"
@@ -265,28 +287,94 @@ export function KeepsView({
 }) {
   const [query, setQuery] = useState("")
   const [activeTag, setActiveTag] = useState("All")
-  const { data, mutate } = useSWR("/api/keeps", fetcher, {
+  const [savedKeepIds, setSavedKeepIds] = useState<string[]>([])
+  const [syncStatus, setSyncStatus] = useState("")
+  const { data } = useSWR("/api/keeps", fetcher, {
     fallbackData: { keeps: initialKeeps },
-    refreshInterval: 60_000,
+    refreshInterval: 120_000,
     revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   })
 
   useEffect(() => {
-    const events = new EventSource("/api/keeps/stream")
+    try {
+      const localIds = JSON.parse(
+        window.localStorage.getItem("daaysorn-keeps-favourites") ?? "[]"
+      ) as unknown
+      const savedIds = Array.isArray(localIds)
+        ? localIds.filter((id): id is string => typeof id === "string")
+        : []
+      const fragment = new URLSearchParams(window.location.hash.slice(1)).get(
+        "saved"
+      )
+      const syncedIds = fragment
+        ? (JSON.parse(
+            atob(fragment.replaceAll("-", "+").replaceAll("_", "/"))
+          ) as unknown)
+        : []
+      const importedIds = Array.isArray(syncedIds)
+        ? syncedIds.filter((id): id is string => typeof id === "string")
+        : []
+      const mergedIds = [...new Set([...savedIds, ...importedIds])]
 
-    events.addEventListener("keeps", (event) => {
-      try {
-        const next = JSON.parse((event as MessageEvent<string>).data) as {
-          keeps: Keep[]
-        }
-        void mutate(next, { revalidate: false })
-      } catch {
-        // Ignore malformed events and keep the last valid collection.
+      setSavedKeepIds(mergedIds)
+      window.localStorage.setItem(
+        "daaysorn-keeps-favourites",
+        JSON.stringify(mergedIds)
+      )
+
+      if (importedIds.length) {
+        setSyncStatus("Saved Keeps added to this device.")
+        window.history.replaceState(null, "", window.location.pathname)
       }
-    })
+    } catch {
+      setSavedKeepIds([])
+    }
+  }, [])
 
-    return () => events.close()
-  }, [mutate])
+  const toggleSaved = (keep: Keep) => {
+    setSavedKeepIds((current) => {
+      const next = current.includes(keep.id)
+        ? current.filter((id) => id !== keep.id)
+        : [...current, keep.id]
+      window.localStorage.setItem(
+        "daaysorn-keeps-favourites",
+        JSON.stringify(next)
+      )
+      return next
+    })
+  }
+
+  const syncSaved = async () => {
+    if (!savedKeepIds.length) {
+      setSyncStatus("Save a Keep first.")
+      return
+    }
+
+    const encoded = btoa(JSON.stringify(savedKeepIds))
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replaceAll("=", "")
+    const syncUrl = `${window.location.origin}${window.location.pathname}#saved=${encoded}`
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "My saved Keeps",
+          text: "Open this link on another device to sync my saved Keeps.",
+          url: syncUrl,
+        })
+        setSyncStatus("Sync link shared.")
+      } else {
+        await navigator.clipboard.writeText(syncUrl)
+        setSyncStatus("Sync link copied.")
+      }
+    } catch (error) {
+      if ((error as DOMException).name !== "AbortError") {
+        setSyncStatus("Could not share the sync link.")
+      }
+    }
+  }
   const keeps = data?.keeps ?? initialKeeps
   const shuffledKeeps = useMemo(
     () =>
@@ -298,7 +386,12 @@ export function KeepsView({
     [keeps, shuffleSeed]
   )
   const tags = useMemo(
-    () => ["All", "Latest", ...new Set(keeps.flatMap((keep) => keep.tags))],
+    () => [
+      "All",
+      "Latest",
+      "Saved",
+      ...new Set(keeps.flatMap((keep) => keep.tags)),
+    ],
     [keeps]
   )
   const filteredKeeps = useMemo(() => {
@@ -309,6 +402,7 @@ export function KeepsView({
       const matchesTag =
         activeTag === "All" ||
         activeTag === "Latest" ||
+        (activeTag === "Saved" && savedKeepIds.includes(keep.id)) ||
         keep.tags.includes(activeTag)
       const matchesQuery =
         !normalizedQuery ||
@@ -318,19 +412,38 @@ export function KeepsView({
 
       return matchesTag && matchesQuery
     })
-  }, [activeTag, keeps, query, shuffledKeeps])
+  }, [activeTag, keeps, query, savedKeepIds, shuffledKeeps])
 
   return (
     <article className="w-full min-w-0 pb-8 md:pb-24">
       <header className="flex flex-col gap-5 pb-4 md:pb-5">
         <div className="flex min-w-0 flex-col gap-3">
+          <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
+            Keeps
+          </h1>
           <div className="flex flex-col gap-3">
-            <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
-              Keeps
-            </h1>
             <p className="text-xs leading-5 whitespace-nowrap text-muted-foreground md:text-lg md:leading-8">
               Posts, articles, videos, and ideas I found worth keeping.
             </p>
+            <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+              <p className="min-w-0 text-[0.6875rem] text-muted-foreground xs:text-xs">
+                Bookmark Keeps, then sync across devices.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => void syncSaved()}
+              >
+                <PiDevicesFill data-icon="inline-start" />
+                Sync saved
+              </Button>
+            </div>
+            {syncStatus ? (
+              <p aria-live="polite" className="text-xs text-muted-foreground">
+                {syncStatus}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -370,7 +483,12 @@ export function KeepsView({
       {filteredKeeps.length ? (
         <div className="min-w-0">
           {filteredKeeps.map((keep) => (
-            <KeepCard key={keep.id} keep={keep} />
+            <KeepCard
+              key={keep.id}
+              keep={keep}
+              isSaved={savedKeepIds.includes(keep.id)}
+              onToggleSaved={toggleSaved}
+            />
           ))}
         </div>
       ) : (

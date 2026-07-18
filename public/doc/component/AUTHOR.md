@@ -217,6 +217,20 @@ Keeps is Tomiwa's public collection of useful posts, articles, videos, and
 ideas. It is not a product for visitors to save their own links. Telegram is the
 private publishing input; `/keeps` is the public reading surface.
 
+Visitors can bookmark Tomiwa's Keeps with the save icon. The selected Keep IDs
+live only in `localStorage` under `daaysorn-keeps-favourites`; no visitor data is
+written to Postgres. **Sync saved** creates a compact URL-fragment link. Opening
+that link on another device merges the IDs into that device's local favourites
+and then removes the fragment from the address bar. This is intentionally
+account-free and adds no database or Vercel function usage.
+
+The public Keeps client refreshes `/api/keeps` every two minutes, when the tab
+regains focus, and when the device reconnects. The response is cached at the
+edge for one minute and can be served stale while it refreshes for ten minutes.
+Do not restore the old two-second SSE database polling: every reader held a
+function open and repeatedly queried Postgres, which is unsuitable for the
+Vercel free plan.
+
 The complete flow is:
 
 ```text
