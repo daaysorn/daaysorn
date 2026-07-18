@@ -437,6 +437,170 @@ function LightSwiss({ portrait }: { portrait: string }) {
   )
 }
 
+export type PageOgOptions = {
+  title: string
+  description: string
+  path: string
+  labels?: string[]
+}
+
+function PageLightSwiss({
+  title,
+  description,
+  path,
+  labels = [],
+}: PageOgOptions) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        position: "relative",
+        overflow: "hidden",
+        padding: "58px 72px 54px",
+        background: palette.white,
+        color: palette.black,
+      }}
+    >
+      <Noise light />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          position: "relative",
+          fontFamily: "Geist",
+        }}
+      >
+        <span
+          style={{
+            display: "flex",
+            fontFamily: "Montserrat",
+            fontSize: 28,
+            fontWeight: 700,
+            letterSpacing: "-0.04em",
+          }}
+        >
+          daaysorn
+        </span>
+        <span
+          style={{
+            display: "flex",
+            fontSize: 15,
+            color: "rgba(7,7,7,0.5)",
+          }}
+        >
+          {path}
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+          maxWidth: 980,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontFamily: "Montserrat",
+            fontSize: title.length > 18 ? 88 : 112,
+            fontWeight: 700,
+            letterSpacing: "-0.065em",
+            lineHeight: 0.96,
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            maxWidth: 820,
+            marginTop: 28,
+            fontFamily: "Geist",
+            fontSize: 27,
+            lineHeight: 1.38,
+            color: "rgba(7,7,7,0.6)",
+          }}
+        >
+          {description}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            height: 1,
+            background: palette.darkLine,
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: 26,
+            fontFamily: "Geist",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {labels.map((label, index) => (
+              <div
+                key={label}
+                style={{ display: "flex", alignItems: "center" }}
+              >
+                {index > 0 ? (
+                  <span
+                    style={{
+                      width: 1,
+                      height: 20,
+                      display: "flex",
+                      background: palette.darkLine,
+                      margin: "0 22px",
+                    }}
+                  />
+                ) : null}
+                <span
+                  style={{
+                    display: "flex",
+                    fontSize: 17,
+                    fontWeight: index === 0 ? 600 : 400,
+                    color: index === 0 ? palette.black : "rgba(7,7,7,0.5)",
+                  }}
+                >
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <span
+            style={{
+              display: "flex",
+              fontSize: 15,
+              color: "rgba(7,7,7,0.46)",
+            }}
+          >
+            Tomiwa David · Lagos, Nigeria
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function SplitContrast({ portrait }: { portrait: string }) {
   return (
     <div
@@ -758,6 +922,15 @@ export async function renderOgImage(variant: OgVariant) {
   }[variant]
 
   return new ImageResponse(artwork, {
+    ...ogSize,
+    fonts,
+  })
+}
+
+export async function renderPageOgImage(options: PageOgOptions) {
+  const { fonts } = await loadOgAssets()
+
+  return new ImageResponse(<PageLightSwiss {...options} />, {
     ...ogSize,
     fonts,
   })

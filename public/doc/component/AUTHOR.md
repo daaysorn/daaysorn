@@ -420,6 +420,12 @@ To delete without pasting the URL, reply `/delete` to the original Telegram
 message. Sending the same canonical URL again updates its existing card instead
 of adding a duplicate.
 
+To add or change custom tags on an existing Keep, either edit the original
+Telegram message or resend the same link with the new hashtags. Telegram sends
+message edits through `edited_message`, and both paths update the existing Keep
+because the canonical URL remains the same. Resending is recommended because it
+produces a fresh bot confirmation and is easier to troubleshoot.
+
 One Telegram message can create up to five Keeps. The database intentionally
 allows those rows to share the same Telegram message ID while continuing to
 enforce uniqueness on each canonical URL.

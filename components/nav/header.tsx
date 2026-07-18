@@ -196,11 +196,14 @@ const Header = () => {
       >
         {navItems.map(({ href, icon: Icon, label }) => {
           const isRoute = href.startsWith("/")
+          const isKeepsUnderDocs =
+            href === links.documentation.href && pathname === "/keeps"
           const isActive =
             isRoute &&
-            (href === "/"
-              ? pathname === href
-              : pathname === href || pathname.startsWith(`${href}/`))
+            (isKeepsUnderDocs ||
+              (href === "/"
+                ? pathname === href
+                : pathname === href || pathname.startsWith(`${href}/`)))
 
           return (
             <DockIcon key={label}>
