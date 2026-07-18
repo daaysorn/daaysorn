@@ -759,9 +759,9 @@ export function KeepsView({
       </header>
 
       {activeTag === "Saved Keeps" && savedKeepIds.length ? (
-        <div className="flex min-w-0 items-center justify-between gap-3 px-3 pb-2 md:px-4">
+        <div className="flex min-w-0 items-center justify-between gap-3 pb-2">
           <p aria-live="polite" className="text-xs text-muted-foreground">
-            {syncStatus || "Keep this collection in sync across your devices."}
+            {syncStatus || "Sync across your devices. 👉"}
           </p>
           <Button
             type="button"
@@ -790,16 +790,33 @@ export function KeepsView({
         <Card>
           <CardHeader>
             <CardTitle>
-              {query.trim() || activeTag !== "All"
-                ? "Can’t find that Keep"
-                : "No Keeps yet"}
+              {activeTag === "Saved Keeps" && !query.trim()
+                ? "No Saved Keeps yet"
+                : query.trim() || activeTag !== "All"
+                  ? "Can’t find that Keep"
+                  : "No Keeps yet"}
             </CardTitle>
             <CardDescription>
-              {query.trim() || activeTag !== "All"
-                ? "Try another word or choose a different topic."
-                : "New links will appear here after I send them to the Keeps bot."}
+              {activeTag === "Saved Keeps" && !query.trim()
+                ? "Browse Keeps and save anything you would like to return to later."
+                : query.trim() || activeTag !== "All"
+                  ? "Try another word or choose a different topic."
+                  : "New links will appear here after I send them to the Keeps bot."}
             </CardDescription>
           </CardHeader>
+          {activeTag === "Saved Keeps" && !query.trim() ? (
+            <CardContent>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => selectFilter("All")}
+              >
+                <PiBookmarkSimpleFill data-icon="inline-start" />
+                Browse Keeps
+              </Button>
+            </CardContent>
+          ) : null}
         </Card>
       )}
     </article>
