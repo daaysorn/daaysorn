@@ -151,7 +151,7 @@ export async function enrichKeep({
 
   const cencori = new Cencori({ apiKey })
   const response = await cencori.ai.generateObject<AiKeep>({
-    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-5-mini",
+    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4o-mini",
     schemaName: "keeps_entry",
     schemaDescription:
       "A concise editorial entry for Tomiwa David's public Keeps page.",
@@ -171,7 +171,6 @@ export async function enrichKeep({
       },
       required: ["title", "summary", "author", "tags"],
     },
-    temperature: 0.2,
     maxTokens: 350,
     messages: [
       {

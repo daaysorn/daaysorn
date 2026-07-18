@@ -225,7 +225,7 @@ Tomiwa shares a link with the Telegram bot
   → the route verifies Telegram's secret and Tomiwa's Telegram user ID
   → the route acknowledges Telegram immediately
   → background processing reads safe public metadata from the link
-  → Cencori + gpt-5-mini creates a structured title, summary, author, and tags
+  → Cencori + gpt-4o-mini creates a structured title, summary, author, and tags
   → PostgreSQL inserts the Keep or refreshes an existing matching URL
   → /api/keeps returns the public fields
   → /keeps refreshes through SWR and displays the Magic UI Bento Grid
@@ -252,7 +252,7 @@ commit them, paste them into documentation, or share them in chat.
 ```env
 DATABASE_URL=
 CENCORI_API_KEY=
-CENCORI_KEEPS_MODEL=gpt-5-mini
+CENCORI_KEEPS_MODEL=gpt-4o-mini
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_WEBHOOK_SECRET=
 TELEGRAM_OWNER_ID=
@@ -261,8 +261,11 @@ TELEGRAM_OWNER_ID=
 - `DATABASE_URL` is a PostgreSQL connection string. Neon is the recommended
   host, but another hosted PostgreSQL service can be used.
 - `CENCORI_API_KEY` is a server-side `csk_...` project key.
-- `CENCORI_KEEPS_MODEL` defaults to `gpt-5-mini`. It is fast and economical for
-  short classification and summarization while supporting structured output.
+- `CENCORI_KEEPS_MODEL` defaults to `gpt-4o-mini`. It is fast and economical for
+  short classification and summarization, and its structured output works
+  reliably through Cencori. `gpt-5-mini` currently returns
+  `provider_invalid_request` for this schema through Cencori, so do not switch
+  back without retesting the exact Keeps request.
 - `TELEGRAM_BOT_TOKEN` comes from the verified `@BotFather` account.
 - `TELEGRAM_WEBHOOK_SECRET` authenticates webhook requests from Telegram.
 - `TELEGRAM_OWNER_ID` restricts publishing to Tomiwa's Telegram account.

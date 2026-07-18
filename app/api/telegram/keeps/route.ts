@@ -86,7 +86,11 @@ export async function POST(request: Request) {
       })
       await saveKeep(keep)
       await reply(message.chat.id, `Kept: ${keep.title}`)
-    } catch {
+    } catch (error) {
+      console.error("Keeps enrichment failed", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        telegramMessageId: message.message_id,
+      })
       await reply(
         message.chat.id,
         "I could not add that link. Please try again."
