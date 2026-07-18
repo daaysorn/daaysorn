@@ -548,6 +548,56 @@ export function KeepsView({
     }
   }, [syncCollection, syncSession])
 
+  useEffect(() => {
+    if (!syncSession) return
+
+    let realtime: import("ably").Realtime | undefined
+    let channel: import("ably").RealtimeChannel | undefined
+    let cancelled = false
+    const receiveChange = () => {
+      trackKeepsEvent("keeps_realtime", { outcome: "update_received" })
+      void syncCollection(syncSession)
+    }
+    const reconnect = () => void syncCollection(syncSession)
+
+    const connect = async () => {
+      try {
+        const Ably = await import("ably")
+        if (cancelled) return
+
+        realtime = new Ably.Realtime({
+          authUrl: "/api/keeps/realtime-token",
+          authMethod: "GET",
+          authHeaders: {
+            Authorization: `Bearer ${syncSession.id}.${syncSession.secret}`,
+          },
+        })
+        realtime.connection.on("connected", reconnect)
+        channel = realtime.channels.get(`private:keeps:${syncSession.id}`)
+        await channel.subscribe("changed", receiveChange)
+
+        if (!cancelled) {
+          setSyncStatus("Saved Keeps are syncing live.")
+          trackKeepsEvent("keeps_realtime", { outcome: "connected" })
+        }
+      } catch {
+        if (!cancelled) {
+          setSyncStatus("Saved Keeps will sync when the connection returns.")
+          trackKeepsEvent("keeps_realtime", { outcome: "connection_failed" })
+        }
+      }
+    }
+
+    void connect()
+
+    return () => {
+      cancelled = true
+      channel?.unsubscribe("changed", receiveChange)
+      realtime?.connection.off("connected", reconnect)
+      realtime?.close()
+    }
+  }, [syncCollection, syncSession])
+
   const toggleSaved = (keep: Keep) => {
     setSavedKeepIds((current) => {
       const next = current.includes(keep.id)

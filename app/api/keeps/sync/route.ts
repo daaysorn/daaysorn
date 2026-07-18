@@ -4,6 +4,7 @@ import {
   createKeepsSyncGroup,
   listSyncedKeepIds,
 } from "@/lib/keeps/sync-db"
+import { publishKeepsChanged } from "@/lib/keeps/realtime"
 
 export const dynamic = "force-dynamic"
 
@@ -84,6 +85,13 @@ export async function PATCH(request: Request) {
           .slice(0, 100)
       : []
     await applyKeepsSyncChanges(auth.id, changes)
+    try {
+      await publishKeepsChanged(auth.id)
+    } catch (error) {
+      console.error("Saved Keeps realtime publish failed", {
+        message: error instanceof Error ? error.message : "Unknown error",
+      })
+    }
     return Response.json(
       { savedIds: await listSyncedKeepIds(auth.id) },
       { headers }

@@ -228,10 +228,13 @@ credential for the collection.
 
 Every device keeps its local copy and an offline mutation queue. Saves and
 removals work without a connection, then PATCH `/api/keeps/sync` when the device
-reconnects. Connected devices refresh every two minutes and on focus/reconnect,
-so a removal on one device reaches the others without an open server
-connection. The last change received for the same Keep wins; changes to
-different Keeps are merged independently.
+reconnects. Online devices subscribe to a private, collection-scoped Ably
+channel and reconcile from Neon immediately when another device changes the
+collection. A two-minute refresh plus focus/reconnect refresh remains as a
+durability fallback. Offline devices cannot receive remote events, but they
+apply local changes immediately and flush them as soon as connectivity returns.
+The last change received for the same Keep wins; changes to different Keeps are
+merged independently.
 
 The public Keeps feed refreshes `/api/keeps` every two minutes, when the tab
 regains focus, and when the device reconnects. The response is cached at the
@@ -261,12 +264,111 @@ contents, sync-group IDs, sync secrets, and export links.
 | `keeps_export`         | Export method and success/failure                      |
 | `keeps_device_join`    | A second device joining through an export link         |
 | `keeps_sync`           | Change count and sync success/failure                  |
+| `keeps_realtime`       | Ably connection status and live updates received       |
 
-In GA4 Admin → Data display → Custom definitions, register the event-scoped
-dimensions `content_name`, `content_source`, `method`, `action`, `filter_name`,
-`filter_type`, and `outcome`. Register `saved_count`, `result_count`,
-`changes_count`, and `keep_count` as custom metrics. These definitions make the
-parameters available in Explorations; they do not collect additional data.
+##### Set up Keeps reporting in GA4
+
+The site code already sends the events. Complete these steps in the Google
+Analytics property after deploying the latest site.
+
+1. Open `https://daaysorn.com/keeps` and trigger representative interactions:
+   view the collection, open a Keep, save and remove one, search, select filters,
+   share, and test the device export.
+2. In GA4, open **Reports → Realtime**.
+3. In **Event count by Event name**, confirm the Keeps event names from the table
+   above appear. Realtime is the quickest collection check.
+
+Create the reporting fields next:
+
+1. Go to **Admin → Data display → Custom definitions**.
+2. Open **Custom dimensions** and select **Create custom dimension**.
+3. Create every row below with **Event** scope. The event parameter must match
+   the code exactly.
+
+| Dimension name   | Event parameter  |
+| ---------------- | ---------------- |
+| Keeps feature    | `feature`        |
+| Keep name        | `content_name`   |
+| Keep source      | `content_source` |
+| Favourite action | `action`         |
+| Share method     | `method`         |
+| Keeps filter     | `filter_name`    |
+| Filter type      | `filter_type`    |
+| Event outcome    | `outcome`        |
+| Search length    | `query_length`   |
+| Open location    | `location`       |
+| Has preview      | `has_preview`    |
+| Sync enabled     | `sync_enabled`   |
+
+Do not register `content_id` as a custom dimension. It is a unique Keep ID and
+would create unnecessary high-cardinality reporting.
+
+Then open **Custom metrics → Create custom metric** and create the rows below.
+Use **Standard** as the unit of measurement.
+
+| Metric name                | Event parameter     |
+| -------------------------- | ------------------- |
+| Available Keeps            | `keep_count`        |
+| Saved Keeps count          | `saved_count`       |
+| Search results             | `result_count`      |
+| Synced changes             | `changes_count`     |
+| Local Keeps before joining | `local_saved_count` |
+
+Custom definitions normally need 24–48 hours of newly collected data before
+they become available throughout reporting and Explorations.
+
+##### Build the Keeps Explorations
+
+Go to **Explore → Free form** and create an exploration named
+**Keeps overview**:
+
+- Dimensions: **Event name**, **Keep name**, **Keep source**,
+  **Favourite action**, and **Share method**.
+- Metrics: **Event count**, **Total users**, and **Saved Keeps count**.
+- Rows: **Keep name**.
+- Columns: **Event name**.
+- Values: **Event count** and **Total users**.
+- Filter: **Keeps feature** exactly matches `keeps`.
+
+Add these focused tabs to the same exploration:
+
+1. **Source performance**
+   - Rows: **Keep source**.
+   - Columns: **Event name**.
+   - Values: **Event count** and **Total users**.
+   - Filter to `keep_impression`, `keep_open`, `keep_favourite`, and
+     `keep_share`.
+2. **Saved Keeps**
+   - Rows: **Keep name** and **Favourite action**.
+   - Values: **Event count** and **Total users**.
+   - Filter: **Event name** exactly matches `keep_favourite`.
+   - The `action` dimension separates `save` from `remove`.
+3. **Search quality**
+   - Rows: **Search length**.
+   - Values: **Event count** and **Search results**.
+   - Filter: **Event name** exactly matches `keeps_search`.
+   - Search text is never collected; only the `2_4`, `5_9`, or `10_plus`
+     length bucket and result count are available.
+4. **Export and sync**
+   - Rows: **Event name** and **Event outcome**.
+   - Values: **Event count**, **Total users**, and **Synced changes**.
+   - Filter to `keeps_export_created`, `keeps_export`,
+     `keeps_device_join`, and `keeps_sync`.
+
+Finally, create a **Funnel exploration** with these ordered steps:
+
+1. `keep_impression`
+2. `keep_open`
+3. `keep_favourite`
+
+Use an open funnel. It shows the percentage of visible Keeps that are opened
+and the percentage of opened Keeps that are saved.
+
+Official references:
+
+- [Create event-scoped custom dimensions](https://support.google.com/analytics/answer/14239696?hl=en)
+- [Create custom metrics](https://support.google.com/analytics/answer/14239619?hl=en)
+- [Build a free-form exploration](https://support.google.com/analytics/answer/9327972?hl=en)
 
 The complete flow is:
 
@@ -279,23 +381,26 @@ Tomiwa shares a link with the Telegram bot
   → Cencori + gpt-4o-mini creates a structured title, summary, author, and tags
   → PostgreSQL inserts the Keep or refreshes an existing matching URL
   → /api/keeps returns the public fields
-  → /keeps receives live updates through SSE and displays the Magic UI Bento Grid
+  → /keeps refreshes the cached feed and displays the editorial Keep list
 ```
 
 Relevant files:
 
-| Path                                    | Purpose                                              |
-| --------------------------------------- | ---------------------------------------------------- |
-| `app/api/telegram/keeps/route.ts`       | Private Telegram webhook and owner verification      |
-| `app/api/keeps/route.ts`                | Read-only public Keeps feed                          |
-| `app/api/keeps/stream/route.ts`         | Reconnecting live-update stream                      |
-| `lib/keeps/enrich.ts`                   | Safe metadata fetch and Cencori structured summary   |
-| `lib/keeps/text.ts`                     | Enforces the two-sentence summary limit              |
-| `lib/keeps/db.ts`                       | PostgreSQL schema initialization, reads, and upserts |
-| `database/keeps.sql`                    | Standalone copy of the PostgreSQL schema             |
-| `components/keeps/keeps-view.tsx`       | Public search, filtering, refresh, and Bento Grid    |
-| `components/keeps/keeps-skeleton.tsx`   | Loading state matching the final layout              |
-| `scripts/set-telegram-keeps-webhook.ts` | Registers the deployed webhook with Telegram         |
+| Path                                    | Purpose                                               |
+| --------------------------------------- | ----------------------------------------------------- |
+| `app/api/telegram/keeps/route.ts`       | Private Telegram webhook and owner verification       |
+| `app/api/keeps/route.ts`                | Read-only public Keeps feed                           |
+| `app/api/keeps/sync/route.ts`           | Anonymous Saved Keeps cross-device synchronization    |
+| `app/api/keeps/realtime-token/route.ts` | Scoped, short-lived Ably subscriber tokens            |
+| `lib/keeps/enrich.ts`                   | Safe metadata fetch and Cencori structured summary    |
+| `lib/keeps/text.ts`                     | Enforces the two-sentence summary limit               |
+| `lib/keeps/db.ts`                       | PostgreSQL schema initialization, reads, and upserts  |
+| `lib/keeps/sync-db.ts`                  | Saved Keeps sync groups and per-Keep changes          |
+| `lib/keeps/realtime.ts`                 | Ably token creation, private channels, and publishing |
+| `database/keeps.sql`                    | Standalone copy of the PostgreSQL schema              |
+| `components/keeps/keeps-view.tsx`       | Public list, search, Saved Keeps, export, and sync    |
+| `components/keeps/keeps-skeleton.tsx`   | Loading state matching the final layout               |
+| `scripts/set-telegram-keeps-webhook.ts` | Registers the deployed webhook with Telegram          |
 
 #### Environment variables
 
@@ -309,6 +414,7 @@ CENCORI_KEEPS_MODEL=gpt-4o-mini
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_WEBHOOK_SECRET=
 TELEGRAM_OWNER_ID=
+ABLY_API_KEY=
 ```
 
 - `DATABASE_URL` is a PostgreSQL connection string. Neon is the recommended
@@ -322,10 +428,34 @@ TELEGRAM_OWNER_ID=
 - `TELEGRAM_BOT_TOKEN` comes from the verified `@BotFather` account.
 - `TELEGRAM_WEBHOOK_SECRET` authenticates webhook requests from Telegram.
 - `TELEGRAM_OWNER_ID` restricts publishing to Tomiwa's Telegram account.
+- `ABLY_API_KEY` is a server-only Ably key used to publish change notifications
+  and mint short-lived, subscribe-only tokens for one Saved Keeps collection.
+  Never expose it through a `NEXT_PUBLIC_*` variable.
 
 Add the same production values to Vercel under **Project → Settings →
 Environment Variables**, then redeploy. `.env.example` contains blank names only
 and is safe to commit. `.env.local` is ignored by Git and stores local values.
+
+#### Enable Ably realtime Saved Keeps
+
+1. Create an Ably account and select the Free package.
+2. Create an app named `daaysorn Keeps`.
+3. Open the app's **API Keys** area and copy an API key whose capabilities allow
+   publish and subscribe. The key stays server-side; browsers never receive it.
+4. Add it locally as `ABLY_API_KEY` in `.env.local`.
+5. Add the same variable in **Vercel → Project → Settings → Environment
+   Variables** for Production, Preview, and Development as needed.
+6. Redeploy. Open Saved Keeps on two online devices and export the private link
+   from the first device to the second.
+7. Save or remove a Keep. The other online device should update immediately.
+8. Turn one device offline, make changes, and reconnect. Its queued changes
+   should flush immediately and notify the other device through Ably.
+
+The browser authenticates through `/api/keeps/realtime-token`. That route first
+verifies the private Saved Keeps group secret, then returns a one-hour Ably
+token restricted to subscribing to only `private:keeps:<group-id>`. Publishing
+remains server-only. If Ably is unavailable, Neon plus the two-minute/focus/
+reconnect reconciliation keeps the collection correct.
 
 #### Create the Telegram bot
 
