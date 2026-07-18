@@ -781,15 +781,14 @@ Rerun `bun run telegram:webhook` after changing the deployed webhook URL or its
 registered commands. Do not use `getUpdates` while a webhook is active; remove
 the webhook first only when owner-ID troubleshooting requires it.
 
-### Gallery publishing pipeline (planned)
+### Gallery publishing pipeline
 
-The Gallery currently reads supported image and video files from
-`public/images/gallery/` during the production build. Until the upload pipeline
-below is implemented, adding or removing media requires committing the file
-and deploying the site again. An empty folder displays `Nothing yet` at
-`/gallery`.
+The Gallery reads uploaded media metadata from PostgreSQL and serves optimized
+files from Cloudflare R2. It also retains `public/images/gallery/` as a
+build-time fallback for manually committed image and video files. When neither
+source contains media, `/gallery` displays `Nothing yet`.
 
-The planned publishing flow reuses the owner-only Telegram bot but keeps Gallery
+The publishing flow reuses the owner-only Telegram bot but keeps Gallery
 messages explicitly separate from Keeps:
 
 ```text
@@ -844,12 +843,11 @@ Weekend in Lagos
 ```
 
 Telegram sends an album as multiple webhook updates with the same
-`media_group_id`, not as one message. The Gallery implementation must hold that
-group briefly, process it once, preserve Telegram's image order, and send one
-summary reply. Processing each update immediately would create several replies
-and could invalidate the Gallery cache repeatedly. Use a durable database-backed
-album queue rather than an in-memory timer because Vercel can run album updates
-on different function instances.
+`media_group_id`, not as one message. The Gallery stores those items in a
+durable database-backed batch, waits briefly for the group, claims it atomically,
+preserves Telegram's image order, and sends one summary reply. The queue is not
+held in memory because Vercel can run album updates on different function
+instances.
 
 For a single Telegram photo, select the largest entry in its `photo[]` array;
 the smaller entries are Telegram thumbnails, not separate Gallery images. For a

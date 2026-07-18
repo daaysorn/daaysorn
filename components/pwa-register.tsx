@@ -11,15 +11,39 @@ export function PWARegister() {
       return
     }
 
-    const register = () => {
-      void navigator.serviceWorker.register("/sw.js", {
+    let reloading = false
+    const onControllerChange = () => {
+      if (reloading) return
+      reloading = true
+      window.location.reload()
+    }
+
+    const register = async () => {
+      const registration = await navigator.serviceWorker.register("/sw.js", {
         scope: "/",
         updateViaCache: "none",
       })
+      await registration.update()
     }
 
-    window.addEventListener("load", register, { once: true })
-    return () => window.removeEventListener("load", register)
+    navigator.serviceWorker.addEventListener(
+      "controllerchange",
+      onControllerChange
+    )
+
+    if (document.readyState === "complete") {
+      void register()
+    } else {
+      window.addEventListener("load", register, { once: true })
+    }
+
+    return () => {
+      window.removeEventListener("load", register)
+      navigator.serviceWorker.removeEventListener(
+        "controllerchange",
+        onControllerChange
+      )
+    }
   }, [])
 
   return null

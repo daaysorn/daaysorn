@@ -87,7 +87,7 @@ function htmlPage(title: string, body: string, status = 200) {
       --font-mono: "JetBrains Mono", ui-monospace, monospace;
     }
     .dark {
-      --background: oklch(0.145 0 0);
+      --background: oklch(0 0 0);
       --foreground: oklch(0.985 0 0);
       --card: oklch(0.205 0 0);
       --card-foreground: oklch(0.985 0 0);

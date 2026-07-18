@@ -1,6 +1,13 @@
 import { after } from "next/server"
 import { revalidatePath, revalidateTag } from "next/cache"
 
+import {
+  claimGalleryBatch,
+  finishGalleryBatch,
+  queueGalleryAttachment,
+} from "@/lib/gallery/db"
+import { processGalleryAttachment } from "@/lib/gallery/storage"
+import type { TelegramGalleryAttachment } from "@/lib/gallery/types"
 import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
@@ -13,15 +20,98 @@ type TelegramEntity = {
   url?: string
 }
 
+type TelegramPhoto = {
+  file_id: string
+  file_unique_id: string
+  width: number
+  height: number
+  file_size?: number
+}
+
+type TelegramVideo = {
+  file_id: string
+  file_unique_id: string
+  width: number
+  height: number
+  duration: number
+  mime_type?: string
+  file_size?: number
+  thumbnail?: TelegramPhoto
+}
+
+type TelegramDocument = {
+  file_id: string
+  file_unique_id: string
+  mime_type?: string
+  file_size?: number
+  thumbnail?: TelegramPhoto
+}
+
 type TelegramMessage = {
   message_id: number
   text?: string
   caption?: string
   entities?: TelegramEntity[]
   caption_entities?: TelegramEntity[]
+  photo?: TelegramPhoto[]
+  video?: TelegramVideo
+  document?: TelegramDocument
+  media_group_id?: string
   chat: { id: number }
   from?: { id: number }
   reply_to_message?: TelegramMessage
+}
+
+function findGalleryAttachment(
+  message: TelegramMessage
+): TelegramGalleryAttachment | null {
+  if (message.photo?.length) {
+    const photo = [...message.photo].sort(
+      (a, b) => b.width * b.height - a.width * a.height
+    )[0]
+    return {
+      type: "image",
+      fileId: photo.file_id,
+      fileUniqueId: photo.file_unique_id,
+      mimeType: "image/jpeg",
+      fileSize: photo.file_size ?? null,
+      width: photo.width,
+      height: photo.height,
+      thumbnailFileId: null,
+      telegramMessageId: message.message_id,
+    }
+  }
+
+  if (message.video) {
+    return {
+      type: "video",
+      fileId: message.video.file_id,
+      fileUniqueId: message.video.file_unique_id,
+      mimeType: message.video.mime_type ?? "video/mp4",
+      fileSize: message.video.file_size ?? null,
+      width: message.video.width,
+      height: message.video.height,
+      thumbnailFileId: message.video.thumbnail?.file_id ?? null,
+      telegramMessageId: message.message_id,
+    }
+  }
+
+  const mimeType = message.document?.mime_type ?? ""
+  if (message.document && /^(?:image|video)\//i.test(mimeType)) {
+    return {
+      type: mimeType.startsWith("video/") ? "video" : "image",
+      fileId: message.document.file_id,
+      fileUniqueId: message.document.file_unique_id,
+      mimeType,
+      fileSize: message.document.file_size ?? null,
+      width: null,
+      height: null,
+      thumbnailFileId: message.document.thumbnail?.file_id ?? null,
+      telegramMessageId: message.message_id,
+    }
+  }
+
+  return null
 }
 
 type TelegramUpdate = {
@@ -97,6 +187,45 @@ function invalidatePublicKeeps() {
   revalidatePath("/keeps")
 }
 
+function invalidateGallery() {
+  revalidateTag("gallery", { expire: 0 })
+  revalidatePath("/gallery")
+}
+
+async function processGalleryMedia(
+  chatId: number,
+  caption: string,
+  attachments: TelegramGalleryAttachment[]
+) {
+  const results = []
+  for (const attachment of attachments) {
+    try {
+      results.push(await processGalleryAttachment(attachment, caption))
+    } catch (error) {
+      console.error("Gallery media processing failed", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        telegramMessageId: attachment.telegramMessageId,
+      })
+      results.push("failed" as const)
+    }
+  }
+
+  const added = results.filter((result) => result === "added").length
+  const duplicates = results.filter((result) => result === "duplicate").length
+  const failed = results.filter((result) => result === "failed").length
+  if (added) invalidateGallery()
+
+  const notes = [
+    added ? `${added} added` : "",
+    duplicates ? `${duplicates} already in Gallery` : "",
+    failed ? `${failed} failed` : "",
+  ].filter(Boolean)
+  await reply(
+    chatId,
+    notes.length ? `Gallery: ${notes.join(", ")}.` : "Nothing was added."
+  )
+}
+
 export async function POST(request: Request) {
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim()
   const receivedSecret = request.headers.get("x-telegram-bot-api-secret-token")
@@ -116,6 +245,58 @@ export async function POST(request: Request) {
   }
 
   const rawText = message.text ?? message.caption ?? ""
+  const galleryAttachment = findGalleryAttachment(message)
+
+  if (galleryAttachment) {
+    if ((galleryAttachment.fileSize ?? 0) > 20 * 1024 * 1024) {
+      after(() =>
+        reply(
+          message.chat.id,
+          "That media file is over Telegram's 20 MB bot download limit. Send a smaller version."
+        )
+      )
+      return Response.json({ ok: true })
+    }
+
+    if (message.media_group_id) {
+      const batchKey = `${message.chat.id}:${message.media_group_id}`
+      after(async () => {
+        try {
+          await queueGalleryAttachment(
+            batchKey,
+            message.chat.id,
+            rawText,
+            galleryAttachment
+          )
+          await new Promise((resolve) => setTimeout(resolve, 2500))
+          const batch = await claimGalleryBatch(batchKey)
+          if (!batch) return
+          await processGalleryMedia(
+            batch.chatId,
+            batch.caption,
+            batch.attachments
+          )
+          await finishGalleryBatch(batchKey)
+        } catch (error) {
+          console.error("Gallery album processing failed", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            mediaGroupId: message.media_group_id,
+          })
+          await reply(
+            message.chat.id,
+            "I could not add that Gallery album. Please try again."
+          )
+        }
+      })
+    } else {
+      after(() =>
+        processGalleryMedia(message.chat.id, rawText, [galleryAttachment])
+      )
+    }
+
+    return Response.json({ ok: true })
+  }
+
   const hrefs = findLinks(message)
   const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
 

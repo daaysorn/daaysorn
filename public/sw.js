@@ -1,4 +1,4 @@
-const CACHE_VERSION = "daaysorn-v1"
+const CACHE_VERSION = "daaysorn-v2"
 const PAGE_CACHE = `${CACHE_VERSION}-pages`
 const ASSET_CACHE = `${CACHE_VERSION}-assets`
 const PRECACHE_URLS = [
@@ -46,7 +46,7 @@ async function networkFirst(request) {
   const cache = await caches.open(PAGE_CACHE)
 
   try {
-    const response = await fetch(request)
+    const response = await fetch(request, { cache: "no-store" })
     if (response.ok) await cache.put(request, response.clone())
     return response
   } catch {
@@ -67,6 +67,20 @@ async function staleWhileRevalidate(request) {
   return cached || fresh
 }
 
+async function networkFirstAsset(request) {
+  const cache = await caches.open(ASSET_CACHE)
+
+  try {
+    const response = await fetch(request, { cache: "no-store" })
+    if (response.ok) await cache.put(request, response.clone())
+    return response
+  } catch {
+    return (
+      (await cache.match(request)) || new Response("Offline", { status: 503 })
+    )
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
@@ -85,12 +99,16 @@ self.addEventListener("fetch", (event) => {
     return
   }
 
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(staleWhileRevalidate(request))
+    return
+  }
+
   if (
-    url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/images/") ||
-    ["font", "image", "script", "style"].includes(request.destination)
+    request.destination === "image"
   ) {
-    event.respondWith(staleWhileRevalidate(request))
+    event.respondWith(networkFirstAsset(request))
   }
 })
