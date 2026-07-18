@@ -11,6 +11,7 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "og:preview": "bun scripts/render-og-previews.ts",
+    "buffer:channels": "bun scripts/list-buffer-channels.ts",
     "telegram:webhook": "bun scripts/set-telegram-keeps-webhook.ts",
     "typecheck": "tsc --noEmit"
   },

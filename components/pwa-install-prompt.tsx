@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useCallback, useEffect, useState } from "react"
-import { PiXBold } from "react-icons/pi"
+import { PiShareFatFill, PiXBold } from "react-icons/pi"
 
 import { Button } from "@/components/ui/button"
 
@@ -33,10 +33,19 @@ function recentlyDismissed() {
   return dismissedAt > 0 && Date.now() - dismissedAt < dismissalTtl
 }
 
+function isIosBrowser() {
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  )
+}
+
 export function PWAInstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
     null
   )
+  const [showIosInstall, setShowIosInstall] = useState(false)
+  const [showIosSteps, setShowIosSteps] = useState(false)
 
   const readInstallPrompt = useCallback(() => {
     if (isInstalled() || recentlyDismissed()) return
@@ -46,8 +55,14 @@ export function PWAInstallPrompt() {
 
   useEffect(() => {
     queueMicrotask(readInstallPrompt)
+    if (!isInstalled() && !recentlyDismissed() && isIosBrowser()) {
+      setShowIosInstall(true)
+    }
 
-    const installed = () => setInstallPrompt(null)
+    const installed = () => {
+      setInstallPrompt(null)
+      setShowIosInstall(false)
+    }
     window.addEventListener("daaysorn:installable", readInstallPrompt)
     window.addEventListener("daaysorn:installed", installed)
     window.addEventListener("appinstalled", installed)
@@ -62,6 +77,7 @@ export function PWAInstallPrompt() {
   const dismiss = () => {
     window.localStorage.setItem(dismissalKey, String(Date.now()))
     setInstallPrompt(null)
+    setShowIosInstall(false)
   }
 
   const install = async () => {
@@ -81,7 +97,7 @@ export function PWAInstallPrompt() {
     }
   }
 
-  if (!installPrompt) return null
+  if (!installPrompt && !showIosInstall) return null
 
   return (
     <aside
@@ -100,13 +116,36 @@ export function PWAInstallPrompt() {
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-heading text-sm font-semibold">Install daaysorn</p>
-        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-          Keep Keeps and Gallery close, even when you&apos;re offline.
-        </p>
+        {showIosInstall && showIosSteps ? (
+          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+            Tap <PiShareFatFill className="inline text-primary" aria-hidden />{" "}
+            in your browser, then choose{" "}
+            <span className="font-medium text-foreground">
+              Add to Home Screen
+            </span>
+            .
+          </p>
+        ) : (
+          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+            Keep Keeps and Gallery close, even when you&apos;re offline.
+          </p>
+        )}
       </div>
-      <Button type="button" size="sm" onClick={() => void install()}>
-        Install
-      </Button>
+      {showIosInstall ? (
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => setShowIosSteps((visible) => !visible)}
+          aria-expanded={showIosSteps}
+        >
+          <PiShareFatFill aria-hidden />
+          {showIosSteps ? "Got it" : "Install"}
+        </Button>
+      ) : (
+        <Button type="button" size="sm" onClick={() => void install()}>
+          Install
+        </Button>
+      )}
       <Button
         type="button"
         variant="ghost"

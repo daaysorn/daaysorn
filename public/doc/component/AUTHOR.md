@@ -801,6 +801,7 @@ Tomiwa sends images, videos, or a Telegram media album
   → images get responsive WebP variants; videos retain their Telegram poster
   → immutable media files are uploaded to Cloudflare R2
   → PostgreSQL stores the media metadata and Telegram message ID
+  → Buffer publishes the new public R2 asset to the configured Instagram channel
   → the Gallery cache is invalidated
   → /gallery reads the updated metadata and renders the masonry layout
 ```
@@ -814,8 +815,10 @@ Gallery uploads must not change link bookmarking:
   No command is required.
 - Ordinary link messages continue through the existing Keeps handler.
 - `/delete <url>` deletes a Keep.
-- Replying `/delete` to the original image or video message deletes that Gallery
-  item and its Cloudflare R2 objects.
+- Replying `/delete` to the original image or video message, or resending the
+  media with `/delete` as its caption, deletes that Gallery item and its
+  Cloudflare R2 objects. Deletion uses Telegram's stable `file_unique_id`, so a
+  forwarded or resent copy still finds the original Gallery row.
 - A non-image document receives usage instructions and is not inserted into
   either collection unless its text or caption contains a valid Keep URL.
 - Gallery and Keeps use separate database tables, validation, storage helpers,
@@ -841,10 +844,58 @@ Weekend in Lagos
 
 # Delete an uploaded image or video.
 [reply /delete to the original media message]
+
+# Or resend the media with this caption.
+/delete
 ```
 
 Reply to the original upload, not the bot's `Gallery: 1 added` confirmation.
 For a Telegram album, reply to each original album item that should be removed.
+
+#### Buffer Instagram publishing
+
+Every newly accepted Gallery image or video is sent to exactly one Buffer
+channel. The mutation uses only `BUFFER_INSTAGRAM_CHANNEL_ID`; it never lists or
+selects the connected X channel. Duplicate Gallery uploads are not republished.
+Buffer failure is logged without undoing the Gallery upload, so Instagram being
+temporarily unavailable cannot lose the original media.
+
+1. Open Buffer's **Settings → API** page and create a personal API key.
+2. Add the key to `.env.local` as `BUFFER_API_KEY`, then restart the local
+   server if it is running.
+3. From the project root, run:
+
+   ```bash
+   bun run buffer:channels
+   ```
+
+4. The command prints every Buffer channel grouped by organization. Find the
+   row whose `service` value is exactly `instagram`. Copy that row's `id`, not
+   its display name and not the ID from the `twitter` row.
+5. Add the copied value to `.env.local`:
+
+   ```env
+   BUFFER_INSTAGRAM_CHANNEL_ID=the_copied_instagram_id
+   ```
+
+6. In Vercel, open **Project Settings → Environment Variables** and add both
+   `BUFFER_API_KEY` and `BUFFER_INSTAGRAM_CHANNEL_ID` to Production. Redeploy
+   after saving them because an existing deployment cannot see newly added
+   environment variables.
+7. Send one new image to the Telegram bot and confirm it appears in Gallery and
+   on Instagram. Never put the connected X channel ID in
+   `BUFFER_INSTAGRAM_CHANNEL_ID`.
+
+```env
+BUFFER_API_KEY=
+BUFFER_INSTAGRAM_CHANNEL_ID=
+```
+
+The integration uses Buffer's current GraphQL `createPost` mutation with
+automatic publishing and `shareNow`. Images use the optimized public R2 image;
+videos use the original public R2 video URL and a two-second thumbnail offset.
+Instagram may require notification publishing when the connected account or
+media does not meet Meta's automatic-publishing rules.
 
 Telegram sends an album as multiple webhook updates with the same
 `media_group_id`, not as one message. The Gallery stores those items in a
@@ -979,12 +1030,17 @@ responses.
 
 The worker provides only capabilities that match this project:
 
-- The production registration script captures Chrome's
+- The production registration script captures Chromium's
   `beforeinstallprompt` event before hydration. `PWAInstallPrompt` displays a
-  compact glass install card only when Chrome confirms eligibility, and its
+  compact glass install card when the browser confirms eligibility, and its
   Install button opens the browser-owned confirmation dialog. Installed apps
   and dismissed prompts stay hidden; a manual dismissal is remembered for
   seven days.
+- iOS browsers do not expose `beforeinstallprompt`. On an eligible iPhone or
+  iPad, the same card instead gives the native Share → Add to Home Screen steps.
+- The manifest deliberately omits `orientation`, allowing the installed app to
+  follow the device's current orientation instead of locking portrait or
+  landscape.
 - The OS share target posts `title`, `text`, and `url` as
   `multipart/form-data` to `/api/keeps/share-target`. The handler validates and
   bounds the strings, redirects to a temporary fragment on `/keeps`, and the
@@ -992,7 +1048,9 @@ The worker provides only capabilities that match this project:
   parameters are intentionally omitted because Keeps accepts links; owner media
   publishing remains in the Telegram Gallery workflow.
 - Home, Keeps, Gallery, the offline fallback, manifest, icons, visited Next.js
-  assets, local images, and Cloudflare Gallery media are cached.
+  assets, and local images are cached. Remote Cloudflare Gallery media bypasses
+  the service worker so image responses and video range requests remain valid;
+  Cloudflare and the browser provide their immutable caching.
 - Navigations use network-first delivery and fall back to the cached page or
   `/offline` when no saved response exists.
 - Saved Keeps changes remain in the page's local fallback queue and are also

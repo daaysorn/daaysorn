@@ -7,6 +7,7 @@ import {
 } from "@aws-sdk/client-s3"
 import sharp from "sharp"
 
+import { publishGalleryMediaToInstagram } from "@/lib/gallery/buffer"
 import { galleryMediaExists, saveGalleryMedia } from "@/lib/gallery/db"
 import type {
   GalleryMediaDraft,
@@ -217,5 +218,18 @@ export async function processGalleryAttachment(
     createdAt: new Date().toISOString(),
   }
 
-  return (await saveGalleryMedia(draft)) ? "added" : "duplicate"
+  const saved = await saveGalleryMedia(draft)
+  if (!saved) return "duplicate"
+
+  try {
+    await publishGalleryMediaToInstagram(draft)
+  } catch (error) {
+    // Gallery publishing must remain successful if Buffer is unavailable.
+    console.error("Buffer Instagram publishing failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      galleryMediaId: draft.id,
+    })
+  }
+
+  return "added"
 }

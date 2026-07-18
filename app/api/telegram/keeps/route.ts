@@ -3,7 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache"
 
 import {
   claimGalleryBatch,
-  deleteGalleryMediaByTelegramMessageId,
+  deleteGalleryMedia,
   finishGalleryBatch,
   queueGalleryAttachment,
 } from "@/lib/gallery/db"
@@ -250,6 +250,56 @@ export async function POST(request: Request) {
 
   const rawText = message.text ?? message.caption ?? ""
   const galleryAttachment = findGalleryAttachment(message)
+  const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
+
+  if (isDeleteCommand) {
+    const repliedGalleryMessage = message.reply_to_message
+    const repliedGalleryAttachment = repliedGalleryMessage
+      ? findGalleryAttachment(repliedGalleryMessage)
+      : null
+    const targetAttachment = galleryAttachment ?? repliedGalleryAttachment
+
+    if (targetAttachment) {
+      after(async () => {
+        try {
+          const objectKeys = await deleteGalleryMedia({
+            telegramMessageId:
+              repliedGalleryMessage?.message_id ?? message.message_id,
+            telegramFileUniqueId: targetAttachment.fileUniqueId,
+          })
+
+          if (!objectKeys) {
+            await reply(message.chat.id, "That media is not in Gallery.")
+            return
+          }
+
+          invalidateGallery()
+          try {
+            await deleteGalleryObjects(objectKeys)
+          } catch (error) {
+            console.error("Gallery object cleanup failed", {
+              message: error instanceof Error ? error.message : "Unknown error",
+              telegramMessageId:
+                repliedGalleryMessage?.message_id ?? message.message_id,
+            })
+          }
+          await reply(message.chat.id, "Deleted from Gallery.")
+        } catch (error) {
+          console.error("Gallery deletion failed", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            telegramMessageId:
+              repliedGalleryMessage?.message_id ?? message.message_id,
+          })
+          await reply(
+            message.chat.id,
+            "I could not delete that Gallery item. Please try again."
+          )
+        }
+      })
+
+      return Response.json({ ok: true })
+    }
+  }
 
   if (galleryAttachment) {
     if ((galleryAttachment.fileSize ?? 0) > 20 * 1024 * 1024) {
@@ -302,51 +352,8 @@ export async function POST(request: Request) {
   }
 
   const hrefs = findLinks(message)
-  const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
 
   if (isDeleteCommand) {
-    const repliedGalleryMessage = message.reply_to_message
-    const repliedGalleryAttachment = repliedGalleryMessage
-      ? findGalleryAttachment(repliedGalleryMessage)
-      : null
-
-    if (repliedGalleryMessage && repliedGalleryAttachment) {
-      after(async () => {
-        try {
-          const objectKeys = await deleteGalleryMediaByTelegramMessageId(
-            repliedGalleryMessage.message_id
-          )
-
-          if (!objectKeys) {
-            await reply(message.chat.id, "That media is not in Gallery.")
-            return
-          }
-
-          invalidateGallery()
-          try {
-            await deleteGalleryObjects(objectKeys)
-          } catch (error) {
-            console.error("Gallery object cleanup failed", {
-              message: error instanceof Error ? error.message : "Unknown error",
-              telegramMessageId: repliedGalleryMessage.message_id,
-            })
-          }
-          await reply(message.chat.id, "Deleted from Gallery.")
-        } catch (error) {
-          console.error("Gallery deletion failed", {
-            message: error instanceof Error ? error.message : "Unknown error",
-            telegramMessageId: repliedGalleryMessage.message_id,
-          })
-          await reply(
-            message.chat.id,
-            "I could not delete that Gallery item. Please try again."
-          )
-        }
-      })
-
-      return Response.json({ ok: true })
-    }
-
     if (!hrefs.length) {
       after(() =>
         reply(

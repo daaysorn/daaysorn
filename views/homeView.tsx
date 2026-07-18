@@ -218,7 +218,7 @@ const HomeView = () => {
 
         <p>
           I&apos;m a founder, designer, and builder. I create brands that mean
-          something and products that look good and work well. I turn ideas into
+          something—products that look as good as they work. I turn ideas into
           clear experiences people can understand and enjoy. I&apos;m also a
           Christian, growing in faith with{" "}
           <PreviewLink

@@ -176,16 +176,25 @@ export async function saveGalleryMedia(draft: GalleryMediaDraft) {
   return rows.length > 0
 }
 
-export async function deleteGalleryMediaByTelegramMessageId(
-  telegramMessageId: number
-) {
+export async function deleteGalleryMedia({
+  telegramMessageId,
+  telegramFileUniqueId,
+}: {
+  telegramMessageId?: number
+  telegramFileUniqueId?: string
+}) {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
   await ensureGallerySchema()
 
+  if (telegramMessageId === undefined && !telegramFileUniqueId) return null
+
   const rows = (await sql`
     DELETE FROM gallery_media
-    WHERE telegram_message_id = ${telegramMessageId}
+    WHERE (${telegramMessageId ?? null}::BIGINT IS NOT NULL
+        AND telegram_message_id = ${telegramMessageId ?? null})
+      OR (${telegramFileUniqueId ?? null}::TEXT IS NOT NULL
+        AND telegram_file_unique_id = ${telegramFileUniqueId ?? null})
     RETURNING object_keys
   `) as Array<{ object_keys: string[] }>
 
