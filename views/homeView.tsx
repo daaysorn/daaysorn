@@ -21,6 +21,7 @@ import {
   PiShoppingCartSimpleFill,
   PiUserCircleFill,
   PiXLogoFill,
+  PiYoutubeLogoFill,
 } from "react-icons/pi"
 import type { IconType } from "react-icons"
 
@@ -238,7 +239,28 @@ const HomeView = () => {
             />
             {links.faith.label}
           </PreviewLink>
-          .
+          . You can join me for devotion with{" "}
+          <PreviewLink
+            href={links.faith.devotion.href}
+            label={links.faith.devotion.label}
+            description="Weekday prayer, Bible study, and devotion with the Triumph30 community."
+            icon={PiYoutubeLogoFill}
+            logoSrc={links.faith.devotion.logoHref}
+            external
+          >
+            <Image
+              loader={passthroughImageLoader}
+              unoptimized
+              src={links.faith.devotion.iconHref}
+              alt=""
+              width={18}
+              height={18}
+              referrerPolicy="no-referrer"
+              className="mr-1 inline-block size-[0.9em] rounded-full object-contain align-[-0.08em]"
+            />
+            {links.faith.devotion.label}
+          </PreviewLink>
+          , Mon-Fri (6-7am WAT).
         </p>
 
         <p className="clear-none mt-5">
