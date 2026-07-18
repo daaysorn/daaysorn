@@ -1,11 +1,18 @@
-const CACHE_VERSION = "daaysorn-v2"
+const CACHE_VERSION = "daaysorn-v3"
 const PAGE_CACHE = `${CACHE_VERSION}-pages`
 const ASSET_CACHE = `${CACHE_VERSION}-assets`
-const PRECACHE_URLS = [
+const KEEPS_SYNC_DATABASE = "daaysorn-keeps-sync"
+const KEEPS_SYNC_STORE = "outbox"
+const KEEPS_SYNC_TAG = "daaysorn-sync-saved-keeps"
+const OFFLINE_URL = "/offline"
+const REFRESH_URLS = [
   "/",
   "/keeps",
   "/gallery",
-  "/offline",
+  OFFLINE_URL,
+]
+const PRECACHE_URLS = [
+  ...REFRESH_URLS,
   "/manifest.webmanifest",
   "/icons/pwa-96.png",
   "/icons/pwa-192.png",
@@ -14,15 +21,25 @@ const PRECACHE_URLS = [
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting()
+
+  if (event.data?.type === "QUEUE_KEEPS_SYNC") {
+    event.waitUntil(
+      queueKeepsSync(event.data)
+        .then(() => self.registration.sync?.register(KEEPS_SYNC_TAG))
+        .catch(() => undefined)
+    )
+  }
+
+  if (event.data?.type === "CLEAR_KEEPS_SYNC") {
+    event.waitUntil(clearKeepsSyncChanges(event.data))
+  }
 })
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(PAGE_CACHE)
-      .then((cache) =>
-        Promise.allSettled(PRECACHE_URLS.map((url) => cache.add(url)))
-      )
+      .then((cache) => cache.addAll(PRECACHE_URLS))
       .then(() => self.skipWaiting())
   )
 })
@@ -49,6 +66,194 @@ self.addEventListener("activate", (event) => {
   )
 })
 
+async function refreshOfflinePages() {
+  const cache = await caches.open(PAGE_CACHE)
+
+  await Promise.allSettled(
+    REFRESH_URLS.map(async (url) => {
+      const response = await fetch(url, { cache: "no-store" })
+      if (response.ok) await cache.put(url, response)
+    })
+  )
+}
+
+function openKeepsSyncDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(KEEPS_SYNC_DATABASE, 1)
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(KEEPS_SYNC_STORE)) {
+        request.result.createObjectStore(KEEPS_SYNC_STORE, { keyPath: "key" })
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+function transactionDone(transaction) {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error)
+    transaction.onabort = () => reject(transaction.error)
+  })
+}
+
+function requestResult(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+function validKeepsSyncPayload(data) {
+  return (
+    typeof data?.session?.id === "string" &&
+    typeof data.session.secret === "string" &&
+    Array.isArray(data.changes)
+  )
+}
+
+async function queueKeepsSync(data) {
+  if (!validKeepsSyncPayload(data)) return
+
+  const database = await openKeepsSyncDatabase()
+  const transaction = database.transaction(KEEPS_SYNC_STORE, "readwrite")
+  const store = transaction.objectStore(KEEPS_SYNC_STORE)
+
+  for (const change of data.changes.slice(0, 100)) {
+    if (
+      typeof change?.keepId !== "string" ||
+      typeof change.saved !== "boolean"
+    )
+      continue
+
+    store.put({
+      key: `${data.session.id}:${change.keepId}`,
+      keepId: change.keepId,
+      saved: change.saved,
+      sessionId: data.session.id,
+      secret: data.session.secret,
+      version: crypto.randomUUID(),
+    })
+  }
+
+  await transactionDone(transaction)
+  database.close()
+}
+
+async function readKeepsSyncOutbox() {
+  const database = await openKeepsSyncDatabase()
+  const transaction = database.transaction(KEEPS_SYNC_STORE, "readonly")
+  const items = await requestResult(
+    transaction.objectStore(KEEPS_SYNC_STORE).getAll()
+  )
+  await transactionDone(transaction)
+  database.close()
+  return items
+}
+
+async function deleteKeepsSyncItems(items) {
+  if (!items.length) return
+
+  const database = await openKeepsSyncDatabase()
+  const transaction = database.transaction(KEEPS_SYNC_STORE, "readwrite")
+  const store = transaction.objectStore(KEEPS_SYNC_STORE)
+
+  for (const item of items) {
+    const request = store.get(item.key)
+    request.onsuccess = () => {
+      if (request.result?.version === item.version) store.delete(item.key)
+    }
+  }
+
+  await transactionDone(transaction)
+  database.close()
+}
+
+async function clearKeepsSyncChanges(data) {
+  if (!validKeepsSyncPayload(data)) return
+
+  const database = await openKeepsSyncDatabase()
+  const transaction = database.transaction(KEEPS_SYNC_STORE, "readwrite")
+  const store = transaction.objectStore(KEEPS_SYNC_STORE)
+
+  for (const change of data.changes.slice(0, 100)) {
+    const key = `${data.session.id}:${change.keepId}`
+    const request = store.get(key)
+    request.onsuccess = () => {
+      if (request.result?.saved === change.saved) store.delete(key)
+    }
+  }
+
+  await transactionDone(transaction)
+  database.close()
+}
+
+async function notifyKeepsClients(message) {
+  const clients = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  })
+  clients.forEach((client) => client.postMessage(message))
+}
+
+async function flushKeepsSyncOutbox() {
+  const items = await readKeepsSyncOutbox()
+  if (!items.length) return
+
+  const groups = new Map()
+  for (const item of items) {
+    const groupKey = `${item.sessionId}.${item.secret}`
+    const group = groups.get(groupKey) ?? []
+    group.push(item)
+    groups.set(groupKey, group)
+  }
+
+  for (const [authorization, group] of groups) {
+    const response = await fetch("/api/keeps/sync", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${authorization}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        changes: group.map(({ keepId, saved }) => ({ keepId, saved })),
+      }),
+    })
+
+    if (response.status === 401) {
+      await deleteKeepsSyncItems(group)
+      await notifyKeepsClients({ type: "KEEPS_BACKGROUND_SYNC_UNAUTHORIZED" })
+      continue
+    }
+    if (!response.ok) throw new Error("Saved Keeps background sync failed")
+
+    const data = await response.json()
+    await deleteKeepsSyncItems(group)
+    await notifyKeepsClients({
+      type: "KEEPS_BACKGROUND_SYNCED",
+      savedIds: Array.isArray(data.savedIds) ? data.savedIds : [],
+    })
+  }
+}
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === KEEPS_SYNC_TAG) {
+    event.waitUntil(flushKeepsSyncOutbox())
+    return
+  }
+
+  if (event.tag === "daaysorn-refresh-offline-content") {
+    event.waitUntil(refreshOfflinePages())
+  }
+})
+
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag === "daaysorn-daily-content-refresh") {
+    event.waitUntil(refreshOfflinePages())
+  }
+})
+
 async function networkFirst(request, preloadResponse) {
   const cache = await caches.open(PAGE_CACHE)
 
@@ -58,7 +263,7 @@ async function networkFirst(request, preloadResponse) {
     if (response.ok) await cache.put(request, response.clone())
     return response
   } catch {
-    return (await cache.match(request)) || (await cache.match("/offline"))
+    return (await cache.match(request)) || (await cache.match(OFFLINE_URL))
   }
 }
 
@@ -80,7 +285,9 @@ async function networkFirstAsset(request) {
 
   try {
     const response = await fetch(request, { cache: "no-store" })
-    if (response.ok) await cache.put(request, response.clone())
+    if (response.ok || response.type === "opaque") {
+      await cache.put(request, response.clone())
+    }
     return response
   } catch {
     return (
@@ -93,26 +300,33 @@ self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  if (
-    request.method !== "GET" ||
-    url.origin !== self.location.origin ||
-    url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/_next/image")
-  ) {
+  if (request.method !== "GET") {
     return
   }
 
-  if (request.mode === "navigate") {
+  const isOwnOrigin = url.origin === self.location.origin
+  const isGalleryAsset = url.origin === "https://images.daaysorn.com"
+
+  if (!isOwnOrigin && !isGalleryAsset) return
+  if (
+    isOwnOrigin &&
+    (url.pathname.startsWith("/api/") ||
+      url.pathname.startsWith("/_next/image"))
+  )
+    return
+
+  if (isOwnOrigin && request.mode === "navigate") {
     event.respondWith(networkFirst(request, event.preloadResponse))
     return
   }
 
-  if (url.pathname.startsWith("/_next/static/")) {
+  if (isOwnOrigin && url.pathname.startsWith("/_next/static/")) {
     event.respondWith(staleWhileRevalidate(request))
     return
   }
 
   if (
+    isGalleryAsset ||
     url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/images/") ||
     request.destination === "image"

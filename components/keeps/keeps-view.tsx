@@ -373,7 +373,21 @@ function storeFavouriteIds(ids: string[]) {
   window.localStorage.setItem(favouritesKey, JSON.stringify(ids))
 }
 
-function queueSyncChange(change: KeepsSyncChange) {
+async function postKeepsSyncMessage(
+  type: "QUEUE_KEEPS_SYNC" | "CLEAR_KEEPS_SYNC",
+  session: KeepsSyncSession,
+  changes: KeepsSyncChange[]
+) {
+  if (!("serviceWorker" in navigator) || !changes.length) return
+
+  const registration = await navigator.serviceWorker.getRegistration("/")
+  registration?.active?.postMessage({ type, session, changes })
+}
+
+function queueSyncChange(
+  change: KeepsSyncChange,
+  session?: KeepsSyncSession | null
+) {
   const pending = readStoredArray<KeepsSyncChange>(pendingChangesKey).filter(
     (item) => item.keepId !== change.keepId
   )
@@ -381,6 +395,10 @@ function queueSyncChange(change: KeepsSyncChange) {
     pendingChangesKey,
     JSON.stringify([...pending, change])
   )
+
+  if (session && !navigator.onLine) {
+    void postKeepsSyncMessage("QUEUE_KEEPS_SYNC", session, [change])
+  }
 }
 
 function storedSyncSession(): KeepsSyncSession | null {
@@ -442,10 +460,13 @@ export function KeepsView({
   }, [mutate])
 
   const syncCollection = useCallback(async (session: KeepsSyncSession) => {
-    if (!navigator.onLine) return
+    const pending = readStoredArray<KeepsSyncChange>(pendingChangesKey)
+    if (!navigator.onLine) {
+      void postKeepsSyncMessage("QUEUE_KEEPS_SYNC", session, pending)
+      return
+    }
 
     try {
-      const pending = readStoredArray<KeepsSyncChange>(pendingChangesKey)
       const response = await fetch("/api/keeps/sync", {
         method: pending.length ? "PATCH" : "GET",
         headers: {
@@ -463,13 +484,17 @@ export function KeepsView({
         return
       }
 
-      if (!response.ok) return
+      if (!response.ok) {
+        void postKeepsSyncMessage("QUEUE_KEEPS_SYNC", session, pending)
+        return
+      }
       const data = (await response.json()) as { savedIds?: unknown }
       const serverIds = Array.isArray(data.savedIds)
         ? data.savedIds.filter((id): id is string => typeof id === "string")
         : []
 
       if (pending.length) {
+        void postKeepsSyncMessage("CLEAR_KEEPS_SYNC", session, pending)
         const submitted = new Map(
           pending.map((change) => [change.keepId, change.saved])
         )
@@ -494,6 +519,7 @@ export function KeepsView({
       }
     } catch {
       // Offline changes remain queued until the next successful connection.
+      void postKeepsSyncMessage("QUEUE_KEEPS_SYNC", session, pending)
       trackKeepsEvent("keeps_sync", { outcome: "request_failed" })
     }
   }, [])
@@ -531,7 +557,9 @@ export function KeepsView({
       if (separator > 0 && id && secret) {
         session = { id, secret }
         window.localStorage.setItem(syncSessionKey, JSON.stringify(session))
-        savedIds.forEach((keepId) => queueSyncChange({ keepId, saved: true }))
+        savedIds.forEach((keepId) =>
+          queueSyncChange({ keepId, saved: true }, session)
+        )
         queueMicrotask(() =>
           setSyncStatus("This device is now connected to Saved Keeps.")
         )
@@ -553,6 +581,40 @@ export function KeepsView({
       window.history.replaceState(null, "", window.location.pathname)
     }
   }, [syncCollection])
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return
+
+    const receiveBackgroundSync = (event: MessageEvent) => {
+      if (event.data?.type === "KEEPS_BACKGROUND_SYNCED") {
+        const serverIds = Array.isArray(event.data.savedIds)
+          ? event.data.savedIds.filter(
+              (id: unknown): id is string => typeof id === "string"
+            )
+          : []
+        storeFavouriteIds(serverIds)
+        setSavedKeepIds(serverIds)
+        setSyncStatus("Saved Keeps were updated in the background.")
+        trackKeepsEvent("keeps_sync", { outcome: "background_success" })
+      }
+
+      if (event.data?.type === "KEEPS_BACKGROUND_SYNC_UNAUTHORIZED") {
+        window.localStorage.removeItem(syncSessionKey)
+        setSyncSession(null)
+        setSyncStatus("This export link is no longer valid.")
+        trackKeepsEvent("keeps_sync", {
+          outcome: "background_unauthorized",
+        })
+      }
+    }
+
+    navigator.serviceWorker.addEventListener("message", receiveBackgroundSync)
+    return () =>
+      navigator.serviceWorker.removeEventListener(
+        "message",
+        receiveBackgroundSync
+      )
+  }, [])
 
   useEffect(() => {
     if (!storageReady) return
@@ -600,7 +662,10 @@ export function KeepsView({
           const next = [...current, matchedKeep.id]
           storeFavouriteIds(next)
           if (syncSession) {
-            queueSyncChange({ keepId: matchedKeep.id, saved: true })
+            queueSyncChange(
+              { keepId: matchedKeep.id, saved: true },
+              syncSession
+            )
             void syncCollection(syncSession)
           }
           trackKeepsEvent("keep_favourite", {
@@ -748,7 +813,10 @@ export function KeepsView({
       storeFavouriteIds(next)
 
       if (syncSession) {
-        queueSyncChange({ keepId: keep.id, saved: next.includes(keep.id) })
+        queueSyncChange(
+          { keepId: keep.id, saved: next.includes(keep.id) },
+          syncSession
+        )
         void syncCollection(syncSession)
       }
       trackKeepsEvent("keep_favourite", {

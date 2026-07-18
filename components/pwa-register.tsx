@@ -16,13 +16,40 @@ const registrationScript = `
         updateViaCache: "none",
       });
       await registration.update();
+
+      if ("periodicSync" in registration) {
+        try {
+          await registration.periodicSync.register("daaysorn-daily-content-refresh", {
+            minInterval: 24 * 60 * 60 * 1000,
+          });
+        } catch {
+          // The browser may withhold periodic sync until the app has enough engagement.
+        }
+      }
+
+      const requestRecoverySync = async () => {
+        if (!("sync" in registration)) return;
+        try {
+          await registration.sync.register("daaysorn-refresh-offline-content");
+        } catch {
+          // Online/focus refresh remains the cross-browser fallback.
+        }
+      };
+
+      if (!navigator.onLine) {
+        window.addEventListener("online", requestRecoverySync, { once: true });
+      }
+      window.addEventListener(
+        "offline",
+        () => window.addEventListener("online", requestRecoverySync, { once: true }),
+        { passive: true }
+      );
     } catch (error) {
       console.error("Service worker registration failed", error);
     }
   };
 
-  if (document.readyState === "complete") void register();
-  else window.addEventListener("load", register, { once: true });
+  void register();
 })();
 `
 

@@ -9,7 +9,7 @@ type DaaysornManifest = MetadataRoute.Manifest & {
 export default function manifest(): DaaysornManifest {
   return {
     id: "/",
-    name: `${siteConfig.name} | ${siteConfig.creator.name}`,
+    name: siteConfig.name,
     short_name: siteConfig.name,
     description: siteConfig.description,
     start_url: "/",

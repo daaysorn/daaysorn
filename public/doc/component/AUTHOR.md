@@ -970,6 +970,40 @@ Official references:
 - [Cloudflare R2 public buckets](https://developers.cloudflare.com/r2/buckets/public-buckets/)
 - [Telegram Bot API `getFile`](https://core.telegram.org/bots/api#getfile)
 
+### PWA offline and background refresh
+
+`public/sw.js` is a dependency-free service worker registered immediately in
+production by `components/pwa-register.tsx`. Development unregisters it and
+removes daaysorn caches so localhost never hides code changes behind stale PWA
+responses.
+
+The worker provides only capabilities that match this project:
+
+- Home, Keeps, Gallery, the offline fallback, manifest, icons, visited Next.js
+  assets, local images, and Cloudflare Gallery media are cached.
+- Navigations use network-first delivery and fall back to the cached page or
+  `/offline` when no saved response exists.
+- Saved Keeps changes remain in the page's local fallback queue and are also
+  copied into a deduplicated IndexedDB outbox owned by the service worker when
+  the device is offline or an immediate sync request fails. Supported browsers
+  register `daaysorn-sync-saved-keeps`; its Background Sync handler sends the
+  authenticated changes after connectivity stabilizes, removes only the exact
+  submitted versions, and notifies open Keeps tabs with the returned saved IDs.
+- After a connection loss, supported browsers also register
+  `daaysorn-refresh-offline-content` to refresh the cached pages.
+- Supported browsers may register `daaysorn-daily-content-refresh` with a
+  one-day minimum interval. Its Periodic Sync handler refreshes cached Home,
+  Keeps, Gallery, and offline pages. Browser scheduling and permission remain
+  discretionary.
+- Browsers without Background Sync or Periodic Sync continue to use the
+  localStorage queue, network-first caching, and the existing online, focus,
+  interval, and Ably Saved Keeps synchronization.
+
+Do not add PWABuilder capabilities only to raise its score. Notes, push
+notifications, file handlers, protocol handlers, widgets, tabbed display,
+native-app relations, IARC metadata, and cross-domain scope extensions remain
+out until daaysorn has a real feature requiring them.
+
 ---
 
 ## Rules & gotchas
