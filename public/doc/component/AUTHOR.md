@@ -228,7 +228,7 @@ Tomiwa shares a link with the Telegram bot
   → Cencori + gpt-4o-mini creates a structured title, summary, author, and tags
   → PostgreSQL inserts the Keep or refreshes an existing matching URL
   → /api/keeps returns the public fields
-  → /keeps refreshes through SWR and displays the Magic UI Bento Grid
+  → /keeps receives live updates through SSE and displays the Magic UI Bento Grid
 ```
 
 Relevant files:
@@ -237,7 +237,9 @@ Relevant files:
 | --------------------------------------- | ---------------------------------------------------- |
 | `app/api/telegram/keeps/route.ts`       | Private Telegram webhook and owner verification      |
 | `app/api/keeps/route.ts`                | Read-only public Keeps feed                          |
+| `app/api/keeps/stream/route.ts`         | Reconnecting live-update stream                      |
 | `lib/keeps/enrich.ts`                   | Safe metadata fetch and Cencori structured summary   |
+| `lib/keeps/text.ts`                     | Enforces the two-sentence summary limit              |
 | `lib/keeps/db.ts`                       | PostgreSQL schema initialization, reads, and upserts |
 | `database/keeps.sql`                    | Standalone copy of the PostgreSQL schema             |
 | `components/keeps/keeps-view.tsx`       | Public search, filtering, refresh, and Bento Grid    |
@@ -361,9 +363,86 @@ passes `TELEGRAM_WEBHOOK_SECRET` as Telegram's `secret_token`.
 
 1. Send an Instagram, X, YouTube, TikTok, or ordinary article link directly to
    the bot.
+   Add up to five custom tags as hashtags in the same message when needed:
+
+   ```text
+   https://behance.net/example #Branding #Inspiration
+   ```
+
+   Use underscores for a multi-word tag, such as `#Product_Design`. Keeps turns
+   underscores and hyphens into spaces, preserves owner tags first, then fills
+   the remaining tag slots with Cencori suggestions.
+
 2. A successful background job replies with `Kept: <generated title>`.
 3. Open `https://daaysorn.com/keeps`.
-4. The public feed refreshes on focus and every 30 seconds.
+4. The public feed receives the change through its live event stream. A
+   60-second SWR refresh remains as a fallback.
+
+#### Telegram message formats
+
+Send these messages directly to the owner-only bot:
+
+```text
+# Save a link
+https://example.com/post
+
+# Save a link with up to five custom tags
+https://example.com/post #Branding #Product_Design
+
+# Refresh an existing Keep with new tags or metadata
+https://example.com/post #Research
+
+# Delete by URL
+/delete https://example.com/post
+```
+
+To delete without pasting the URL, reply `/delete` to the original Telegram
+message. Sending the same canonical URL again updates its existing card instead
+of adding a duplicate.
+
+#### Public card and summary rules
+
+- Cencori must return no more than two concise summary sentences. The prompt,
+  response handler, and database read layer all enforce this rule, so older
+  saved summaries are also limited when displayed.
+- The source is identified by its filled platform icon without a source badge.
+  The saved creator name is not displayed on the public card.
+- Custom topic tags remain available below the summary for searching and
+  filtering.
+- The share controls and **View** action sit on opposite edges of the same card
+  footer row and use the same compact text scale.
+
+#### Delete a Keep
+
+Deletion stays inside the owner-only Telegram workflow. Either send:
+
+```text
+/delete https://example.com/the-saved-link
+```
+
+or reply `/delete` to the original link message in the bot conversation. The
+bot responds with `Deleted from Keeps.` or explains that the link was not found.
+Running `bun run telegram:webhook` also registers `/delete` in Telegram's bot
+command menu.
+
+#### Duplicate protection
+
+Before a link is read or saved, Keeps removes fragments and common tracking
+parameters, converts Twitter URLs to `x.com`, removes X share parameters, and
+normalizes YouTube short and full URLs to one canonical form. PostgreSQL also
+enforces a unique constraint on `href`, and `saveKeep()` uses an upsert. Sending
+the same content again refreshes the existing Keep instead of creating another
+card. On schema initialization, existing URLs are normalized and older duplicate
+rows are removed.
+
+#### Live updates
+
+`/api/keeps/stream` uses Server-Sent Events. It checks PostgreSQL every two
+seconds and sends a new collection only when the serialized data changes. The
+stream closes after 55 seconds and the browser's `EventSource` reconnects
+automatically. This stays inside Vercel's bounded function duration while giving
+the page near-real-time updates. SWR still refreshes every 60 seconds and on
+window focus if the event stream is temporarily unavailable.
 
 If a message has no link, the bot asks for a post or page link. If processing
 fails, it asks the owner to try again. Check the Vercel function logs and the
@@ -375,6 +454,44 @@ The webhook returns to Telegram before link reading, AI generation, and database
 work finish. This prevents Telegram from retrying simply because enrichment took
 several seconds. Next.js `after()` keeps the background work within the route's
 configured execution window.
+
+#### Deployment and command checklist
+
+Run the local application:
+
+```bash
+bun run dev
+```
+
+Validate types and the complete production build before deploying:
+
+```bash
+bun run typecheck
+bun run build
+```
+
+For a first production setup or any credential change:
+
+1. Add every variable from the Keeps environment section to Vercel Production.
+2. Redeploy the application so the server can read the new values.
+3. Register the webhook and Telegram command menu:
+
+   ```bash
+   bun run telegram:webhook
+   ```
+
+4. Check Telegram's current webhook state:
+
+   ```bash
+   bun -e 'const token=process.env.TELEGRAM_BOT_TOKEN; const response=await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`); console.log(JSON.stringify(await response.json(),null,2))'
+   ```
+
+5. Send one test link to the bot and confirm the reply, the Vercel function log,
+   and the new card at `https://daaysorn.com/keeps`.
+
+Rerun `bun run telegram:webhook` after changing the deployed webhook URL or its
+registered commands. Do not use `getUpdates` while a webhook is active; remove
+the webhook first only when owner-ID troubleshooting requires it.
 
 ---
 

@@ -1,7 +1,4 @@
-import { BentoGrid } from "@/components/ui/bento-grid"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
 
 export function KeepsSkeleton() {
   return (
@@ -21,28 +18,29 @@ export function KeepsSkeleton() {
         </div>
       </header>
 
-      <BentoGrid className="min-w-0 auto-rows-auto grid-cols-1 md:grid-cols-2">
+      <div className="min-w-0">
         {[0, 1, 2, 3].map((item) => (
-          <Card
+          <div
             key={item}
-            className={cn(
-              "min-h-64",
-              (item === 0 || item === 3) && "md:col-span-2"
-            )}
+            className="border-b border-border px-3 py-8 last:border-0 md:px-4 md:py-10"
           >
-            <CardHeader>
-              <Skeleton className="h-5 w-20 rounded-full" />
-              <Skeleton className="mt-5 h-7 w-4/5" />
-              <Skeleton className="h-3 w-24" />
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3" />
-            </CardContent>
-          </Card>
+            <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 xs:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6">
+              <Skeleton className="aspect-[4/5] w-full rounded-md" />
+              <div className="min-w-0">
+                <div className="flex flex-col gap-3">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-6 w-4/5" />
+                </div>
+                <div className="mt-3 flex flex-col gap-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            </div>
+          </div>
         ))}
-      </BentoGrid>
+      </div>
     </article>
   )
 }

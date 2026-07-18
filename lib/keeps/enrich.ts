@@ -3,6 +3,9 @@ import { isIP } from "node:net"
 import { Cencori } from "cencori"
 
 import type { KeepDraft } from "@/lib/keeps/types"
+import { challengeFallback, isChallengeContent } from "@/lib/keeps/fallback"
+import { limitSentences } from "@/lib/keeps/text"
+import { normalizeKeepUrl } from "@/lib/keeps/url"
 
 const privateIpv4 = [
   /^10\./,
@@ -68,8 +71,28 @@ function meta(html: string, key: string) {
   return ""
 }
 
+async function readTikTokEmbed(url: URL) {
+  const response = await fetch(
+    `https://www.tiktok.com/oembed?url=${encodeURIComponent(url.toString())}`,
+    { signal: AbortSignal.timeout(8000) }
+  )
+  if (!response.ok) return null
+
+  const data = (await response.json()) as {
+    title?: string
+    author_name?: string
+    thumbnail_url?: string
+  }
+
+  return {
+    title: data.title?.trim() ?? "",
+    author: data.author_name?.trim() ?? "",
+    imageUrl: data.thumbnail_url?.trim() || null,
+  }
+}
+
 async function readPage(initialUrl: string) {
-  let url = await assertPublicUrl(initialUrl)
+  let url = await assertPublicUrl(normalizeKeepUrl(initialUrl))
 
   for (let redirect = 0; redirect < 4; redirect += 1) {
     const response = await fetch(url, {
@@ -98,6 +121,7 @@ async function readPage(initialUrl: string) {
     const description =
       meta(html, "og:description") || meta(html, "description")
     const author = meta(html, "author") || meta(html, "og:site_name")
+    const image = meta(html, "og:image") || meta(html, "twitter:image")
     const body = decodeHtml(
       html
         .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -108,14 +132,62 @@ async function readPage(initialUrl: string) {
         .slice(0, 8000)
     )
 
-    return { href: url.toString(), title, description, author, body }
+    const source = sourceFrom(url)
+    if (isChallengeContent(title, description, body)) {
+      const fallback = challengeFallback(url.toString(), source)
+      return {
+        href: normalizeKeepUrl(url.toString()),
+        title: fallback.title,
+        description: fallback.summary,
+        author: source,
+        imageUrl: image ? new URL(image, url).toString() : null,
+        body: fallback.summary,
+      }
+    }
+
+    if (source === "TikTok") {
+      const embed = await readTikTokEmbed(url)
+      if (embed?.title) {
+        return {
+          href: normalizeKeepUrl(url.toString()),
+          title: embed.title,
+          description: embed.title,
+          author: embed.author || author,
+          imageUrl: embed.imageUrl,
+          body: embed.title,
+        }
+      }
+
+      const handle =
+        url.pathname.split("/").find((segment) => segment.startsWith("@")) ??
+        "TikTok creator"
+
+      return {
+        href: normalizeKeepUrl(url.toString()),
+        title: `TikTok post by ${handle}`,
+        description: "",
+        author: handle,
+        imageUrl: image ? new URL(image, url).toString() : null,
+        body: "",
+      }
+    }
+
+    return {
+      href: normalizeKeepUrl(url.toString()),
+      title,
+      description,
+      author,
+      imageUrl: image ? new URL(image, url).toString() : null,
+      body,
+    }
   }
 
   return {
-    href: url.toString(),
+    href: normalizeKeepUrl(url.toString()),
     title: "",
     description: "",
     author: "",
+    imageUrl: null,
     body: "",
   }
 }
@@ -123,6 +195,8 @@ async function readPage(initialUrl: string) {
 function sourceFrom(url: URL) {
   const host = url.hostname.replace(/^www\./, "")
   if (host === "x.com" || host === "twitter.com") return "X"
+  if (host === "behance.net") return "Behance"
+  if (host === "dribbble.com") return "Dribbble"
   if (host === "instagram.com") return "Instagram"
   if (host === "youtube.com" || host === "youtu.be") return "YouTube"
   if (host === "tiktok.com") return "TikTok"
@@ -140,12 +214,34 @@ export async function enrichKeep({
   href,
   rawText,
   telegramMessageId,
+  customTags = [],
 }: {
   href: string
   rawText: string
   telegramMessageId: number
+  customTags?: string[]
 }): Promise<KeepDraft> {
   const page = await readPage(href)
+  const ownerNote = rawText
+    .replace(/https?:\/\/[^\s<>]+/gi, "")
+    .replace(/(?:^|\s)#[\p{L}\p{N}_-]{2,24}/gu, " ")
+    .trim()
+  const source = sourceFrom(new URL(page.href))
+
+  if (source === "TikTok" && !page.body && !ownerNote) {
+    return {
+      href: page.href,
+      source,
+      author: page.author,
+      title: page.title,
+      summary: `A saved TikTok post from ${page.author}. View the original post for its photos, caption, and full context.`,
+      imageUrl: page.imageUrl,
+      tags: [...new Set([...customTags, "TikTok"])].slice(0, 5),
+      telegramMessageId,
+      rawText,
+    }
+  }
+
   const apiKey = process.env.CENCORI_API_KEY?.trim()
   if (!apiKey) throw new Error("CENCORI_API_KEY is not configured")
 
@@ -160,7 +256,7 @@ export async function enrichKeep({
       additionalProperties: false,
       properties: {
         title: { type: "string", minLength: 4, maxLength: 100 },
-        summary: { type: "string", minLength: 30, maxLength: 420 },
+        summary: { type: "string", minLength: 30, maxLength: 320 },
         author: { type: "string", minLength: 1, maxLength: 80 },
         tags: {
           type: "array",
@@ -176,17 +272,17 @@ export async function enrichKeep({
       {
         role: "system",
         content:
-          "You edit Tomiwa David's public Keeps collection. Write plain, non-technical English. State the useful idea accurately, never invent missing details, never use em dashes, and do not mention that AI created the summary. Return short title case tags.",
+          "You edit Tomiwa David's public Keeps collection. Write plain, non-technical English. The summary must contain no more than two concise sentences. State the useful idea accurately, never invent missing details, never use em dashes, and do not mention that AI created the summary. Return short title case tags. If both pageText and ownerNote are empty, clearly say this is a saved post from the named creator and that its details are available at the original link. Do not describe the platform in general.",
       },
       {
         role: "user",
         content: JSON.stringify({
-          originalMessage: rawText,
+          ownerNote,
           pageTitle: page.title,
           pageDescription: page.description,
           pageAuthor: page.author,
           pageText: page.body,
-          source: sourceFrom(new URL(page.href)),
+          source,
         }),
       },
     ],
@@ -194,11 +290,12 @@ export async function enrichKeep({
 
   return {
     href: page.href,
-    source: sourceFrom(new URL(page.href)),
+    source,
     author: response.object.author,
     title: response.object.title,
-    summary: response.object.summary,
-    tags: response.object.tags,
+    summary: limitSentences(response.object.summary),
+    imageUrl: page.imageUrl,
+    tags: [...new Set([...customTags, ...response.object.tags])].slice(0, 5),
     telegramMessageId,
     rawText,
   }

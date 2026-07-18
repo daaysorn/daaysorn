@@ -40,6 +40,10 @@
     "href": "/docs"
   },
   "content": {
+    "keeps": {
+      "label": "Keeps",
+      "href": "/keeps"
+    },
     "rants": {
       "label": "Rants",
       "href": "/rants"

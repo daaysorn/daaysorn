@@ -6,6 +6,7 @@ import { Fragment, type ReactNode, useState } from "react"
 import {
   PiArrowUpRightBold,
   PiArticleFill,
+  PiBookmarkSimpleFill,
   PiBowlFoodFill,
   PiBracketsCurlyDuotone,
   PiBrowserFill,
@@ -243,7 +244,16 @@ const HomeView = () => {
           >
             {links.content.gallery.label}
           </PreviewLink>{" "}
-          of moments from my life.
+          of moments from my life, or explore{" "}
+          <PreviewLink
+            href={links.content.keeps.href}
+            label={links.content.keeps.label}
+            description="Posts, articles, videos, and ideas I found worth keeping."
+            icon={PiBookmarkSimpleFill}
+          >
+            {links.content.keeps.label}
+          </PreviewLink>{" "}
+          for useful things I have saved along the way.
         </p>
 
         <p className="clear-both mt-5">

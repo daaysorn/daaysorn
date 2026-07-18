@@ -1,6 +1,6 @@
 import { after } from "next/server"
 
-import { saveKeep } from "@/lib/keeps/db"
+import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
 
 export const maxDuration = 60
@@ -18,6 +18,7 @@ type TelegramMessage = {
   caption_entities?: TelegramEntity[]
   chat: { id: number }
   from?: { id: number }
+  reply_to_message?: TelegramMessage
 }
 
 type TelegramUpdate = {
@@ -26,7 +27,7 @@ type TelegramUpdate = {
   channel_post?: TelegramMessage
 }
 
-function findLink(message: TelegramMessage) {
+function findLink(message: TelegramMessage): string | undefined {
   const entities = [
     ...(message.entities ?? []),
     ...(message.caption_entities ?? []),
@@ -34,9 +35,24 @@ function findLink(message: TelegramMessage) {
   const entityLink = entities.find((entity) => entity.type === "text_link")?.url
   if (entityLink) return entityLink
 
-  return (message.text ?? message.caption ?? "").match(
+  const directLink = (message.text ?? message.caption ?? "").match(
     /https?:\/\/[^\s<>]+/i
   )?.[0]
+  if (directLink) return directLink
+
+  return message.reply_to_message
+    ? findLink(message.reply_to_message)
+    : undefined
+}
+
+function findCustomTags(text: string) {
+  return [
+    ...new Set(
+      [...text.matchAll(/(?:^|\s)#([\p{L}\p{N}_-]{2,24})/gu)].map((match) =>
+        match[1].replace(/[_-]+/g, " ").trim()
+      )
+    ),
+  ].slice(0, 5)
 }
 
 async function reply(chatId: number, text: string) {
@@ -68,7 +84,43 @@ export async function POST(request: Request) {
     return new Response("Forbidden", { status: 403 })
   }
 
+  const rawText = message.text ?? message.caption ?? ""
   const href = findLink(message)
+  const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
+
+  if (isDeleteCommand) {
+    if (!href) {
+      after(() =>
+        reply(
+          message.chat.id,
+          "Send /delete followed by the link, or reply /delete to the original link message."
+        )
+      )
+      return Response.json({ ok: true })
+    }
+
+    after(async () => {
+      try {
+        const deleted = await deleteKeepByHref(href)
+        await reply(
+          message.chat.id,
+          deleted ? "Deleted from Keeps." : "That link is not in Keeps."
+        )
+      } catch (error) {
+        console.error("Keeps deletion failed", {
+          message: error instanceof Error ? error.message : "Unknown error",
+          telegramMessageId: message.message_id,
+        })
+        await reply(
+          message.chat.id,
+          "I could not delete that Keep. Please try again."
+        )
+      }
+    })
+
+    return Response.json({ ok: true })
+  }
+
   if (!href) {
     after(() =>
       reply(message.chat.id, "Send me a post or page link to add it to Keeps.")
@@ -76,13 +128,14 @@ export async function POST(request: Request) {
     return Response.json({ ok: true })
   }
 
-  const rawText = message.text ?? message.caption ?? href
+  const keepText = rawText || href
   after(async () => {
     try {
       const keep = await enrichKeep({
         href,
-        rawText,
+        rawText: keepText,
         telegramMessageId: message.message_id,
+        customTags: findCustomTags(keepText),
       })
       await saveKeep(keep)
       await reply(message.chat.id, `Kept: ${keep.title}`)

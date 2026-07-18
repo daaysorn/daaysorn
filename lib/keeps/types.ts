@@ -5,6 +5,7 @@ export type Keep = {
   author: string
   title: string
   summary: string
+  imageUrl: string | null
   tags: string[]
   savedAt: string
 }

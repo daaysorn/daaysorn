@@ -1,102 +1,215 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { IconType } from "react-icons"
 import useSWR from "swr"
+import {
+  FaBehance,
+  FaDribbble,
+  FaFacebookF,
+  FaLinkedinIn,
+  FaTiktok,
+  FaWhatsapp,
+} from "react-icons/fa6"
 import {
   PiArrowUpRightBold,
   PiArticleFill,
   PiBookmarkSimpleFill,
   PiInstagramLogoFill,
   PiMagnifyingGlassBold,
+  PiShareNetworkFill,
   PiXLogoFill,
   PiYoutubeLogoFill,
 } from "react-icons/pi"
 
 import { Badge } from "@/components/ui/badge"
-import { BentoGrid } from "@/components/ui/bento-grid"
+import { Button } from "@/components/ui/button"
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
 import type { Keep } from "@/lib/keeps/types"
+import { cn } from "@/lib/utils"
 
 const sourceIcons: Record<string, IconType> = {
   Article: PiArticleFill,
+  Behance: FaBehance,
+  Dribbble: FaDribbble,
   Instagram: PiInstagramLogoFill,
+  TikTok: FaTiktok,
   X: PiXLogoFill,
   YouTube: PiYoutubeLogoFill,
 }
 
-function KeepCard({
-  keep,
-  featured = false,
-}: {
-  keep: Keep
-  featured?: boolean
-}) {
+const sourceIconColors: Record<string, string> = {
+  Article: "text-chart-1",
+  Behance: "text-chart-2",
+  Dribbble: "text-chart-3",
+  Instagram: "text-chart-4",
+  TikTok: "text-chart-5",
+  X: "text-chart-5",
+  YouTube: "text-destructive",
+}
+
+function KeepCard({ keep }: { keep: Keep }) {
   const Icon = sourceIcons[keep.source] ?? PiBookmarkSimpleFill
+  const shareText = `${keep.title} ${keep.href}`
+  const socialShares = [
+    {
+      label: "Facebook",
+      icon: FaFacebookF,
+      iconClassName: "text-chart-1",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(keep.href)}`,
+    },
+    {
+      label: "X",
+      icon: PiXLogoFill,
+      iconClassName: "text-chart-5",
+      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`,
+    },
+    {
+      label: "WhatsApp",
+      icon: FaWhatsapp,
+      iconClassName: "text-chart-2",
+      href: `https://wa.me/?text=${encodeURIComponent(shareText)}`,
+    },
+    {
+      label: "LinkedIn",
+      icon: FaLinkedinIn,
+      iconClassName: "text-chart-4",
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(keep.href)}`,
+    },
+  ]
+
+  const share = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: keep.title,
+          text: keep.summary,
+          url: keep.href,
+        })
+        return
+      }
+
+      await navigator.clipboard.writeText(keep.href)
+    } catch {
+      // Closing the native share sheet is an expected user action.
+    }
+  }
 
   return (
-    <Card
-      className={cn(
-        "group h-full min-w-0 transition-transform duration-500 motion-safe:hover:-translate-y-1",
-        featured && "md:col-span-2"
-      )}
-    >
-      <CardHeader>
-        <Badge variant="secondary">
-          <Icon data-icon="inline-start" />
-          {keep.source}
-        </Badge>
-        <CardAction>
-          <span className="font-mono text-xs text-muted-foreground">
-            {keep.savedAt}
-          </span>
-        </CardAction>
-        <CardTitle
-          className={cn(
-            "mt-5 text-xl leading-tight font-semibold",
-            featured && "text-2xl xs:text-3xl"
-          )}
-        >
-          {keep.title}
-        </CardTitle>
-        <CardDescription className="text-xs font-medium tracking-wide uppercase">
-          {keep.author}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <p className="leading-6 text-muted-foreground">{keep.summary}</p>
-        <div className="flex flex-wrap gap-2">
-          {keep.tags.map((tag) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
-          ))}
+    <div className="group relative min-w-0 border-b border-border px-3 py-8 last:border-b-0 md:px-4 md:py-10">
+      <Link
+        href={keep.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`View ${keep.title}`}
+        className="block min-w-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+      >
+        <div className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] gap-4 xs:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-muted">
+            {keep.imageUrl ? (
+              <Image
+                loader={({ src }) => src}
+                unoptimized
+                fill
+                src={keep.imageUrl}
+                alt=""
+                sizes="(min-width: 768px) 10rem, 7rem"
+                className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.02]"
+              />
+            ) : (
+              <span className="flex size-full items-center justify-center">
+                <Icon
+                  className={cn(
+                    "size-7",
+                    sourceIconColors[keep.source] ?? "text-primary"
+                  )}
+                  aria-hidden="true"
+                />
+              </span>
+            )}
+          </div>
+
+          <div className="flex min-w-0 flex-col pb-11">
+            <div className="flex flex-col gap-2">
+              <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                <Icon
+                  aria-label={keep.source}
+                  className={cn(
+                    "size-3.5 shrink-0",
+                    sourceIconColors[keep.source] ?? "text-primary"
+                  )}
+                />
+                {keep.source === "X" ? null : (
+                  <span className="font-medium text-foreground">
+                    {keep.source}
+                  </span>
+                )}
+                <span aria-hidden="true">·</span>
+                <time className="font-mono">{keep.savedAt}</time>
+              </div>
+              <h2 className="text-lg leading-tight font-semibold transition-colors group-hover:text-primary xs:text-xl md:text-2xl">
+                {keep.title}
+              </h2>
+            </div>
+            <div className="mt-3 flex min-w-0 flex-col gap-3">
+              <p className="text-sm leading-6 text-muted-foreground md:text-base">
+                {keep.summary}
+              </p>
+              {keep.tags.length ? (
+                <p className="min-w-0 text-xs leading-5 text-muted-foreground">
+                  {keep.tags.join(" · ")}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
-      </CardContent>
-      <CardFooter className="justify-end">
-        <Link
-          href={keep.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Open ${keep.title}`}
-          className="rounded-sm text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      </Link>
+      <div className="absolute right-3 bottom-7 z-10 flex items-center gap-1 md:right-4 md:bottom-9">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => void share()}
+          aria-label={`Share ${keep.title}`}
+          className="rounded-full"
         >
-          Original
-          <PiArrowUpRightBold className="ml-1 inline size-3" />
-        </Link>
-      </CardFooter>
-    </Card>
+          <PiShareNetworkFill className="text-chart-3" />
+        </Button>
+        {socialShares.map(({ label, icon: ShareIcon, iconClassName, href }) => (
+          <Button
+            key={label}
+            variant="ghost"
+            size="icon-xs"
+            asChild
+            className="rounded-full"
+          >
+            <Link
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Share ${keep.title} on ${label}`}
+            >
+              <ShareIcon className={iconClassName} />
+            </Link>
+          </Button>
+        ))}
+        <Button variant="ghost" size="xs" asChild className="ml-1">
+          <Link href={keep.href} target="_blank" rel="noopener noreferrer">
+            View
+            <PiArrowUpRightBold data-icon="inline-end" />
+          </Link>
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -109,11 +222,28 @@ const fetcher = async (url: string): Promise<{ keeps: Keep[] }> => {
 export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
   const [query, setQuery] = useState("")
   const [activeTag, setActiveTag] = useState("All")
-  const { data } = useSWR("/api/keeps", fetcher, {
+  const { data, mutate } = useSWR("/api/keeps", fetcher, {
     fallbackData: { keeps: initialKeeps },
-    refreshInterval: 30_000,
+    refreshInterval: 60_000,
     revalidateOnFocus: true,
   })
+
+  useEffect(() => {
+    const events = new EventSource("/api/keeps/stream")
+
+    events.addEventListener("keeps", (event) => {
+      try {
+        const next = JSON.parse((event as MessageEvent<string>).data) as {
+          keeps: Keep[]
+        }
+        void mutate(next, { revalidate: false })
+      } catch {
+        // Ignore malformed events and keep the last valid collection.
+      }
+    })
+
+    return () => events.close()
+  }, [mutate])
   const keeps = data?.keeps ?? initialKeeps
   const tags = useMemo(
     () => ["All", ...new Set(keeps.flatMap((keep) => keep.tags))],
@@ -159,7 +289,7 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
               className="pl-9"
             />
           </label>
-          <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
+          <div className="mt-2 scrollbar-none flex max-w-full gap-2 overflow-x-auto pb-1">
             {tags.map((tag) => (
               <button
                 key={tag}
@@ -178,25 +308,23 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
       </header>
 
       {filteredKeeps.length ? (
-        <BentoGrid className="min-w-0 auto-rows-auto grid-cols-1 md:grid-cols-2">
-          {filteredKeeps.map((keep, index) => (
-            <div
-              key={keep.id}
-              className={cn(
-                "min-w-0",
-                (index === 0 || index % 4 === 3) && "md:col-span-2"
-              )}
-            >
-              <KeepCard keep={keep} featured={index === 0} />
-            </div>
+        <div className="min-w-0">
+          {filteredKeeps.map((keep) => (
+            <KeepCard key={keep.id} keep={keep} />
           ))}
-        </BentoGrid>
+        </div>
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>No Keeps yet</CardTitle>
+            <CardTitle>
+              {query.trim() || activeTag !== "All"
+                ? "Can’t find that Keep"
+                : "No Keeps yet"}
+            </CardTitle>
             <CardDescription>
-              New links will appear here after I send them to the Keeps bot.
+              {query.trim() || activeTag !== "All"
+                ? "Try another word or choose a different topic."
+                : "New links will appear here after I send them to the Keeps bot."}
             </CardDescription>
           </CardHeader>
         </Card>

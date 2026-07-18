@@ -33,4 +33,27 @@ if (!response.ok || !result.ok) {
   throw new Error(result.description || "Telegram rejected the webhook")
 }
 
+const commandsResponse = await fetch(
+  `https://api.telegram.org/bot${token}/setMyCommands`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      commands: [
+        { command: "delete", description: "Delete a Keep by its link" },
+      ],
+    }),
+  }
+)
+const commandsResult = (await commandsResponse.json()) as {
+  ok: boolean
+  description?: string
+}
+
+if (!commandsResponse.ok || !commandsResult.ok) {
+  throw new Error(
+    commandsResult.description || "Telegram rejected the commands"
+  )
+}
+
 console.log(`Telegram Keeps webhook set to ${webhookUrl}`)
