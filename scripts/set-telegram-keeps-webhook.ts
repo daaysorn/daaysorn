@@ -40,6 +40,12 @@ const commandsResponse = await fetch(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       commands: [
+        { command: "start", description: "Show everything this bot can do" },
+        { command: "help", description: "Show all commands and examples" },
+        {
+          command: "keep",
+          description: "Add a link to Keeps; optional #tags",
+        },
         { command: "insta", description: "Post media to Instagram only" },
         {
           command: "instagal",
@@ -53,7 +59,6 @@ const commandsResponse = await fetch(
           command: "delete",
           description: "Delete Gallery media or a Keep",
         },
-        { command: "help", description: "Show all posting instructions" },
       ],
     }),
   }

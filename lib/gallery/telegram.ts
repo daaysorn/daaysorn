@@ -43,15 +43,21 @@ export function parseGalleryPostInstructions(
 
 export const telegramBotHelp = `daaysorn posting commands
 
+KEEPS
+/keep <link> → Add a link to Keeps
+/keep <link> #design #tools → Add a Keep with custom tags
+/delete <link> → Delete a Keep
+You can also send up to 5 links without /keep.
+
+GALLERY & INSTAGRAM
 Send a photo or video normally → Gallery only
-/insta → Instagram only
-/instagal → Gallery and Instagram
-/intatag "life update" → Instagram carousel with the caption “life update”
-/instagal /intatag "life update" → Gallery and Instagram carousel
+/insta + media → Instagram only
+/instagal + media → Gallery and Instagram
+/intatag "life update" + album → Instagram carousel captioned “life update”
+/instagal /intatag "life update" + album → Gallery and Instagram carousel
 
 For a carousel, select 2–10 photos and send them as one Telegram album. Instagram carousels cannot mix photos and videos.
 
-/delete → Reply to a Gallery photo/video to delete it, or add a Keeps link
-/help → Show these instructions
-
-Links without media are added to Keeps. Add #tags to organize a Keep.`
+/delete + reply → Delete the replied-to Gallery photo or video
+/help → Show this complete guide
+/start → Show this complete guide`

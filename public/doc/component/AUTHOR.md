@@ -836,19 +836,37 @@ The bot command menu and `/help` response contain the same quick reference.
 Commands can be placed in the media caption. Rerun
 `bun run telegram:webhook` after deploying command-menu changes.
 
-| Caption command                    | Destination and behavior                                       |
+| Bot input                          | Destination and behavior                                       |
 | ---------------------------------- | -------------------------------------------------------------- |
+| `/start`                           | Show the complete bot guide                                    |
+| `/help`                            | Show every command and example                                 |
+| `/keep <link>`                     | Add one link to Keeps                                          |
+| `/keep <link> #design #tools`      | Add a Keep with custom tags                                    |
 | No command                         | Gallery only                                                   |
 | `/insta`                           | Instagram only                                                 |
 | `/instagal`                        | Gallery and Instagram                                          |
 | `/intatag "life update"`           | Instagram carousel with the caption `life update`              |
 | `/instagal /intatag "life update"` | Gallery plus Instagram carousel captioned `life update`        |
-| `/help` or `/start`                | Show the complete command guide in Telegram                    |
 | `/delete`                          | Delete replied-to Gallery media, or delete a supplied Keep URL |
+
+The bot also accepts up to five links in one message without `/keep`. A
+media-free message containing links always enters the Keeps workflow. Hashtags
+become custom Keep tags. `/delete <link>` removes a Keep; replying `/delete` to
+the original Gallery upload removes that Gallery item.
 
 Examples:
 
 ```text
+# Add one link to Keeps.
+/keep https://example.com/article
+
+# Add one Keep with custom tags.
+/keep https://example.com/tool #design #tools
+
+# Up to five bare links also work without a command.
+https://example.com/one
+https://example.com/two
+
 # Add one image or video to Gallery only.
 [attach image or video]
 Weekend in Lagos
