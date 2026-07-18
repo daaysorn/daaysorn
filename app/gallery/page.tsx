@@ -132,6 +132,9 @@ export default async function GalleryPage() {
       <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
         Gallery
       </h1>
+      <p className="mt-3 text-sm text-muted-foreground xs:text-base md:mt-2">
+        Moments from my life, work, and everything in between.
+      </p>
 
       {media.length === 0 ? (
         <p className="mt-8 text-base text-muted-foreground md:mt-7 md:text-lg">

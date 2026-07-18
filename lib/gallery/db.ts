@@ -176,6 +176,22 @@ export async function saveGalleryMedia(draft: GalleryMediaDraft) {
   return rows.length > 0
 }
 
+export async function deleteGalleryMediaByTelegramMessageId(
+  telegramMessageId: number
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureGallerySchema()
+
+  const rows = (await sql`
+    DELETE FROM gallery_media
+    WHERE telegram_message_id = ${telegramMessageId}
+    RETURNING object_keys
+  `) as Array<{ object_keys: string[] }>
+
+  return rows[0]?.object_keys ?? null
+}
+
 export async function queueGalleryAttachment(
   batchKey: string,
   chatId: number,

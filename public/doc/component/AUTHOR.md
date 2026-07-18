@@ -798,11 +798,11 @@ Tomiwa sends images, videos, or a Telegram media album
   → photo[], video, or an image/video document routes automatically to Gallery
   → updates sharing a media_group_id are collected as one album
   → the Gallery branch downloads and validates every attached media file
-  → images get responsive variants; videos get a poster and web-safe output
-  → immutable AVIF/WebP variants are uploaded to Cloudflare R2
-  → PostgreSQL stores the image metadata, album relationship, and display order
+  → images get responsive WebP variants; videos retain their Telegram poster
+  → immutable media files are uploaded to Cloudflare R2
+  → PostgreSQL stores the media metadata and Telegram message ID
   → the Gallery cache is invalidated
-  → /gallery reads the updated metadata and renders the Bento layout
+  → /gallery reads the updated metadata and renders the masonry layout
 ```
 
 #### Keeps isolation
@@ -813,8 +813,9 @@ Gallery uploads must not change link bookmarking:
   MIME type starts with `image/` or `video/` goes only to the Gallery handler.
   No command is required.
 - Ordinary link messages continue through the existing Keeps handler.
-- `/delete <url>` remains a Keeps deletion command.
-- `/gallery-delete <gallery-id>` deletes only a Gallery item.
+- `/delete <url>` deletes a Keep.
+- Replying `/delete` to the original image or video message deletes that Gallery
+  item and its Cloudflare R2 objects.
 - A non-image document receives usage instructions and is not inserted into
   either collection unless its text or caption contains a valid Keep URL.
 - Gallery and Keeps use separate database tables, validation, storage helpers,
@@ -838,9 +839,12 @@ Weekend in Lagos
 [select several media files and send them together as a Telegram album]
 Weekend in Lagos
 
-# Delete an uploaded image by the ID returned by the bot.
-/gallery-delete <gallery-id>
+# Delete an uploaded image or video.
+[reply /delete to the original media message]
 ```
+
+Reply to the original upload, not the bot's `Gallery: 1 added` confirmation.
+For a Telegram album, reply to each original album item that should be removed.
 
 Telegram sends an album as multiple webhook updates with the same
 `media_group_id`, not as one message. The Gallery stores those items in a

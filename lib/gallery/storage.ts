@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto"
 import { extname } from "node:path"
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import {
+  DeleteObjectsCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3"
 import sharp from "sharp"
 
 import { galleryMediaExists, saveGalleryMedia } from "@/lib/gallery/db"
@@ -49,6 +53,21 @@ function createGalleryConfig() {
 function galleryConfig() {
   cachedGalleryConfig ??= createGalleryConfig()
   return cachedGalleryConfig
+}
+
+export async function deleteGalleryObjects(objectKeys: string[]) {
+  if (!objectKeys.length) return
+
+  const { bucket, client } = galleryConfig()
+  await client.send(
+    new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: {
+        Objects: objectKeys.map((Key) => ({ Key })),
+        Quiet: true,
+      },
+    })
+  )
 }
 
 async function downloadTelegramFile(fileId: string) {

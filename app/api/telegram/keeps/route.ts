@@ -3,10 +3,14 @@ import { revalidatePath, revalidateTag } from "next/cache"
 
 import {
   claimGalleryBatch,
+  deleteGalleryMediaByTelegramMessageId,
   finishGalleryBatch,
   queueGalleryAttachment,
 } from "@/lib/gallery/db"
-import { processGalleryAttachment } from "@/lib/gallery/storage"
+import {
+  deleteGalleryObjects,
+  processGalleryAttachment,
+} from "@/lib/gallery/storage"
 import type { TelegramGalleryAttachment } from "@/lib/gallery/types"
 import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
@@ -301,11 +305,53 @@ export async function POST(request: Request) {
   const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
 
   if (isDeleteCommand) {
+    const repliedGalleryMessage = message.reply_to_message
+    const repliedGalleryAttachment = repliedGalleryMessage
+      ? findGalleryAttachment(repliedGalleryMessage)
+      : null
+
+    if (repliedGalleryMessage && repliedGalleryAttachment) {
+      after(async () => {
+        try {
+          const objectKeys = await deleteGalleryMediaByTelegramMessageId(
+            repliedGalleryMessage.message_id
+          )
+
+          if (!objectKeys) {
+            await reply(message.chat.id, "That media is not in Gallery.")
+            return
+          }
+
+          invalidateGallery()
+          try {
+            await deleteGalleryObjects(objectKeys)
+          } catch (error) {
+            console.error("Gallery object cleanup failed", {
+              message: error instanceof Error ? error.message : "Unknown error",
+              telegramMessageId: repliedGalleryMessage.message_id,
+            })
+          }
+          await reply(message.chat.id, "Deleted from Gallery.")
+        } catch (error) {
+          console.error("Gallery deletion failed", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            telegramMessageId: repliedGalleryMessage.message_id,
+          })
+          await reply(
+            message.chat.id,
+            "I could not delete that Gallery item. Please try again."
+          )
+        }
+      })
+
+      return Response.json({ ok: true })
+    }
+
     if (!hrefs.length) {
       after(() =>
         reply(
           message.chat.id,
-          "Send /delete followed by the link, or reply /delete to the original link message."
+          "Send /delete followed by a Keep link, or reply /delete to the original link, image, or video message."
         )
       )
       return Response.json({ ok: true })

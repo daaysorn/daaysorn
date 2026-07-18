@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react"
@@ -54,6 +55,48 @@ function arrangeIntoColumns(media: GalleryViewItem[], columnCount: number) {
   })
 
   return columns
+}
+
+function GalleryVideoPreview({ item }: { item: GalleryViewItem }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && video.currentTime < 5) {
+          void video.play().catch(() => undefined)
+        } else {
+          video.pause()
+        }
+      },
+      { threshold: 0.35 }
+    )
+
+    observer.observe(video)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <video
+      ref={videoRef}
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      src={item.src}
+      poster={item.poster ?? undefined}
+      aria-hidden="true"
+      onTimeUpdate={(event) => {
+        if (event.currentTarget.currentTime >= 5) {
+          event.currentTarget.currentTime = 0
+        }
+      }}
+      className="size-full object-cover transition-transform duration-500 ease-out motion-safe:group-hover:scale-[1.025]"
+    />
+  )
 }
 
 export function GalleryView({ media }: { media: GalleryViewItem[] }) {
@@ -108,15 +151,7 @@ export function GalleryView({ media }: { media: GalleryViewItem[] }) {
                 }}
               >
                 {item.type === "video" ? (
-                  <video
-                    muted
-                    playsInline
-                    preload="metadata"
-                    src={item.src}
-                    poster={item.poster ?? undefined}
-                    aria-hidden="true"
-                    className="size-full object-cover transition-transform duration-500 ease-out motion-safe:group-hover:scale-[1.025]"
-                  />
+                  <GalleryVideoPreview item={item} />
                 ) : (
                   <Image
                     fill
