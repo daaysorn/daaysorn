@@ -7,9 +7,14 @@ const PRECACHE_URLS = [
   "/gallery",
   "/offline",
   "/manifest.webmanifest",
+  "/icons/pwa-96.png",
   "/icons/pwa-192.png",
   "/icons/pwa-512.png",
 ]
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting()
+})
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -24,29 +29,32 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter(
-              (key) =>
-                key.startsWith("daaysorn-") &&
-                key !== PAGE_CACHE &&
-                key !== ASSET_CACHE
-            )
-            .map((key) => caches.delete(key))
-        )
-      )
-      .then(() => self.clients.claim())
+    Promise.all([
+      caches
+        .keys()
+        .then((keys) =>
+          Promise.all(
+            keys
+              .filter(
+                (key) =>
+                  key.startsWith("daaysorn-") &&
+                  key !== PAGE_CACHE &&
+                  key !== ASSET_CACHE
+              )
+              .map((key) => caches.delete(key))
+          )
+        ),
+      self.registration.navigationPreload?.enable(),
+    ]).then(() => self.clients.claim())
   )
 })
 
-async function networkFirst(request) {
+async function networkFirst(request, preloadResponse) {
   const cache = await caches.open(PAGE_CACHE)
 
   try {
-    const response = await fetch(request, { cache: "no-store" })
+    const response =
+      (await preloadResponse) || (await fetch(request, { cache: "no-store" }))
     if (response.ok) await cache.put(request, response.clone())
     return response
   } catch {
@@ -95,7 +103,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request))
+    event.respondWith(networkFirst(request, event.preloadResponse))
     return
   }
 

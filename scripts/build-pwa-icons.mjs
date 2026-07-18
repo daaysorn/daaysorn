@@ -127,6 +127,7 @@ const transparentIcon = await sharp(data, {
 await Promise.all([
   sharp(transparentIcon).resize(512, 512).toFile("app/icon.png"),
   sharp(transparentIcon).resize(180, 180).toFile("app/apple-icon.png"),
+  sharp(transparentIcon).resize(96, 96).toFile("public/icons/pwa-96.png"),
   sharp(transparentIcon).resize(192, 192).toFile("public/icons/pwa-192.png"),
   sharp(transparentIcon).resize(512, 512).toFile("public/icons/pwa-512.png"),
 ])
