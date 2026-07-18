@@ -5,6 +5,7 @@ import { Geist, JetBrains_Mono, Montserrat } from "next/font/google"
 import "./globals.css"
 import { AppShell } from "@/components/app-shell"
 import { PWARegister } from "@/components/pwa-register"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { siteConfig } from "@/lib/seo"
@@ -117,6 +118,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AppShell>{children}</AppShell>
           <PWARegister />
+          <PWAInstallPrompt />
         </ThemeProvider>
       </body>
       <GoogleAnalytics gaId={googleAnalyticsId} />

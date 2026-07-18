@@ -979,6 +979,12 @@ responses.
 
 The worker provides only capabilities that match this project:
 
+- The production registration script captures Chrome's
+  `beforeinstallprompt` event before hydration. `PWAInstallPrompt` displays a
+  compact glass install card only when Chrome confirms eligibility, and its
+  Install button opens the browser-owned confirmation dialog. Installed apps
+  and dismissed prompts stay hidden; a manual dismissal is remembered for
+  seven days.
 - The OS share target posts `title`, `text`, and `url` as
   `multipart/form-data` to `/api/keeps/share-target`. The handler validates and
   bounds the strings, redirects to a temporary fragment on `/keeps`, and the

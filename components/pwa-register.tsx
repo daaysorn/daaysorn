@@ -2,6 +2,17 @@ const registrationScript = `
 (() => {
   if (!("serviceWorker" in navigator)) return;
 
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    window.__daaysornInstallPrompt = event;
+    window.dispatchEvent(new Event("daaysorn:installable"));
+  });
+
+  window.addEventListener("appinstalled", () => {
+    window.__daaysornInstallPrompt = null;
+    window.dispatchEvent(new Event("daaysorn:installed"));
+  });
+
   let refreshing = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (refreshing) return;
