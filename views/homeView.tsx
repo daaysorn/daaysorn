@@ -297,6 +297,21 @@ const HomeView = () => {
           for ideas, stories, and finds worth returning to.
         </p>
 
+        <p className="mt-5">
+          A fun thing about{" "}
+          <PreviewLink
+            href={links.content.keeps.href}
+            label={links.content.keeps.label}
+            description="Save useful finds into your own private collection and keep it in sync across devices."
+            icon={PiBookmarkSimpleFill}
+          >
+            {links.content.keeps.label}
+          </PreviewLink>{" "}
+          is that you can keep your favourites from my collection, build your
+          own little reading list, and carry it between your devices. It still
+          works offline, then catches up when you are connected again.
+        </p>
+
         <p className="clear-both mt-5">
           You can follow how I make this website in the{" "}
           <PreviewLink

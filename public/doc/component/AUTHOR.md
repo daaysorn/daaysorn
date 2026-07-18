@@ -219,17 +219,54 @@ private publishing input; `/keeps` is the public reading surface.
 
 Visitors can bookmark Tomiwa's Keeps with the save icon. The selected Keep IDs
 live only in `localStorage` under `daaysorn-keeps-favourites`; no visitor data is
-written to Postgres. **Sync saved** creates a compact URL-fragment link. Opening
-that link on another device merges the IDs into that device's local favourites
-and then removes the fragment from the address bar. This is intentionally
-account-free and adds no database or Vercel function usage.
+written to Postgres until the visitor chooses **Export to other devices**.
+**Saved Keeps** switches the collection to the visitor's saved items. Exporting
+creates an anonymous private sync group in Postgres and a URL-fragment link that
+contains its access key. Opening the link joins another device to that group.
+Never log or move that fragment into a query string because it is the private
+credential for the collection.
 
-The public Keeps client refreshes `/api/keeps` every two minutes, when the tab
+Every device keeps its local copy and an offline mutation queue. Saves and
+removals work without a connection, then PATCH `/api/keeps/sync` when the device
+reconnects. Connected devices refresh every two minutes and on focus/reconnect,
+so a removal on one device reaches the others without an open server
+connection. The last change received for the same Keep wins; changes to
+different Keeps are merged independently.
+
+The public Keeps feed refreshes `/api/keeps` every two minutes, when the tab
 regains focus, and when the device reconnects. The response is cached at the
 edge for one minute and can be served stale while it refreshes for ten minutes.
 Do not restore the old two-second SSE database polling: every reader held a
 function open and repeatedly queried Postgres, which is unsuitable for the
 Vercel free plan.
+
+#### Keeps analytics
+
+Keeps interaction events use `sendGAEvent` from `@next/third-parties/google`
+through `lib/analytics.ts`. Google Analytics is initialized once in the root
+layout. Events intentionally exclude search text, original URLs, local-storage
+contents, sync-group IDs, sync secrets, and export links.
+
+| Event                  | What it measures                                       |
+| ---------------------- | ------------------------------------------------------ |
+| `keeps_view`           | Collection visits and available Keep count             |
+| `keep_impression`      | A Keep becoming at least 50% visible                   |
+| `keep_open`            | Opening the original content                           |
+| `keep_favourite`       | Saving or removing a favourite                         |
+| `keep_share`           | Native, copied, or social sharing                      |
+| `keeps_search`         | Search length bucket and result count, never the query |
+| `keeps_filter`         | All, Saved Keeps, Latest, or topic filter use          |
+| `keep_preview_error`   | Preview-image failures by source                       |
+| `keeps_export_created` | First creation of a private sync collection            |
+| `keeps_export`         | Export method and success/failure                      |
+| `keeps_device_join`    | A second device joining through an export link         |
+| `keeps_sync`           | Change count and sync success/failure                  |
+
+In GA4 Admin → Data display → Custom definitions, register the event-scoped
+dimensions `content_name`, `content_source`, `method`, `action`, `filter_name`,
+`filter_type`, and `outcome`. Register `saved_count`, `result_count`,
+`changes_count`, and `keep_count` as custom metrics. These definitions make the
+parameters available in Explorations; they do not collect additional data.
 
 The complete flow is:
 

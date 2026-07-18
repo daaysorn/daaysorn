@@ -2,7 +2,14 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Fragment, useEffect, useMemo, useState } from "react"
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import type { IconType } from "react-icons"
 import useSWR from "swr"
 import {
@@ -23,7 +30,7 @@ import {
   PiArrowUpRightBold,
   PiArticleFill,
   PiBookmarkSimpleFill,
-  PiDevicesFill,
+  PiExportFill,
   PiInstagramLogoFill,
   PiShareNetworkFill,
   PiXLogoFill,
@@ -31,6 +38,7 @@ import {
 } from "react-icons/pi"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -39,6 +47,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { trackKeepsEvent } from "@/lib/analytics"
 import type { Keep } from "@/lib/keeps/types"
 import { cn } from "@/lib/utils"
 
@@ -88,6 +97,8 @@ function KeepCard({
   onToggleSaved: (keep: Keep) => void
 }) {
   const Icon = sourceIcons[keep.source] ?? PiBookmarkSimpleFill
+  const cardRef = useRef<HTMLDivElement>(null)
+  const impressionSent = useRef(false)
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const showImage = Boolean(keep.imageUrl && keep.imageUrl !== failedImageUrl)
   const shareText = `${keep.title} ${keep.href}`
@@ -126,22 +137,67 @@ function KeepCard({
           text: keep.summary,
           url: keep.href,
         })
+        trackKeepsEvent("keep_share", {
+          method: "native",
+          content_id: keep.id,
+          content_name: keep.title,
+          content_source: keep.source,
+        })
         return
       }
 
       await navigator.clipboard.writeText(keep.href)
+      trackKeepsEvent("keep_share", {
+        method: "copy",
+        content_id: keep.id,
+        content_name: keep.title,
+        content_source: keep.source,
+      })
     } catch {
       // Closing the native share sheet is an expected user action.
     }
   }
 
+  useEffect(() => {
+    const card = cardRef.current
+    if (!card || impressionSent.current) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || impressionSent.current) return
+        impressionSent.current = true
+        trackKeepsEvent("keep_impression", {
+          content_id: keep.id,
+          content_name: keep.title,
+          content_source: keep.source,
+          has_preview: Boolean(keep.imageUrl),
+        })
+        observer.disconnect()
+      },
+      { threshold: 0.5 }
+    )
+
+    observer.observe(card)
+    return () => observer.disconnect()
+  }, [keep.id, keep.imageUrl, keep.source, keep.title])
+
   return (
-    <div className="group relative min-w-0 border-b border-border px-3 py-8 last:border-b-0 md:px-4 md:py-10">
+    <div
+      ref={cardRef}
+      className="group relative min-w-0 border-b border-border px-3 py-8 last:border-b-0 md:px-4 md:py-10"
+    >
       <Link
         href={keep.href}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`View ${keep.title}`}
+        onClick={() =>
+          trackKeepsEvent("keep_open", {
+            content_id: keep.id,
+            content_name: keep.title,
+            content_source: keep.source,
+          })
+        }
         className="block min-w-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
       >
         <div className="min-w-0 after:clear-both after:block md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6 md:after:hidden">
@@ -155,7 +211,14 @@ function KeepCard({
                 alt=""
                 sizes="(min-width: 768px) 10rem, 7rem"
                 className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.02]"
-                onError={() => setFailedImageUrl(keep.imageUrl)}
+                onError={() => {
+                  setFailedImageUrl(keep.imageUrl)
+                  trackKeepsEvent("keep_preview_error", {
+                    content_id: keep.id,
+                    content_name: keep.title,
+                    content_source: keep.source,
+                  })
+                }}
               />
             ) : (
               <span
@@ -245,13 +308,33 @@ function KeepCard({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Share ${keep.title} on ${label}`}
+              onClick={() =>
+                trackKeepsEvent("keep_share", {
+                  method: label.toLowerCase(),
+                  content_id: keep.id,
+                  content_name: keep.title,
+                  content_source: keep.source,
+                })
+              }
             >
               <ShareIcon className={iconClassName} />
             </Link>
           </Button>
         ))}
         <Button variant="ghost" size="xs" asChild className="ml-1">
-          <Link href={keep.href} target="_blank" rel="noopener noreferrer">
+          <Link
+            href={keep.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() =>
+              trackKeepsEvent("keep_open", {
+                content_id: keep.id,
+                content_name: keep.title,
+                content_source: keep.source,
+                location: "view_action",
+              })
+            }
+          >
             View
             <PiArrowUpRightBold data-icon="inline-end" />
           </Link>
@@ -265,6 +348,51 @@ const fetcher = async (url: string): Promise<{ keeps: Keep[] }> => {
   const response = await fetch(url)
   if (!response.ok) throw new Error("Keeps could not be loaded")
   return response.json() as Promise<{ keeps: Keep[] }>
+}
+
+type KeepsSyncSession = { id: string; secret: string }
+type KeepsSyncChange = { keepId: string; saved: boolean }
+
+const favouritesKey = "daaysorn-keeps-favourites"
+const syncSessionKey = "daaysorn-keeps-sync-session"
+const pendingChangesKey = "daaysorn-keeps-sync-pending"
+
+function readStoredArray<T>(key: string): T[] {
+  try {
+    const value = JSON.parse(
+      window.localStorage.getItem(key) ?? "[]"
+    ) as unknown
+    return Array.isArray(value) ? (value as T[]) : []
+  } catch {
+    return []
+  }
+}
+
+function storeFavouriteIds(ids: string[]) {
+  window.localStorage.setItem(favouritesKey, JSON.stringify(ids))
+}
+
+function queueSyncChange(change: KeepsSyncChange) {
+  const pending = readStoredArray<KeepsSyncChange>(pendingChangesKey).filter(
+    (item) => item.keepId !== change.keepId
+  )
+  window.localStorage.setItem(
+    pendingChangesKey,
+    JSON.stringify([...pending, change])
+  )
+}
+
+function storedSyncSession(): KeepsSyncSession | null {
+  try {
+    const value = JSON.parse(
+      window.localStorage.getItem(syncSessionKey) ?? "null"
+    ) as Partial<KeepsSyncSession> | null
+    return typeof value?.id === "string" && typeof value.secret === "string"
+      ? { id: value.id, secret: value.secret }
+      : null
+  } catch {
+    return null
+  }
 }
 
 function seededOrder(value: string) {
@@ -289,6 +417,7 @@ export function KeepsView({
   const [activeTag, setActiveTag] = useState("All")
   const [savedKeepIds, setSavedKeepIds] = useState<string[]>([])
   const [syncStatus, setSyncStatus] = useState("")
+  const [syncSession, setSyncSession] = useState<KeepsSyncSession | null>(null)
   const { data } = useSWR("/api/keeps", fetcher, {
     fallbackData: { keeps: initialKeeps },
     refreshInterval: 120_000,
@@ -296,85 +425,202 @@ export function KeepsView({
     revalidateOnReconnect: true,
   })
 
-  useEffect(() => {
+  const syncCollection = useCallback(async (session: KeepsSyncSession) => {
+    if (!navigator.onLine) return
+
     try {
-      const localIds = JSON.parse(
-        window.localStorage.getItem("daaysorn-keeps-favourites") ?? "[]"
-      ) as unknown
-      const savedIds = Array.isArray(localIds)
-        ? localIds.filter((id): id is string => typeof id === "string")
-        : []
-      const fragment = new URLSearchParams(window.location.hash.slice(1)).get(
-        "saved"
-      )
-      const syncedIds = fragment
-        ? (JSON.parse(
-            atob(fragment.replaceAll("-", "+").replaceAll("_", "/"))
-          ) as unknown)
-        : []
-      const importedIds = Array.isArray(syncedIds)
-        ? syncedIds.filter((id): id is string => typeof id === "string")
-        : []
-      const mergedIds = [...new Set([...savedIds, ...importedIds])]
+      const pending = readStoredArray<KeepsSyncChange>(pendingChangesKey)
+      const response = await fetch("/api/keeps/sync", {
+        method: pending.length ? "PATCH" : "GET",
+        headers: {
+          Authorization: `Bearer ${session.id}.${session.secret}`,
+          ...(pending.length ? { "Content-Type": "application/json" } : {}),
+        },
+        body: pending.length ? JSON.stringify({ changes: pending }) : undefined,
+      })
 
-      setSavedKeepIds(mergedIds)
-      window.localStorage.setItem(
-        "daaysorn-keeps-favourites",
-        JSON.stringify(mergedIds)
-      )
+      if (response.status === 401) {
+        window.localStorage.removeItem(syncSessionKey)
+        setSyncSession(null)
+        setSyncStatus("This export link is no longer valid.")
+        trackKeepsEvent("keeps_sync", { outcome: "unauthorized" })
+        return
+      }
 
-      if (importedIds.length) {
-        setSyncStatus("Saved Keeps added to this device.")
-        window.history.replaceState(null, "", window.location.pathname)
+      if (!response.ok) return
+      const data = (await response.json()) as { savedIds?: unknown }
+      const serverIds = Array.isArray(data.savedIds)
+        ? data.savedIds.filter((id): id is string => typeof id === "string")
+        : []
+
+      if (pending.length) {
+        const submitted = new Map(
+          pending.map((change) => [change.keepId, change.saved])
+        )
+        const remaining = readStoredArray<KeepsSyncChange>(
+          pendingChangesKey
+        ).filter((change) => submitted.get(change.keepId) !== change.saved)
+        window.localStorage.setItem(
+          pendingChangesKey,
+          JSON.stringify(remaining)
+        )
+      }
+
+      storeFavouriteIds(serverIds)
+      setSavedKeepIds(serverIds)
+      setSyncStatus("Saved Keeps are up to date.")
+      if (pending.length) {
+        trackKeepsEvent("keeps_sync", {
+          outcome: "success",
+          changes_count: pending.length,
+          saved_count: serverIds.length,
+        })
       }
     } catch {
-      setSavedKeepIds([])
+      // Offline changes remain queued until the next successful connection.
+      trackKeepsEvent("keeps_sync", { outcome: "request_failed" })
     }
   }, [])
+
+  useEffect(() => {
+    const savedIds = readStoredArray<unknown>(favouritesKey).filter(
+      (id): id is string => typeof id === "string"
+    )
+    const params = new URLSearchParams(window.location.hash.slice(1))
+    const syncToken = params.get("keeps-sync")
+    const legacyFragment = params.get("saved")
+    let session = storedSyncSession()
+
+    if (legacyFragment) {
+      try {
+        const imported = JSON.parse(
+          atob(legacyFragment.replaceAll("-", "+").replaceAll("_", "/"))
+        ) as unknown
+        if (Array.isArray(imported)) {
+          imported
+            .filter((id): id is string => typeof id === "string")
+            .forEach((id) => {
+              if (!savedIds.includes(id)) savedIds.push(id)
+            })
+        }
+      } catch {
+        // Ignore malformed legacy transfer links.
+      }
+    }
+
+    if (syncToken) {
+      const separator = syncToken.indexOf(".")
+      const id = syncToken.slice(0, separator)
+      const secret = syncToken.slice(separator + 1)
+      if (separator > 0 && id && secret) {
+        session = { id, secret }
+        window.localStorage.setItem(syncSessionKey, JSON.stringify(session))
+        savedIds.forEach((keepId) => queueSyncChange({ keepId, saved: true }))
+        setSyncStatus("This device is now connected to Saved Keeps.")
+        trackKeepsEvent("keeps_device_join", {
+          local_saved_count: savedIds.length,
+        })
+      }
+    }
+
+    setSavedKeepIds(savedIds)
+    storeFavouriteIds(savedIds)
+    setSyncSession(session)
+    if (session) void syncCollection(session)
+
+    if (syncToken || legacyFragment) {
+      window.history.replaceState(null, "", window.location.pathname)
+    }
+  }, [syncCollection])
+
+  useEffect(() => {
+    if (!syncSession) return
+
+    const synchronize = () => void syncCollection(syncSession)
+    const interval = window.setInterval(synchronize, 120_000)
+    window.addEventListener("online", synchronize)
+    window.addEventListener("focus", synchronize)
+
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener("online", synchronize)
+      window.removeEventListener("focus", synchronize)
+    }
+  }, [syncCollection, syncSession])
 
   const toggleSaved = (keep: Keep) => {
     setSavedKeepIds((current) => {
       const next = current.includes(keep.id)
         ? current.filter((id) => id !== keep.id)
         : [...current, keep.id]
-      window.localStorage.setItem(
-        "daaysorn-keeps-favourites",
-        JSON.stringify(next)
-      )
+      storeFavouriteIds(next)
+
+      if (syncSession) {
+        queueSyncChange({ keepId: keep.id, saved: next.includes(keep.id) })
+        void syncCollection(syncSession)
+      }
+      trackKeepsEvent("keep_favourite", {
+        action: next.includes(keep.id) ? "save" : "remove",
+        content_id: keep.id,
+        content_name: keep.title,
+        content_source: keep.source,
+        saved_count: next.length,
+        sync_enabled: Boolean(syncSession),
+      })
       return next
     })
   }
 
-  const syncSaved = async () => {
-    if (!savedKeepIds.length) {
-      setSyncStatus("Save a Keep first.")
-      return
-    }
-
-    const encoded = btoa(JSON.stringify(savedKeepIds))
-      .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replaceAll("=", "")
-    const syncUrl = `${window.location.origin}${window.location.pathname}#saved=${encoded}`
-
+  const exportKeeps = async () => {
     try {
+      let session = syncSession
+      if (!session) {
+        const response = await fetch("/api/keeps/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ savedIds: savedKeepIds }),
+        })
+        if (!response.ok) throw new Error("Export could not be created")
+        session = (await response.json()) as KeepsSyncSession
+        window.localStorage.setItem(syncSessionKey, JSON.stringify(session))
+        setSyncSession(session)
+        trackKeepsEvent("keeps_export_created", {
+          saved_count: savedKeepIds.length,
+        })
+      } else {
+        await syncCollection(session)
+      }
+
+      const syncUrl = `${window.location.origin}${window.location.pathname}#keeps-sync=${session.id}.${session.secret}`
       if (navigator.share) {
         await navigator.share({
           title: "My saved Keeps",
-          text: "Open this link on another device to sync my saved Keeps.",
+          text: "Open this private link on another device to keep Saved Keeps in sync.",
           url: syncUrl,
         })
-        setSyncStatus("Sync link shared.")
+        setSyncStatus("Private export link shared.")
+        trackKeepsEvent("keeps_export", {
+          method: "native",
+          outcome: "success",
+          saved_count: savedKeepIds.length,
+        })
       } else {
         await navigator.clipboard.writeText(syncUrl)
-        setSyncStatus("Sync link copied.")
+        setSyncStatus("Private export link copied.")
+        trackKeepsEvent("keeps_export", {
+          method: "copy",
+          outcome: "success",
+          saved_count: savedKeepIds.length,
+        })
       }
     } catch (error) {
       if ((error as DOMException).name !== "AbortError") {
-        setSyncStatus("Could not share the sync link.")
+        setSyncStatus("Could not export Saved Keeps.")
+        trackKeepsEvent("keeps_export", { outcome: "error" })
       }
     }
   }
+
   const keeps = data?.keeps ?? initialKeeps
   const shuffledKeeps = useMemo(
     () =>
@@ -388,11 +634,11 @@ export function KeepsView({
   const tags = useMemo(
     () => [
       "All",
+      "Saved Keeps",
       "Latest",
-      "Saved",
       ...new Set(keeps.flatMap((keep) => keep.tags)),
     ],
-    [keeps]
+    [keeps, savedKeepIds.length]
   )
   const filteredKeeps = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -402,7 +648,7 @@ export function KeepsView({
       const matchesTag =
         activeTag === "All" ||
         activeTag === "Latest" ||
-        (activeTag === "Saved" && savedKeepIds.includes(keep.id)) ||
+        (activeTag === "Saved Keeps" && savedKeepIds.includes(keep.id)) ||
         keep.tags.includes(activeTag)
       const matchesQuery =
         !normalizedQuery ||
@@ -414,6 +660,41 @@ export function KeepsView({
     })
   }, [activeTag, keeps, query, savedKeepIds, shuffledKeeps])
 
+  useEffect(() => {
+    trackKeepsEvent("keeps_view", { keep_count: keeps.length })
+  }, [keeps.length])
+
+  useEffect(() => {
+    const normalizedQuery = query.trim()
+    if (normalizedQuery.length < 2) return
+
+    const timer = window.setTimeout(() => {
+      trackKeepsEvent("keeps_search", {
+        query_length:
+          normalizedQuery.length < 5
+            ? "2_4"
+            : normalizedQuery.length < 10
+              ? "5_9"
+              : "10_plus",
+        result_count: filteredKeeps.length,
+      })
+    }, 750)
+
+    return () => window.clearTimeout(timer)
+  }, [filteredKeeps.length, query])
+
+  const selectFilter = (tag: string) => {
+    setActiveTag(tag)
+    trackKeepsEvent("keeps_filter", {
+      filter_name: tag,
+      filter_type:
+        tag === "All" || tag === "Latest" || tag === "Saved Keeps"
+          ? "system"
+          : "topic",
+      saved_count: savedKeepIds.length,
+    })
+  }
+
   return (
     <article className="w-full min-w-0 pb-8 md:pb-24">
       <header className="flex flex-col gap-5 pb-4 md:pb-5">
@@ -422,28 +703,10 @@ export function KeepsView({
             Keeps
           </h1>
           <div className="flex flex-col gap-3">
-            <p className="text-xs leading-5 whitespace-nowrap text-muted-foreground md:text-lg md:leading-8">
-              Posts, articles, videos, and ideas I found worth keeping.
+            <p className="text-xs leading-5 text-muted-foreground md:text-base md:leading-7">
+              Posts, articles, videos, and ideas I found worth keeping. Save
+              your favourites here and take them across your devices.
             </p>
-            <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-              <p className="min-w-0 text-[0.6875rem] text-muted-foreground xs:text-xs">
-                Bookmark Keeps, then sync across devices.
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={() => void syncSaved()}
-              >
-                <PiDevicesFill data-icon="inline-start" />
-                Sync saved
-              </Button>
-            </div>
-            {syncStatus ? (
-              <p aria-live="polite" className="text-xs text-muted-foreground">
-                {syncStatus}
-              </p>
-            ) : null}
           </div>
         </div>
 
@@ -469,16 +732,48 @@ export function KeepsView({
                 <button
                   type="button"
                   aria-pressed={activeTag === tag}
-                  onClick={() => setActiveTag(tag)}
-                  className="shrink-0 rounded-sm text-xs font-medium text-muted-foreground no-underline transition-colors hover:text-foreground hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:font-semibold aria-pressed:text-foreground md:text-sm"
+                  aria-label={
+                    tag === "Saved Keeps"
+                      ? `Saved Keeps, ${savedKeepIds.length} saved`
+                      : undefined
+                  }
+                  onClick={() => selectFilter(tag)}
+                  className="inline-flex shrink-0 items-start gap-1 rounded-sm text-xs font-medium text-muted-foreground no-underline transition-colors hover:text-foreground hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:font-semibold aria-pressed:text-foreground md:text-sm"
                 >
                   {tag}
+                  {tag === "Saved Keeps" ? (
+                    <sup aria-hidden="true" className="-mt-1">
+                      <Badge
+                        variant="destructive"
+                        className="h-4 min-w-4 px-1 py-0 text-[0.625rem] leading-none"
+                      >
+                        {savedKeepIds.length}
+                      </Badge>
+                    </sup>
+                  ) : null}
                 </button>
               </Fragment>
             ))}
           </div>
         </div>
       </header>
+
+      {activeTag === "Saved Keeps" && savedKeepIds.length ? (
+        <div className="flex min-w-0 items-center justify-between gap-3 px-3 pb-2 md:px-4">
+          <p aria-live="polite" className="text-xs text-muted-foreground">
+            {syncStatus || "Keep this collection in sync across your devices."}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => void exportKeeps()}
+          >
+            <PiExportFill data-icon="inline-start" />
+            Export to other devices
+          </Button>
+        </div>
+      ) : null}
 
       {filteredKeeps.length ? (
         <div className="min-w-0">
