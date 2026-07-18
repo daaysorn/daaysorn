@@ -78,20 +78,17 @@ const SitePreview = ({
 
   return (
     <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
-      {isWebsite || isLocalPage ? (
+      {(isWebsite || isLocalPage) && !loaded ? (
         <div
           aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-0 z-10 bg-muted transition-opacity duration-500 ease-out motion-safe:animate-pulse",
-            loaded ? "opacity-0" : "opacity-100"
-          )}
+          className="pointer-events-none absolute inset-0 z-10 bg-muted motion-safe:animate-pulse"
         >
-          <div className="h-7 bg-background/70" />
-          <div className="space-y-3 p-4">
+          <div className="h-6 bg-background/70" />
+          <div className="space-y-2.5 p-3">
             <div className="h-4 w-2/3 rounded-full bg-foreground/10" />
             <div className="h-3 w-full rounded-full bg-foreground/8" />
             <div className="h-3 w-4/5 rounded-full bg-foreground/8" />
-            <div className="mt-5 h-10 w-28 rounded-lg bg-primary/10" />
+            <div className="mt-4 h-8 w-24 rounded-lg bg-primary/10" />
           </div>
         </div>
       ) : null}
@@ -103,7 +100,7 @@ const SitePreview = ({
           fill
           src={previewSrc}
           alt={`Preview of ${label}`}
-          sizes="18rem"
+          sizes="15rem"
           className={cn(
             "object-cover object-top transition-opacity duration-500 ease-out",
             loaded ? "opacity-100" : "opacity-0"
@@ -175,7 +172,7 @@ const PreviewLink = ({
     </HoverCardTrigger>
     <HoverCardContent
       side="top"
-      className="w-80 overflow-hidden border-0 p-2 shadow-[0_24px_70px_-24px_rgba(0,0,0,0.45)] ring-0 backdrop-blur-2xl dark:bg-card/90"
+      className="w-64 overflow-hidden border-0 p-1.5 shadow-[0_20px_60px_-24px_rgba(0,0,0,0.45)] ring-0 backdrop-blur-2xl dark:bg-card/90"
     >
       <Link
         href={href}
