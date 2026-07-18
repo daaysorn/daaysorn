@@ -9,7 +9,6 @@ const PRECACHE_URLS = [
   "/manifest.webmanifest",
   "/icons/pwa-192.png",
   "/icons/pwa-512.png",
-  "/icons/pwa-maskable-512.png",
 ]
 
 self.addEventListener("install", (event) => {
