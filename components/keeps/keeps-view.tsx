@@ -184,7 +184,7 @@ function KeepCard({
   return (
     <div
       ref={cardRef}
-      className="group relative min-w-0 border-b border-border px-3 py-8 last:border-b-0 md:px-4 md:py-10"
+      className="group relative min-w-0 border-border px-3 py-8 last:border-b-0 md:px-4 md:py-10"
     >
       <Link
         href={keep.href}
@@ -201,7 +201,7 @@ function KeepCard({
         className="block min-w-0 cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
       >
         <div className="min-w-0 after:clear-both after:block md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:gap-6 md:after:hidden">
-          <div className="relative float-left mr-4 mb-2 aspect-[4/5] w-24 overflow-hidden rounded-md bg-muted xs:mb-3 xs:w-28 md:float-none md:m-0 md:w-auto">
+          <div className="relative float-left mr-4 mb-2 aspect-4/5 w-24 overflow-hidden rounded-md bg-muted xs:mb-3 xs:w-28 md:float-none md:m-0 md:w-auto">
             {showImage && keep.imageUrl ? (
               <Image
                 loader={({ src }) => src}
@@ -826,7 +826,7 @@ export function KeepsView({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search Keeps…"
-              className="h-10 rounded-none border-0 border-b border-border bg-transparent px-0 py-2 text-sm font-normal shadow-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0 md:text-sm dark:bg-transparent"
+              className="h-10 rounded-none border-0 border-b px-0 py-2 text-sm font-normal shadow-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0 md:text-sm dark:bg-transparent"
             />
           </label>
           <div className="scrollbar-none flex max-w-full items-center gap-4 overflow-x-auto pt-5 pb-2 md:gap-5 md:pt-6">
@@ -847,7 +847,7 @@ export function KeepsView({
                       : undefined
                   }
                   onClick={() => selectFilter(tag)}
-                  className="inline-flex shrink-0 items-start gap-1 rounded-sm text-xs font-medium text-muted-foreground no-underline transition-colors hover:text-foreground hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:font-semibold aria-pressed:text-foreground md:text-sm"
+                  className="inline-flex shrink-0 items-start gap-1 rounded-sm text-xs no-underline transition-colors hover:text-foreground hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:font-semibold aria-pressed:text-foreground md:text-sm"
                 >
                   {tag}
                   {tag === "Saved Keeps" ? (
