@@ -20,16 +20,22 @@ const NOW_PLAYING_ENDPOINT =
 const RECENTLY_PLAYED_ENDPOINT =
   "https://api.spotify.com/v1/me/player/recently-played?limit=1"
 
+let accessTokenCache: { token: string; expiresAt: number } | undefined
+
 const isConfigured = () =>
   Boolean(
     process.env.SPOTIFY_CLIENT_ID &&
-      process.env.SPOTIFY_CLIENT_SECRET &&
-      process.env.SPOTIFY_REFRESH_TOKEN,
+    process.env.SPOTIFY_CLIENT_SECRET &&
+    process.env.SPOTIFY_REFRESH_TOKEN
   )
 
 async function getAccessToken(): Promise<string | null> {
+  if (accessTokenCache && accessTokenCache.expiresAt > Date.now()) {
+    return accessTokenCache.token
+  }
+
   const basic = Buffer.from(
-    `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`,
+    `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
   ).toString("base64")
 
   const res = await fetch(TOKEN_ENDPOINT, {
@@ -46,8 +52,17 @@ async function getAccessToken(): Promise<string | null> {
   })
 
   if (!res.ok) return null
-  const data = (await res.json()) as { access_token?: string }
-  return data.access_token ?? null
+  const data = (await res.json()) as {
+    access_token?: string
+    expires_in?: number
+  }
+  if (!data.access_token) return null
+
+  accessTokenCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + Math.max(60, (data.expires_in ?? 3600) - 60) * 1000,
+  }
+  return accessTokenCache.token
 }
 
 /** Shape of the bits we read off a Spotify track object. */

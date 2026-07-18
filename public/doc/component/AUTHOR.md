@@ -202,6 +202,10 @@ Existing installs are copies in other people's repos — they won't auto-update.
   dev-only (403 in prod) and can be deleted after.
 - Live data is **Spotify-only** (Apple/YouTube have no simple now-playing API);
   the multi-provider embed code is for manually-pinned tracks.
+- The access token is reused in warm server instances. `/api/now-playing` is
+  shared at Vercel's edge for ten seconds; clients check every fifteen seconds
+  while playing and every sixty seconds while idle. Do not restore per-visitor
+  five-second, no-store polling.
 - Full setup: [spotify-now-playing.md](./spotify-now-playing.md).
 
 ### flip-clock
@@ -230,7 +234,7 @@ Every device keeps its local copy and an offline mutation queue. Saves and
 removals work without a connection, then PATCH `/api/keeps/sync` when the device
 reconnects. Online devices subscribe to a private, collection-scoped Ably
 channel and reconcile from Neon immediately when another device changes the
-collection. A two-minute refresh plus focus/reconnect refresh remains as a
+collection. A fifteen-minute refresh plus focus/reconnect refresh remains as a
 durability fallback. Offline devices cannot receive remote events, but they
 apply local changes immediately and flush them as soon as connectivity returns.
 The last change received for the same Keep wins; changes to different Keeps are
@@ -239,7 +243,7 @@ merged independently.
 Telegram additions, edits, and deletions publish a lightweight `changed` event
 to the subscribe-only `public:keeps` Ably channel. Connected readers immediately
 fetch a fresh, query-keyed `/api/keeps` response. The public feed still refreshes
-every two minutes, on focus, and on reconnect as a durability fallback. Normal
+every ten minutes, on focus, and on reconnect as a durability fallback. Normal
 responses are cached at the edge for one minute and can be served stale while
 they refresh for ten minutes. Do not restore the old two-second SSE database
 polling: every reader held a function open and repeatedly queried Postgres,
@@ -458,12 +462,12 @@ and is safe to commit. `.env.local` is ignored by Git and stores local values.
    The public list should refresh immediately without reloading the page.
 
 The browser authenticates through `/api/keeps/realtime-token`. That route first
-verifies the private Saved Keeps group secret, then returns a one-hour Ably
+verifies the private Saved Keeps group secret, then returns a six-hour Ably
 token restricted to `private:keeps:<group-id>` and `public:keeps`. Visitors who
 have not exported Saved Keeps authenticate through
 `/api/keeps/public-realtime-token`, which grants subscribe-only access to
 `public:keeps`. Publishing remains server-only. If Ably is unavailable, Neon
-plus the two-minute/focus/reconnect reconciliation keeps both collections
+plus the fallback/focus/reconnect reconciliation keeps both collections
 correct.
 
 Realtime deployment checks:
@@ -698,12 +702,35 @@ rows are removed.
 
 #### Live updates
 
-`/api/keeps/stream` uses Server-Sent Events. It checks PostgreSQL every two
-seconds and sends a new collection only when the serialized data changes. The
-stream closes after 55 seconds and the browser's `EventSource` reconnects
-automatically. This stays inside Vercel's bounded function duration while giving
-the page near-real-time updates. SWR still refreshes every 60 seconds and on
-window focus if the event stream is temporarily unavailable.
+Ably carries lightweight change notifications; it never replaces Neon as the
+source of truth. Telegram publishes to `public:keeps`, and Saved Keeps mutations
+publish to the collection's private channel. On receipt, the browser fetches the
+durable state. Public feed fallback refresh is ten minutes; private Saved Keeps
+fallback reconciliation is fifteen minutes. Both refresh immediately on focus
+or reconnect. There is no long-running Vercel SSE function and no database
+polling loop.
+
+#### Free-plan cost controls
+
+- `/keeps` is statically generated, revalidates daily, and is invalidated by
+  Telegram changes. `listKeeps()` is cached for a day with the `keeps` tag.
+- Public `/api/keeps` responses are shared at the edge. Ably provides immediate
+  invalidation, so fallback polling can stay infrequent.
+- Public Ably subscribe-only tokens are cached at the edge for five minutes;
+  Ably tokens last six hours to reduce token-function invocations.
+- Saved Keeps only writes to Postgres after a user explicitly exports. Local
+  favourites remain free `localStorage` operations.
+- Spotify access tokens are reused in warm instances and now-playing responses
+  are shared at the edge. Clients poll at fifteen/sixty seconds rather than
+  five/twenty seconds.
+- Country information is cached on the device for twenty-four hours. In
+  production, Vercel country/timezone headers avoid GeoJS entirely in the usual
+  case.
+- The Flip Clock is entirely local and creates no network or server usage.
+- Google Analytics loads client-side and does not consume Vercel Functions.
+
+Preserve these controls unless a paid traffic or latency requirement justifies
+the additional recurring requests.
 
 If a message has no link, the bot asks for a post or page link. If processing
 fails, it asks the owner to try again. Check the Vercel function logs and the

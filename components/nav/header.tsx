@@ -93,16 +93,20 @@ type CountryInfo = {
   timezoneAbbr: string | null
 }
 
+const countryCacheKey = "daaysorn-country"
+const countryCacheTtl = 24 * 60 * 60 * 1000
+
 /**
  * Shows the viewer's country flag (from IP) and exposes its timezone
  * abbreviation to assistive technology. Refreshes after travel.
  */
 function CountryBadge() {
   const [country, setCountry] = React.useState<CountryInfo | null>(null)
+  const lastLoadedAt = React.useRef(0)
 
   const load = React.useEffectEvent(async () => {
     try {
-      const res = await fetch("/api/geo", { cache: "no-store" })
+      const res = await fetch("/api/geo")
       if (!res.ok) return
 
       const data = (await res.json()) as {
@@ -113,22 +117,47 @@ function CountryBadge() {
 
       if (!data.countryCode) return
 
-      setCountry({
+      const nextCountry = {
         code: data.countryCode,
         name: data.country ?? data.countryCode,
         flag: flagEmoji(data.countryCode),
         timezoneAbbr: data.timezoneAbbr,
-      })
+      }
+      const cachedAt = Date.now()
+      setCountry(nextCountry)
+      lastLoadedAt.current = cachedAt
+      window.localStorage.setItem(
+        countryCacheKey,
+        JSON.stringify({ country: nextCountry, cachedAt })
+      )
     } catch {
       // Keep last known country on transient failures.
     }
   })
 
   React.useEffect(() => {
-    const initialLoad = window.setTimeout(() => void load(), 0)
+    try {
+      const cached = JSON.parse(
+        window.localStorage.getItem(countryCacheKey) ?? "null"
+      ) as { country?: CountryInfo; cachedAt?: number } | null
+      if (
+        cached?.country &&
+        typeof cached.cachedAt === "number" &&
+        Date.now() - cached.cachedAt < countryCacheTtl
+      ) {
+        setCountry(cached.country)
+        lastLoadedAt.current = cached.cachedAt
+      }
+    } catch {
+      window.localStorage.removeItem(countryCacheKey)
+    }
+
+    const initialLoad = window.setTimeout(() => {
+      if (Date.now() - lastLoadedAt.current >= countryCacheTtl) void load()
+    }, 0)
 
     const onFocus = () => {
-      void load()
+      if (Date.now() - lastLoadedAt.current >= countryCacheTtl) void load()
     }
 
     const onVisibility = () => {

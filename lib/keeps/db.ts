@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless"
+import { unstable_cache } from "next/cache"
 
 import type { Keep, KeepDraft } from "@/lib/keeps/types"
 import { challengeFallback, isChallengeContent } from "@/lib/keeps/fallback"
@@ -109,7 +110,7 @@ function toKeep(row: KeepRow): Keep {
   }
 }
 
-export async function listKeeps(): Promise<Keep[]> {
+async function queryKeeps(): Promise<Keep[]> {
   const sql = database()
   if (!sql) return []
 
@@ -123,6 +124,11 @@ export async function listKeeps(): Promise<Keep[]> {
 
   return rows.map(toKeep)
 }
+
+export const listKeeps = unstable_cache(queryKeeps, ["keeps-list"], {
+  tags: ["keeps"],
+  revalidate: 86400,
+})
 
 export async function saveKeep(draft: KeepDraft) {
   const sql = database()

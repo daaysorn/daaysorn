@@ -25,7 +25,7 @@ export async function createKeepsRealtimeToken(groupId: string) {
       [publicKeepsRealtimeChannel]: ["subscribe"],
     }),
     clientId: `keeps-${crypto.randomUUID()}`,
-    ttl: 60 * 60 * 1000,
+    ttl: 6 * 60 * 60 * 1000,
   })
 }
 
@@ -38,7 +38,7 @@ export async function createPublicKeepsRealtimeToken() {
       [publicKeepsRealtimeChannel]: ["subscribe"],
     }),
     clientId: `keeps-reader-${crypto.randomUUID()}`,
-    ttl: 60 * 60 * 1000,
+    ttl: 6 * 60 * 60 * 1000,
   })
 }
 

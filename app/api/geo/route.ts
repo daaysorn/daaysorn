@@ -131,8 +131,12 @@ function clientIp(headers: Headers) {
 export async function GET(request: Request) {
   const headerGeo = fromHeaders(request.headers)
 
-  // Prefer a provider response when we still need timezone
-  const fallback = await fromGeoJs(clientIp(request.headers))
+  // Vercel normally supplies both values. Only call GeoJS when something is
+  // missing, avoiding a third-party request on every header load.
+  const fallback =
+    headerGeo?.countryCode && headerGeo.timezone
+      ? null
+      : await fromGeoJs(clientIp(request.headers))
 
   const merged: GeoPayload = {
     countryCode: fallback?.countryCode ?? headerGeo?.countryCode ?? null,
@@ -148,8 +152,8 @@ export async function GET(request: Request) {
   return NextResponse.json(merged, {
     headers: {
       "Cache-Control": merged.countryCode
-        ? "private, max-age=300"
-        : "private, max-age=60",
+        ? "private, max-age=86400"
+        : "private, max-age=3600",
     },
   })
 }

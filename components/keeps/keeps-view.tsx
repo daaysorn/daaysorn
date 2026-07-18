@@ -420,7 +420,7 @@ export function KeepsView({
   const [syncSession, setSyncSession] = useState<KeepsSyncSession | null>(null)
   const { data, mutate } = useSWR("/api/keeps", fetcher, {
     fallbackData: { keeps: initialKeeps },
-    refreshInterval: 120_000,
+    refreshInterval: 600_000,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
   })
@@ -549,7 +549,7 @@ export function KeepsView({
     if (!syncSession) return
 
     const synchronize = () => void syncCollection(syncSession)
-    const interval = window.setInterval(synchronize, 120_000)
+    const interval = window.setInterval(synchronize, 900_000)
     window.addEventListener("online", synchronize)
     window.addEventListener("focus", synchronize)
 

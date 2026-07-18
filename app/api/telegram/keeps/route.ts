@@ -1,4 +1,5 @@
 import { after } from "next/server"
+import { revalidatePath, revalidateTag } from "next/cache"
 
 import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
@@ -91,6 +92,11 @@ async function notifyPublicKeepsChanged() {
   }
 }
 
+function invalidatePublicKeeps() {
+  revalidateTag("keeps", { expire: 0 })
+  revalidatePath("/keeps")
+}
+
 export async function POST(request: Request) {
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim()
   const receivedSecret = request.headers.get("x-telegram-bot-api-secret-token")
@@ -130,7 +136,10 @@ export async function POST(request: Request) {
           hrefs.map((href) => deleteKeepByHref(href))
         )
         const deletedCount = deleted.filter(Boolean).length
-        if (deletedCount) await notifyPublicKeepsChanged()
+        if (deletedCount) {
+          invalidatePublicKeeps()
+          await notifyPublicKeepsChanged()
+        }
         await reply(
           message.chat.id,
           deletedCount
@@ -198,6 +207,7 @@ export async function POST(request: Request) {
       return
     }
 
+    invalidatePublicKeeps()
     await notifyPublicKeepsChanged()
 
     const titles = saved.map((keep) => `• ${keep.title}`).join("\n")

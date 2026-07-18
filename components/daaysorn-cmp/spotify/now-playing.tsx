@@ -12,20 +12,16 @@ import {
   DialogDescription,
   DialogTitle,
 } from "./ui/dialog"
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "./ui/hover-card"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./ui/hover-card"
 import { PROVIDERS } from "./providers"
 import type { NowPlayingResult, Track } from "./types"
 
 /** Poll fast while a track is actively playing, slower when idle (ms). */
-const PLAYING_INTERVAL = 5_000
-const IDLE_INTERVAL = 20_000
+const PLAYING_INTERVAL = 15_000
+const IDLE_INTERVAL = 60_000
 
 const fetcher = async (url: string): Promise<NowPlayingResult> => {
-  const res = await fetch(url, { cache: "no-store" })
+  const res = await fetch(url)
   if (!res.ok) return { status: "empty" }
   return (await res.json()) as NowPlayingResult
 }
@@ -43,9 +39,9 @@ export function NowPlaying({ className }: { className?: string }) {
       refreshWhenHidden: false,
       revalidateOnFocus: true, // returning to the tab refetches immediately
       revalidateOnReconnect: true,
-      dedupingInterval: 3_000,
+      dedupingInterval: 10_000,
       keepPreviousData: true, // no flash back to the skeleton on refetch
-    },
+    }
   )
 
   // Loading: subtle shimmer so the footer doesn't jump.
@@ -63,16 +59,13 @@ export function NowPlaying({ className }: { className?: string }) {
       <span
         className={cn(
           "inline-flex items-center gap-1.5 text-sm text-muted-foreground",
-          className,
+          className
         )}
       >
-        <Icon
-          aria-hidden
-          className="size-3.5 shrink-0 text-muted-foreground"
-        />
+        <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="block max-w-[220px] truncate">
-          <span className="font-semibold text-primary">Song Name</span> by Artist
-          Name
+          <span className="font-semibold text-primary">Song Name</span> by
+          Artist Name
         </span>
       </span>
     )
@@ -84,13 +77,10 @@ export function NowPlaying({ className }: { className?: string }) {
       <span
         className={cn(
           "inline-flex items-center gap-1.5 text-sm text-muted-foreground",
-          className,
+          className
         )}
       >
-        <Icon
-          aria-hidden
-          className="size-3.5 shrink-0 text-muted-foreground"
-        />
+        <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
         Nothing playing right now
       </span>
     )
@@ -117,8 +107,8 @@ function NowPlayingLine({
         <HoverCardTrigger asChild>
           <span
             className={cn(
-              "inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm text-muted-foreground",
-              className,
+              "inline-flex max-w-full min-w-0 items-center gap-1.5 text-sm text-muted-foreground",
+              className
             )}
           >
             {/* While playing: logo pulses first, then the title picks up the
@@ -128,27 +118,31 @@ function NowPlayingLine({
               aria-hidden
               className={cn(
                 "size-3.5 shrink-0 text-muted-foreground",
-                track.isPlaying && "motion-safe:animate-music-pulse",
+                track.isPlaying && "motion-safe:animate-music-pulse"
               )}
               style={track.isPlaying ? { color: meta.brandColor } : undefined}
             />
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="min-w-0 rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-w-0 rounded-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="block max-w-[220px] truncate">
                 <span
                   className={cn(
                     "font-semibold text-primary hover:underline",
                     track.isPlaying &&
-                      "motion-safe:animate-music-pulse motion-safe:[animation-delay:0.6s]",
+                      "motion-safe:animate-music-pulse motion-safe:[animation-delay:0.6s]"
                   )}
                 >
                   {track.title}
                 </span>{" "}
                 by{" "}
-                <span className={cn(track.isPlaying && "motion-safe:animate-text-shimmer")}>
+                <span
+                  className={cn(
+                    track.isPlaying && "motion-safe:animate-text-shimmer"
+                  )}
+                >
                   {track.artist}
                 </span>
               </span>
@@ -176,7 +170,7 @@ function NowPlayingLine({
               aria-hidden
               className={cn(
                 "size-5 shrink-0 text-muted-foreground",
-                track.isPlaying && "motion-safe:animate-music-pulse",
+                track.isPlaying && "motion-safe:animate-music-pulse"
               )}
               style={track.isPlaying ? { color: meta.brandColor } : undefined}
             />
@@ -198,9 +192,13 @@ function NowPlayingLine({
               href={track.songUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/60 bg-background/40 px-4 py-2 text-sm font-medium text-foreground outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/60 bg-background/40 px-4 py-2 text-sm font-medium text-foreground transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <Icon aria-hidden className="size-4" style={{ color: meta.brandColor }} />
+              <Icon
+                aria-hidden
+                className="size-4"
+                style={{ color: meta.brandColor }}
+              />
               Open in {meta.label}
             </a>
           )}

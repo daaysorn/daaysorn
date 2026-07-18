@@ -5,7 +5,10 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   try {
     return Response.json(await createPublicKeepsRealtimeToken(), {
-      headers: { "Cache-Control": "private, no-store" },
+      headers: {
+        "Cache-Control":
+          "public, max-age=0, s-maxage=300, stale-while-revalidate=60",
+      },
     })
   } catch (error) {
     const isMissingKey =

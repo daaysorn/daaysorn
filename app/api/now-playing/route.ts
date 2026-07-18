@@ -7,8 +7,11 @@ export async function GET() {
   const result = await getNowPlaying()
 
   return Response.json(result, {
-    // Never cache — the client polls this for live playback state, so any
-    // CDN/browser caching would show stale "still playing" after a pause.
-    headers: { "Cache-Control": "no-store, max-age=0" },
+    // Browsers revalidate, while Vercel's edge shares one short-lived Spotify
+    // response across visitors instead of invoking this function per person.
+    headers: {
+      "Cache-Control":
+        "public, max-age=0, s-maxage=10, stale-while-revalidate=20",
+    },
   })
 }

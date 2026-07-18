@@ -1,10 +1,9 @@
 import type { Metadata } from "next"
-import { randomUUID } from "node:crypto"
 
 import { KeepsView } from "@/components/keeps/keeps-view"
 import { listKeeps } from "@/lib/keeps/db"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 86400
 
 export const metadata: Metadata = {
   title: "Keeps",
@@ -29,6 +28,7 @@ export const metadata: Metadata = {
 
 export default async function KeepsPage() {
   const keeps = await listKeeps()
+  const shuffleSeed = new Date().toISOString().slice(0, 10)
 
-  return <KeepsView initialKeeps={keeps} shuffleSeed={randomUUID()} />
+  return <KeepsView initialKeeps={keeps} shuffleSeed={shuffleSeed} />
 }
