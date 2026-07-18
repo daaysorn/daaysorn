@@ -91,6 +91,29 @@ async function readTikTokEmbed(url: URL) {
   }
 }
 
+async function readInstagramEmbed(url: URL) {
+  const response = await fetch(
+    `https://www.instagram.com/api/v1/oembed/?url=${encodeURIComponent(url.toString())}`,
+    {
+      signal: AbortSignal.timeout(8000),
+      headers: { "User-Agent": "Mozilla/5.0" },
+    }
+  )
+  if (!response.ok) return null
+
+  const data = (await response.json()) as {
+    title?: string
+    author_name?: string
+    thumbnail_url?: string
+  }
+
+  return {
+    title: data.title?.trim() ?? "",
+    author: data.author_name?.trim() ?? "",
+    imageUrl: data.thumbnail_url?.trim() || null,
+  }
+}
+
 async function readPage(initialUrl: string) {
   let url = await assertPublicUrl(normalizeKeepUrl(initialUrl))
 
@@ -100,7 +123,9 @@ async function readPage(initialUrl: string) {
       signal: AbortSignal.timeout(8000),
       headers: {
         Accept: "text/html,application/xhtml+xml",
-        "User-Agent": "daaysorn-keeps/1.0 (+https://daaysorn.com/keeps)",
+        "Accept-Language": "en-US,en;q=0.9",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36 daaysorn-keeps/1.0",
       },
     })
 
@@ -133,6 +158,21 @@ async function readPage(initialUrl: string) {
     )
 
     const source = sourceFrom(url)
+
+    if (source === "Instagram") {
+      const embed = await readInstagramEmbed(url)
+      if (embed?.title) {
+        return {
+          href: normalizeKeepUrl(url.toString()),
+          title: embed.title,
+          description: embed.title,
+          author: embed.author || author,
+          imageUrl: embed.imageUrl,
+          body: embed.title,
+        }
+      }
+    }
+
     if (isChallengeContent(title, description, body)) {
       const fallback = challengeFallback(url.toString(), source)
       return {
@@ -227,6 +267,13 @@ export async function enrichKeep({
     .replace(/(?:^|\s)#[\p{L}\p{N}_-]{2,24}/gu, " ")
     .trim()
   const source = sourceFrom(new URL(page.href))
+  const contentAvailability =
+    source === "Instagram"
+      ? "Public caption and thumbnail only. No reel transcript, audio, or full video content is available. Engagement counts are not content."
+      : source === "TikTok"
+        ? "Public embed metadata only. A transcript may not be available."
+        : "Public page metadata and readable page text."
+  const pageText = source === "Instagram" ? page.description : page.body
 
   if (source === "TikTok" && !page.body && !ownerNote) {
     return {
@@ -237,6 +284,33 @@ export async function enrichKeep({
       summary: `A saved TikTok post from ${page.author}. View the original post for its photos, caption, and full context.`,
       imageUrl: page.imageUrl,
       tags: [...new Set([...customTags, "TikTok"])].slice(0, 5),
+      telegramMessageId,
+      rawText,
+    }
+  }
+
+  if (source === "Instagram" && !ownerNote) {
+    const caption = page.description.replace(/\s+/g, " ").trim()
+    const title =
+      caption.split(/[.!?](?:\s|$)/, 1)[0]?.trim() ||
+      `Instagram reel by ${page.author}`
+    const quotedCaption = caption
+      .replace(/[.!?]+(?=\s|$)/g, ";")
+      .replace(/“([^”]+)”/g, "‘$1’")
+      .replace(
+        /;\s+([A-Z])/g,
+        (_, letter: string) => `; ${letter.toLowerCase()}`
+      )
+      .replace(/;+$/, "")
+
+    return {
+      href: page.href,
+      source,
+      author: page.author,
+      title,
+      summary: `@${page.author.replace(/^@/, "")} shared the caption “${quotedCaption}.” Open the original reel for the full video context.`,
+      imageUrl: page.imageUrl,
+      tags: [...new Set([...customTags, "Instagram"])].slice(0, 5),
       telegramMessageId,
       rawText,
     }
@@ -272,7 +346,7 @@ export async function enrichKeep({
       {
         role: "system",
         content:
-          "You edit Tomiwa David's public Keeps collection. Write plain, non-technical English. The summary must contain no more than two concise sentences. State the useful idea accurately, never invent missing details, never use em dashes, and do not mention that AI created the summary. Return short title case tags. If both pageText and ownerNote are empty, clearly say this is a saved post from the named creator and that its details are available at the original link. Do not describe the platform in general.",
+          "You edit Tomiwa David's public Keeps collection. Write plain, non-technical English. The summary must contain no more than two concise sentences. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never use em dashes and never mention that AI created the summary. Return short Title Case tags. For Instagram, the supplied text is public caption metadata, not a reel transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, say that the original post provides the full context. Do not describe the social platform in general.",
       },
       {
         role: "user",
@@ -281,7 +355,8 @@ export async function enrichKeep({
           pageTitle: page.title,
           pageDescription: page.description,
           pageAuthor: page.author,
-          pageText: page.body,
+          pageText,
+          contentAvailability,
           source,
         }),
       },

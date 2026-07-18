@@ -374,6 +374,18 @@ passes `TELEGRAM_WEBHOOK_SECRET` as Telegram's `secret_token`.
    underscores and hyphens into spaces, preserves owner tags first, then fills
    the remaining tag slots with Cencori suggestions.
 
+   Instagram and TikTok often expose a caption and thumbnail without the spoken
+   video transcript. Add a short factual note after the URL when the video needs
+   context that is not written in its caption. Keeps treats that note as the
+   most trusted source for the title and summary:
+
+   ```text
+   https://www.instagram.com/reel/example This demonstrates a tool that turns a long video into short clips. #Creator_Tools
+   ```
+
+   Without a note, Cencori must stay within the public caption and clearly avoid
+   guessing what happens in the video.
+
 2. A successful background job replies with the number of saved links and lists
    each generated title. If only some links fail, the successful Keeps remain
    saved and the reply includes the failed count.
