@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { Fragment, useEffect, useMemo, useState } from "react"
 import type { IconType } from "react-icons"
 import useSWR from "swr"
 import {
@@ -18,13 +18,11 @@ import {
   PiArticleFill,
   PiBookmarkSimpleFill,
   PiInstagramLogoFill,
-  PiMagnifyingGlassBold,
   PiShareNetworkFill,
   PiXLogoFill,
   PiYoutubeLogoFill,
 } from "react-icons/pi"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -266,7 +264,7 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
 
   return (
     <article className="w-full min-w-0 pb-8 md:pb-24">
-      <header className="flex flex-col gap-5 pb-8 md:pb-10">
+      <header className="flex flex-col gap-5 pb-4 md:pb-5">
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex flex-col gap-3">
             <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
@@ -278,30 +276,34 @@ export function KeepsView({ initialKeeps }: { initialKeeps: Keep[] }) {
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-3">
-          <label className="relative block w-full">
+        <div className="flex min-w-0 flex-col border-b border-border">
+          <label className="block w-full">
             <span className="sr-only">Search Keeps</span>
-            <PiMagnifyingGlassBold className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search Keeps"
-              className="pl-9"
+              placeholder="Search Keeps…"
+              className="h-10 rounded-none border-0 border-b border-border bg-transparent px-0 py-2 text-sm font-normal shadow-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0 md:text-sm dark:bg-transparent"
             />
           </label>
-          <div className="mt-2 scrollbar-none flex max-w-full gap-2 overflow-x-auto pb-1">
-            {tags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                aria-pressed={activeTag === tag}
-                onClick={() => setActiveTag(tag)}
-                className="rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-              >
-                <Badge variant={activeTag === tag ? "default" : "outline"}>
+          <div className="scrollbar-none flex max-w-full items-center gap-4 overflow-x-auto pt-5 pb-2 md:gap-5 md:pt-6">
+            {tags.map((tag, index) => (
+              <Fragment key={tag}>
+                {index > 0 ? (
+                  <span
+                    aria-hidden="true"
+                    className="h-4 shrink-0 border-l border-border"
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  aria-pressed={activeTag === tag}
+                  onClick={() => setActiveTag(tag)}
+                  className="shrink-0 rounded-sm text-sm font-medium text-muted-foreground no-underline transition-colors hover:text-foreground hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-pressed:font-semibold aria-pressed:text-foreground"
+                >
                   {tag}
-                </Badge>
-              </button>
+                </button>
+              </Fragment>
             ))}
           </div>
         </div>

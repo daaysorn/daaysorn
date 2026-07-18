@@ -2,6 +2,7 @@ import { after } from "next/server"
 
 import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
+import { normalizeKeepUrl } from "@/lib/keeps/url"
 
 export const maxDuration = 60
 
@@ -27,22 +28,35 @@ type TelegramUpdate = {
   channel_post?: TelegramMessage
 }
 
-function findLink(message: TelegramMessage): string | undefined {
+function findLinks(message: TelegramMessage): string[] {
   const entities = [
     ...(message.entities ?? []),
     ...(message.caption_entities ?? []),
   ]
-  const entityLink = entities.find((entity) => entity.type === "text_link")?.url
-  if (entityLink) return entityLink
+  const entityLinks = entities.flatMap((entity) =>
+    entity.type === "text_link" && entity.url ? [entity.url] : []
+  )
+  const directLinks = [
+    ...(message.text ?? message.caption ?? "").matchAll(
+      /https?:\/\/[^\s<>]+/gi
+    ),
+  ].map((match) => match[0].replace(/[),.;!?\]}]+$/g, ""))
+  const replyLinks =
+    !entityLinks.length && !directLinks.length && message.reply_to_message
+      ? findLinks(message.reply_to_message)
+      : []
 
-  const directLink = (message.text ?? message.caption ?? "").match(
-    /https?:\/\/[^\s<>]+/i
-  )?.[0]
-  if (directLink) return directLink
-
-  return message.reply_to_message
-    ? findLink(message.reply_to_message)
-    : undefined
+  return [
+    ...new Set(
+      [...entityLinks, ...directLinks, ...replyLinks].flatMap((href) => {
+        try {
+          return [normalizeKeepUrl(href)]
+        } catch {
+          return []
+        }
+      })
+    ),
+  ].slice(0, 5)
 }
 
 function findCustomTags(text: string) {
@@ -85,11 +99,11 @@ export async function POST(request: Request) {
   }
 
   const rawText = message.text ?? message.caption ?? ""
-  const href = findLink(message)
+  const hrefs = findLinks(message)
   const isDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
 
   if (isDeleteCommand) {
-    if (!href) {
+    if (!hrefs.length) {
       after(() =>
         reply(
           message.chat.id,
@@ -101,10 +115,15 @@ export async function POST(request: Request) {
 
     after(async () => {
       try {
-        const deleted = await deleteKeepByHref(href)
+        const deleted = await Promise.all(
+          hrefs.map((href) => deleteKeepByHref(href))
+        )
+        const deletedCount = deleted.filter(Boolean).length
         await reply(
           message.chat.id,
-          deleted ? "Deleted from Keeps." : "That link is not in Keeps."
+          deletedCount
+            ? `Deleted ${deletedCount} ${deletedCount === 1 ? "Keep" : "Keeps"}.`
+            : "Those links are not in Keeps."
         )
       } catch (error) {
         console.error("Keeps deletion failed", {
@@ -121,34 +140,60 @@ export async function POST(request: Request) {
     return Response.json({ ok: true })
   }
 
-  if (!href) {
+  if (!hrefs.length) {
     after(() =>
       reply(message.chat.id, "Send me a post or page link to add it to Keeps.")
     )
     return Response.json({ ok: true })
   }
 
-  const keepText = rawText || href
+  const keepText = rawText || hrefs.join("\n")
   after(async () => {
-    try {
-      const keep = await enrichKeep({
-        href,
-        rawText: keepText,
-        telegramMessageId: message.message_id,
-        customTags: findCustomTags(keepText),
+    const customTags = findCustomTags(keepText)
+    const results = await Promise.allSettled(
+      hrefs.map(async (href) => {
+        const keep = await enrichKeep({
+          href,
+          rawText: keepText,
+          telegramMessageId: message.message_id,
+          customTags,
+        })
+        await saveKeep(keep)
+        return keep
       })
-      await saveKeep(keep)
-      await reply(message.chat.id, `Kept: ${keep.title}`)
-    } catch (error) {
+    )
+    const saved = results.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : []
+    )
+    const failed = results.filter((result) => result.status === "rejected")
+
+    failed.forEach((result, index) => {
       console.error("Keeps enrichment failed", {
-        message: error instanceof Error ? error.message : "Unknown error",
+        message:
+          result.status === "rejected" && result.reason instanceof Error
+            ? result.reason.message
+            : "Unknown error",
         telegramMessageId: message.message_id,
+        linkIndex: index,
       })
+    })
+
+    if (!saved.length) {
       await reply(
         message.chat.id,
-        "I could not add that link. Please try again."
+        `I could not add ${hrefs.length === 1 ? "that link" : "those links"}. Please try again.`
       )
+      return
     }
+
+    const titles = saved.map((keep) => `• ${keep.title}`).join("\n")
+    const failureNote = failed.length
+      ? `\n${failed.length} ${failed.length === 1 ? "link was" : "links were"} not added.`
+      : ""
+    await reply(
+      message.chat.id,
+      `Kept ${saved.length} ${saved.length === 1 ? "link" : "links"}:\n${titles}${failureNote}`
+    )
   })
 
   return Response.json({ ok: true })

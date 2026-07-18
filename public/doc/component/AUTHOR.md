@@ -361,8 +361,9 @@ passes `TELEGRAM_WEBHOOK_SECRET` as Telegram's `secret_token`.
 
 #### Test publishing
 
-1. Send an Instagram, X, YouTube, TikTok, or ordinary article link directly to
-   the bot.
+1. Send up to five Instagram, X, YouTube, TikTok, or ordinary article links in
+   one message directly to the bot. Each unique link is enriched and saved as
+   its own Keep.
    Add up to five custom tags as hashtags in the same message when needed:
 
    ```text
@@ -373,7 +374,9 @@ passes `TELEGRAM_WEBHOOK_SECRET` as Telegram's `secret_token`.
    underscores and hyphens into spaces, preserves owner tags first, then fills
    the remaining tag slots with Cencori suggestions.
 
-2. A successful background job replies with `Kept: <generated title>`.
+2. A successful background job replies with the number of saved links and lists
+   each generated title. If only some links fail, the successful Keeps remain
+   saved and the reply includes the failed count.
 3. Open `https://daaysorn.com/keeps`.
 4. The public feed receives the change through its live event stream. A
    60-second SWR refresh remains as a fallback.
@@ -389,6 +392,11 @@ https://example.com/post
 # Save a link with up to five custom tags
 https://example.com/post #Branding #Product_Design
 
+# Save several links in one message
+https://example.com/first
+https://example.com/second
+https://example.com/third #Research
+
 # Refresh an existing Keep with new tags or metadata
 https://example.com/post #Research
 
@@ -399,6 +407,10 @@ https://example.com/post #Research
 To delete without pasting the URL, reply `/delete` to the original Telegram
 message. Sending the same canonical URL again updates its existing card instead
 of adding a duplicate.
+
+One Telegram message can create up to five Keeps. The database intentionally
+allows those rows to share the same Telegram message ID while continuing to
+enforce uniqueness on each canonical URL.
 
 #### Public card and summary rules
 

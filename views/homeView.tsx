@@ -30,6 +30,7 @@ import {
   HoverCardTrigger,
 } from "@/components/daaysorn-cmp/spotify/ui/hover-card"
 import links from "@/json/links.json"
+import { cn } from "@/lib/utils"
 
 const linkClassName =
   "rounded-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -54,6 +55,7 @@ type PreviewLinkProps = {
 }
 
 const passthroughImageLoader = ({ src }: { src: string }) => src
+const loadedPreviews = new Set<string>()
 
 const SitePreview = ({
   href,
@@ -61,17 +63,28 @@ const SitePreview = ({
   icon: Icon,
   logoSrc,
 }: Pick<PreviewLinkProps, "href" | "label" | "icon" | "logoSrc">) => {
-  const [loading, setLoading] = useState(true)
   const isWebsite = href.startsWith("http")
   const isLocalPage = href.startsWith("/")
   const previewSrc = isWebsite
     ? `https://api.microlink.io/?url=${encodeURIComponent(href)}&screenshot=true&meta=false&embed=screenshot.url`
     : href
+  const [loaded, setLoaded] = useState(() => loadedPreviews.has(previewSrc))
+
+  const finishLoading = () => {
+    loadedPreviews.add(previewSrc)
+    setLoaded(true)
+  }
 
   return (
     <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
-      {loading && (isWebsite || isLocalPage) ? (
-        <div className="absolute inset-0 z-10 animate-pulse bg-muted">
+      {isWebsite || isLocalPage ? (
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 z-10 bg-muted transition-opacity duration-500 ease-out motion-safe:animate-pulse",
+            loaded ? "opacity-0" : "opacity-100"
+          )}
+        >
           <div className="h-7 bg-background/70" />
           <div className="space-y-3 p-4">
             <div className="h-4 w-2/3 rounded-full bg-foreground/10" />
@@ -90,9 +103,12 @@ const SitePreview = ({
           src={previewSrc}
           alt={`Preview of ${label}`}
           sizes="18rem"
-          className="object-cover object-top"
-          onLoad={() => setLoading(false)}
-          onError={() => setLoading(false)}
+          className={cn(
+            "object-cover object-top transition-opacity duration-500 ease-out",
+            loaded ? "opacity-100" : "opacity-0"
+          )}
+          onLoad={finishLoading}
+          onError={finishLoading}
         />
       ) : isLocalPage ? (
         <iframe
@@ -100,8 +116,11 @@ const SitePreview = ({
           title={`Preview of ${label}`}
           tabIndex={-1}
           loading="lazy"
-          className="pointer-events-none absolute inset-0 h-[200%] w-[200%] origin-top-left scale-50 border-0 bg-background"
-          onLoad={() => setLoading(false)}
+          className={cn(
+            "pointer-events-none absolute inset-0 h-[200%] w-[200%] origin-top-left scale-50 border-0 bg-background transition-opacity duration-500 ease-out",
+            loaded ? "opacity-100" : "opacity-0"
+          )}
+          onLoad={finishLoading}
         />
       ) : (
         <div className="flex h-full items-center justify-center bg-linear-to-br from-primary/15 via-card to-muted">
@@ -109,7 +128,7 @@ const SitePreview = ({
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 px-3 py-2 backdrop-blur-xl dark:bg-background/82">
+      <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 px-3 py-2 backdrop-blur-xl dark:bg-background/82">
         <div className="flex min-w-0 items-center gap-2">
           {logoSrc ? (
             <span
@@ -148,7 +167,7 @@ const PreviewLink = ({
         href={href}
         target={external ? "_blank" : undefined}
         rel={external ? "noopener noreferrer" : undefined}
-        className={`${linkClassName} ${className}`}
+        className={cn(linkClassName, className)}
       >
         {children ?? label}
       </Link>
@@ -223,10 +242,10 @@ const HomeView = () => {
         </p>
 
         <p className="clear-none mt-5">
-          My work brings together how a brand feels, how a product looks, and
-          how people use it. I care about the details people notice, the parts
-          that quietly make everything work, and the clarity that holds it all
-          together. You can read my random thoughts in{" "}
+          My work connects how a brand feels, how a product looks, and how
+          people experience it. I care about the details people notice, the
+          quiet choices that make things work, and the clarity that brings
+          everything together. Read my passing thoughts in{" "}
           <PreviewLink
             href={links.content.rants.href}
             label={links.content.rants.label}
@@ -234,8 +253,8 @@ const HomeView = () => {
             icon={PiArticleFill}
           >
             {links.content.rants.label}
-          </PreviewLink>
-          , contribute your own perspective, and browse a{" "}
+          </PreviewLink>{" "}
+          and share your perspective, browse moments from my life in{" "}
           <PreviewLink
             href={links.content.gallery.href}
             label={links.content.gallery.label}
@@ -243,8 +262,8 @@ const HomeView = () => {
             icon={PiImagesSquareFill}
           >
             {links.content.gallery.label}
-          </PreviewLink>{" "}
-          of moments from my life, or explore{" "}
+          </PreviewLink>
+          , or visit{" "}
           <PreviewLink
             href={links.content.keeps.href}
             label={links.content.keeps.label}
@@ -253,7 +272,7 @@ const HomeView = () => {
           >
             {links.content.keeps.label}
           </PreviewLink>{" "}
-          for useful things I have saved along the way.
+          for ideas, stories, and finds worth returning to.
         </p>
 
         <p className="clear-both mt-5">

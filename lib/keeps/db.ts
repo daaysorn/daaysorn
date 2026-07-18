@@ -29,7 +29,7 @@ async function ensureSchema() {
         summary TEXT NOT NULL,
         image_url TEXT,
         tags TEXT[] NOT NULL DEFAULT '{}',
-        telegram_message_id BIGINT NOT NULL UNIQUE,
+        telegram_message_id BIGINT NOT NULL,
         raw_text TEXT NOT NULL,
         saved_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
@@ -37,6 +37,10 @@ async function ensureSchema() {
     await sql`
       ALTER TABLE keeps
       ADD COLUMN IF NOT EXISTS image_url TEXT
+    `
+    await sql`
+      ALTER TABLE keeps
+      DROP CONSTRAINT IF EXISTS keeps_telegram_message_id_key
     `
     await sql`
       CREATE INDEX IF NOT EXISTS keeps_saved_at_idx
