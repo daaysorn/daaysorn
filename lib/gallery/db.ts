@@ -37,8 +37,20 @@ async function ensureGallerySchema() {
         media_url TEXT,
         poster_url TEXT,
         object_keys TEXT[] NOT NULL DEFAULT '{}',
+        buffer_post_id TEXT,
+        buffer_published_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `
+    await sql`
+      ALTER TABLE gallery_media
+      ADD COLUMN IF NOT EXISTS buffer_post_id TEXT,
+      ADD COLUMN IF NOT EXISTS buffer_published_at TIMESTAMPTZ
+    `
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS gallery_media_buffer_post_id_idx
+      ON gallery_media (buffer_post_id)
+      WHERE buffer_post_id IS NOT NULL
     `
     await sql`
       CREATE INDEX IF NOT EXISTS gallery_media_created_at_idx
@@ -174,6 +186,56 @@ export async function saveGalleryMedia(draft: GalleryMediaDraft) {
   `
 
   return rows.length > 0
+}
+
+type GalleryBufferRow = GalleryRow & {
+  content_hash: string
+  telegram_file_unique_id: string
+  telegram_message_id: string | number
+  mime_type: string
+  object_keys: string[]
+}
+
+export async function listGalleryMediaPendingBuffer(limit = 20) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureGallerySchema()
+
+  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 50)
+  const rows = (await sql`
+    SELECT id, media_type, content_hash, telegram_file_unique_id,
+      telegram_message_id, caption, alt_text, mime_type, width, height,
+      small_url, medium_url, large_url, media_url, poster_url, object_keys,
+      created_at
+    FROM gallery_media
+    WHERE buffer_post_id IS NULL
+    ORDER BY created_at ASC, telegram_message_id ASC
+    LIMIT ${boundedLimit}
+  `) as GalleryBufferRow[]
+
+  return rows.map((row): GalleryMediaDraft => ({
+    ...toGalleryMedia(row),
+    contentHash: row.content_hash,
+    telegramFileUniqueId: row.telegram_file_unique_id,
+    telegramMessageId: Number(row.telegram_message_id),
+    mimeType: row.mime_type,
+    objectKeys: row.object_keys,
+  }))
+}
+
+export async function markGalleryMediaPublishedToBuffer(
+  galleryMediaId: string,
+  bufferPostId: string
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureGallerySchema()
+
+  await sql`
+    UPDATE gallery_media
+    SET buffer_post_id = ${bufferPostId}, buffer_published_at = NOW()
+    WHERE id = ${galleryMediaId} AND buffer_post_id IS NULL
+  `
 }
 
 export async function deleteGalleryMedia({

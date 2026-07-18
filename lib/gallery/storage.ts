@@ -8,7 +8,11 @@ import {
 import sharp from "sharp"
 
 import { publishGalleryMediaToInstagram } from "@/lib/gallery/buffer"
-import { galleryMediaExists, saveGalleryMedia } from "@/lib/gallery/db"
+import {
+  galleryMediaExists,
+  markGalleryMediaPublishedToBuffer,
+  saveGalleryMedia,
+} from "@/lib/gallery/db"
 import type {
   GalleryMediaDraft,
   TelegramGalleryAttachment,
@@ -222,7 +226,10 @@ export async function processGalleryAttachment(
   if (!saved) return "duplicate"
 
   try {
-    await publishGalleryMediaToInstagram(draft)
+    const published = await publishGalleryMediaToInstagram(draft)
+    if (published !== "unconfigured") {
+      await markGalleryMediaPublishedToBuffer(draft.id, published.postId)
+    }
   } catch (error) {
     // Gallery publishing must remain successful if Buffer is unavailable.
     console.error("Buffer Instagram publishing failed", {

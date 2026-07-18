@@ -897,6 +897,26 @@ videos use the original public R2 video URL and a two-second thumbnail offset.
 Instagram may require notification publishing when the connected account or
 media does not meet Meta's automatic-publishing rules.
 
+To backfill Gallery media that existed before Buffer was connected, preview the
+oldest unsynced items first:
+
+```bash
+bun run buffer:sync-gallery
+```
+
+The command is a dry run unless `--publish` is supplied. After checking the
+list, publish up to twenty items:
+
+```bash
+bun run buffer:sync-gallery --publish
+```
+
+Use `--limit=10` (or another value from 1 to 50) to send a smaller batch. Each
+successful Buffer post ID is stored on its Gallery row, so rerunning the command
+selects only media that has not already been synced. The script stops on the
+first failure instead of continuing blindly. New Telegram uploads use the same
+tracking fields automatically.
+
 Telegram sends an album as multiple webhook updates with the same
 `media_group_id`, not as one message. The Gallery stores those items in a
 durable database-backed batch, waits briefly for the group, claims it atomically,

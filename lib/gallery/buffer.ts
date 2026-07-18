@@ -63,5 +63,8 @@ export async function publishGalleryMediaToInstagram(media: GalleryMediaDraft) {
     throw new Error(error || `Buffer returned ${response.status}`)
   }
 
-  return "published" as const
+  return {
+    status: "published",
+    postId: result.data.createPost.post.id,
+  } as const
 }
