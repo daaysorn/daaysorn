@@ -538,6 +538,38 @@ async function reviewKeepMetadata(
   })
 }
 
+async function generateReviewedKeepMetadata(
+  cencori: Cencori,
+  evidence: Record<string, unknown>
+) {
+  let candidate = (await generateKeepMetadata(cencori, evidence)).object
+  let title = cleanAiTitle(candidate.title)
+  let summary = limitSentences(cleanEditorialText(candidate.summary))
+  let deterministicallyRejected =
+    isChallengeContent(title, summary) || isGenericKeepCopy(title, summary)
+  let review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
+
+  if (deterministicallyRejected || !review.accepted) {
+    const feedback = [
+      deterministicallyRejected
+        ? "The draft failed deterministic checks for generic, challenge, or unsupported copy."
+        : "",
+      review.feedback,
+      ...review.unsupportedClaims.map((claim) => `Unsupported: ${claim}`),
+    ]
+      .filter(Boolean)
+      .join(" ")
+    candidate = (await generateKeepMetadata(cencori, evidence, feedback)).object
+    title = cleanAiTitle(candidate.title)
+    summary = limitSentences(cleanEditorialText(candidate.summary))
+    deterministicallyRejected =
+      isChallengeContent(title, summary) || isGenericKeepCopy(title, summary)
+    review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
+  }
+
+  return deterministicallyRejected || !review.accepted ? null : candidate
+}
+
 function cleanEditorialText(value: string) {
   return value
     .replace(/#[\p{L}\p{N}_-]+/gu, " ")
@@ -551,6 +583,30 @@ function cleanAiTitle(value: string) {
   return cleanEditorialText(
     value.replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, " ")
   )
+}
+
+export function sourceMetadataFallback({
+  href,
+  title,
+  description,
+  body,
+  ownerNote,
+}: {
+  href: string
+  title: string
+  description: string
+  body: string
+  ownerNote: string
+}) {
+  const fallbackTitle = cleanAiTitle(title) || titleFromKeepUrl(href)
+  const fallbackSummary = limitSentences(
+    cleanEditorialText(ownerNote || description || body)
+  )
+
+  return {
+    title: fallbackTitle,
+    summary: fallbackSummary || `Saved from ${new URL(href).hostname}.`,
+  }
 }
 
 async function analyzeInstagramThumbnail(
@@ -629,16 +685,14 @@ export async function enrichKeep({
   const pageText = source === "Instagram" ? page.description : page.body
 
   const apiKey = process.env.CENCORI_API_KEY?.trim()
-  if (!apiKey) throw new Error("CENCORI_API_KEY is not configured")
-
-  const cencori = new Cencori({ apiKey })
+  const cencori = apiKey ? new Cencori({ apiKey }) : null
   const instagramPreview =
     source === "Instagram"
       ? ((await cacheKeepPreview(page.imageUrl, page.href)) ??
         (await captureKeepScreenshotPreview(page.href)))
       : null
   const thumbnailAnalysis =
-    source === "Instagram"
+    source === "Instagram" && cencori
       ? await analyzeInstagramThumbnail(
           cencori,
           page.imageUrl ?? instagramPreview
@@ -671,39 +725,34 @@ export async function enrichKeep({
     previousTagsAsHints: customTags,
     allowedTags: keepTagTaxonomy,
   }
-  let candidate = (await generateKeepMetadata(cencori, evidence)).object
-  let aiTitle = cleanAiTitle(candidate.title)
-  let aiSummary = limitSentences(cleanEditorialText(candidate.summary))
-  let deterministicRejection =
-    isChallengeContent(aiTitle, aiSummary) ||
-    isGenericKeepCopy(aiTitle, aiSummary)
-  let review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
-
-  if (deterministicRejection || !review.accepted) {
-    const feedback = [
-      deterministicRejection
-        ? "The draft failed deterministic checks for generic, challenge, or unsupported copy."
-        : "",
-      review.feedback,
-      ...review.unsupportedClaims.map((claim) => `Unsupported: ${claim}`),
-    ]
-      .filter(Boolean)
-      .join(" ")
-    candidate = (await generateKeepMetadata(cencori, evidence, feedback)).object
-    aiTitle = cleanAiTitle(candidate.title)
-    aiSummary = limitSentences(cleanEditorialText(candidate.summary))
-    deterministicRejection =
-      isChallengeContent(aiTitle, aiSummary) ||
-      isGenericKeepCopy(aiTitle, aiSummary)
-    review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
+  let candidate: AiKeep | null = null
+  if (cencori) {
+    try {
+      candidate = await generateReviewedKeepMetadata(cencori, evidence)
+    } catch (error) {
+      console.error(
+        "Keeps AI metadata generation failed; using page metadata",
+        {
+          message: error instanceof Error ? error.message : "Unknown error",
+          href: page.href,
+        }
+      )
+    }
   }
 
-  if (deterministicRejection || !review.accepted) {
-    throw new Error("AI metadata review rejected the corrected draft")
-  }
-
-  const aiAuthor =
-    cleanAiTitle(candidate.author) ||
+  const fallback = sourceMetadataFallback({
+    href: page.href,
+    title: page.title,
+    description: page.description,
+    body: page.body,
+    ownerNote,
+  })
+  const title = candidate ? cleanAiTitle(candidate.title) : fallback.title
+  const summary = candidate
+    ? limitSentences(cleanEditorialText(candidate.summary))
+    : fallback.summary
+  const author =
+    (candidate ? cleanAiTitle(candidate.author) : "") ||
     instagramResource?.handle ||
     page.author ||
     source
@@ -715,17 +764,19 @@ export async function enrichKeep({
   return {
     href: page.href,
     source,
-    author: aiAuthor,
-    title: aiTitle,
-    summary: aiSummary,
+    author,
+    title,
+    summary,
     imageUrl,
-    tags: [
-      ...new Set(
-        candidate.tags
-          .map((tag) => tag.replace(/^#+/, "").trim())
-          .filter(Boolean)
-      ),
-    ].slice(0, 2),
+    tags: candidate
+      ? [
+          ...new Set(
+            candidate.tags
+              .map((tag) => tag.replace(/^#+/, "").trim())
+              .filter(Boolean)
+          ),
+        ].slice(0, 2)
+      : customTags.slice(0, 2),
     telegramMessageId,
     rawText,
   }
