@@ -11,6 +11,24 @@ function formatDate(value: string | null) {
   }).format(new Date(value ?? Date.now()))
 }
 
+function shouldShowExcerpt(rant: Rant) {
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim()
+  const body = normalize(rant.bodyText)
+  const excerpt = normalize(rant.excerpt)
+  const bodyWords = body.split(/\s+/).filter(Boolean).length
+
+  return (
+    bodyWords > 80 &&
+    excerpt.length > 0 &&
+    excerpt !== body &&
+    !body.startsWith(excerpt)
+  )
+}
+
 export function RantArticle({
   rant,
   perspectives,
@@ -20,6 +38,8 @@ export function RantArticle({
   perspectives: Perspective[]
   preview?: boolean
 }) {
+  const showExcerpt = shouldShowExcerpt(rant)
+
   return (
     <article className="min-w-0 pb-10 md:pb-24">
       {preview ? (
@@ -42,9 +62,11 @@ export function RantArticle({
         <h1 className="mt-4 max-w-[15ch] text-3xl leading-tight font-semibold tracking-tight xs:text-4xl md:text-5xl">
           {rant.title}
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
-          {rant.excerpt}
-        </p>
+        {showExcerpt ? (
+          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
+            {rant.excerpt}
+          </p>
+        ) : null}
         <div className="mt-5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
           {rant.tags.map((tag) => (
             <span key={tag}>{tag}</span>
