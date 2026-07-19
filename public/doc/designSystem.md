@@ -40,14 +40,14 @@
 
 ## 1. Principles
 
-| Principle                       | How it shows up in code                                                                             |
-| ------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Token-first**                 | Semantic CSS variables (`--primary`, `--muted-foreground`) mapped into Tailwind via `@theme inline` |
-| **Mobile-first shell**          | Root content column is `max-w-md` — phone-narrow composition by default                             |
-| **Semantic color, not raw hex** | Prefer `bg-primary` / `text-muted-foreground` over hard-coded colors                                |
-| **Neutral chrome**              | Near-monochrome light/dark with a single warm-red destructive accent                                |
-| **Role-based type**             | Body = Geist, headings = Montserrat, code = JetBrains Mono                                          |
-| **Composable UI**               | shadcn + Radix primitives; Magic UI registry available (`@magicui`)                                 |
+| Principle                         | How it shows up in code                                                                                               |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Token-first**                   | Semantic CSS variables (`--primary`, `--muted-foreground`) mapped into Tailwind via `@theme inline`                   |
+| **Mobile-first shell**            | Root content column is `max-w-md` — phone-narrow composition by default                                               |
+| **Semantic color, not raw hex**   | Prefer `bg-primary` / `text-muted-foreground` over hard-coded colors                                                  |
+| **Neutral chrome**                | Near-monochrome light/dark with a single warm-red destructive accent                                                  |
+| **Role-based type**               | Body = Geist, headings = Montserrat, code = JetBrains Mono                                                            |
+| **Composable UI**                 | shadcn + Radix primitives; Magic UI registry available (`@magicui`)                                                   |
 | **Performance is visual quality** | Server-render static composition; hydrate only interaction; avoid hidden work that makes motion or feedback feel slow |
 
 ---
@@ -828,14 +828,14 @@ Defined via `@utility animate-text-shimmer` and `@utility animate-music-pulse`.
 Performance choices are design choices because they control how quickly the
 interface settles, whether skeletons flash, and whether navigation feels calm.
 
-| Pattern | Rule |
-| ------- | ---- |
-| Static composition | Render headings, prose, layout and non-interactive media in Server Components. Use a small client island only for browser state, gestures, dialogs, realtime or form behavior. |
-| Internal link preview | Use the route's generated OG image or a stored static preview. Never render the full local page in an iframe. |
-| External preview | Prefer a generated screenshot cached in R2 or another durable asset store. Avoid rebuilding the same preview on each hover. |
-| Skeleton lifecycle | Match the final box size, use `bg-muted`, and stop showing it after that preview has settled during the session. |
-| Decorative motion | Prefer CSS transitions/keyframes with `motion-safe:` and an explicit reduced-motion state. |
-| Physics/gesture motion | A focused client library is acceptable only when continuous pointer or gesture calculations are the interaction itself, such as Dock magnification. |
+| Pattern                | Rule                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Static composition     | Render headings, prose, layout and non-interactive media in Server Components. Use a small client island only for browser state, gestures, dialogs, realtime or form behavior. |
+| Internal link preview  | Use the route's generated OG image or a stored static preview. Never render the full local page in an iframe.                                                                  |
+| External preview       | Prefer a generated screenshot cached in R2 or another durable asset store. Avoid rebuilding the same preview on each hover.                                                    |
+| Skeleton lifecycle     | Match the final box size, use `bg-muted`, and stop showing it after that preview has settled during the session.                                                               |
+| Decorative motion      | Prefer CSS transitions/keyframes with `motion-safe:` and an explicit reduced-motion state.                                                                                     |
+| Physics/gesture motion | A focused client library is acceptable only when continuous pointer or gesture calculations are the interaction itself, such as Dock magnification.                            |
 
 A preview is visual context, not an embedded copy of the destination. Hovering
 it must not boot the destination's analytics, Spotify polling, database reads,
@@ -1363,15 +1363,15 @@ consistent across body links, cards, navigation, previews, and social links.
 
 ## Changelog (design system doc)
 
-| Date          | Change                                                                                                                                                                                                                                                                                                                               |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Initial       | Full audit of fonts (Geist / Montserrat / JetBrains Mono), OKLCH tokens, radius scale, shell layout, Button / Tooltip / Dock / Footer, theme provider, Tailwind default breakpoints                                                                                                                                                  |
-| Breakpoints   | Deep §7: why Tailwind isn’t “wrong,” what we keep vs extend (`watch`/`xs`), how it helps phones (incl. iPhone 12), wearables, shadcn compatibility, anti-patterns                                                                                                                                                                    |
-| Portability   | Added §15 (three-tier tokens, fixed-vs-swappable contract, brand-swap mechanics, a11y contract, versioning) + §16 agent skill usage; skill at [https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md](https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md) |
-| shadcn Create | Documented origin of `globals.css` from [ui.shadcn.com/create](https://ui.shadcn.com/create); §2.1, §9.4, §15.7 — replace theme values freely, keep token names; shadcn `add` works unchanged                                                                                                                                        |
-| Overflow wrap | §13.6 — long tokens/URLs/env lines must use `break-all` + `overflow-wrap` / `min-w-0`; Spotify auth callback fixed                                                                                                                                                                                                                   |
-| Feedback UI   | §3.6 muted text hierarchy; §8.7 ghost patterns, skeletons, pulse, text-shimmer (`5.5s ease-in-out`)                                                                                                                                                                                                                                  |
-| Performance UI | Added performance as a design principle; §8.1 CSS-only page reveals; §8.8 server/client boundaries, lightweight OG previews, settled skeleton behavior and reduced-motion rules |
+| Date           | Change                                                                                                                                                                                                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Initial        | Full audit of fonts (Geist / Montserrat / JetBrains Mono), OKLCH tokens, radius scale, shell layout, Button / Tooltip / Dock / Footer, theme provider, Tailwind default breakpoints                                                                                                                                                  |
+| Breakpoints    | Deep §7: why Tailwind isn’t “wrong,” what we keep vs extend (`watch`/`xs`), how it helps phones (incl. iPhone 12), wearables, shadcn compatibility, anti-patterns                                                                                                                                                                    |
+| Portability    | Added §15 (three-tier tokens, fixed-vs-swappable contract, brand-swap mechanics, a11y contract, versioning) + §16 agent skill usage; skill at [https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md](https://github.com/daaysorn/daaysorn/blob/main/public/doc/daaysorn-design-system/SKILL.md) |
+| shadcn Create  | Documented origin of `globals.css` from [ui.shadcn.com/create](https://ui.shadcn.com/create); §2.1, §9.4, §15.7 — replace theme values freely, keep token names; shadcn `add` works unchanged                                                                                                                                        |
+| Overflow wrap  | §13.6 — long tokens/URLs/env lines must use `break-all` + `overflow-wrap` / `min-w-0`; Spotify auth callback fixed                                                                                                                                                                                                                   |
+| Feedback UI    | §3.6 muted text hierarchy; §8.7 ghost patterns, skeletons, pulse, text-shimmer (`5.5s ease-in-out`)                                                                                                                                                                                                                                  |
+| Performance UI | Added performance as a design principle; §8.1 CSS-only page reveals; §8.8 server/client boundaries, lightweight OG previews, settled skeleton behavior and reduced-motion rules                                                                                                                                                      |
 
 ---
 
