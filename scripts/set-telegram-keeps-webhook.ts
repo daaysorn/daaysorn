@@ -19,7 +19,12 @@ const response = await fetch(
     body: JSON.stringify({
       url: webhookUrl,
       secret_token: secret,
-      allowed_updates: ["message", "edited_message", "channel_post"],
+      allowed_updates: [
+        "message",
+        "edited_message",
+        "channel_post",
+        "callback_query",
+      ],
     }),
   }
 )

@@ -2,6 +2,7 @@ import {
   applyKeepsSyncChanges,
   authenticateKeepsSyncGroup,
   createKeepsSyncGroup,
+  getKeepsSyncDisplayName,
   listSyncedKeepIds,
 } from "@/lib/keeps/sync-db"
 import { publishKeepsChanged } from "@/lib/keeps/realtime"
@@ -55,7 +56,10 @@ export async function GET(request: Request) {
     if (!auth)
       return Response.json({ error: "Unauthorized" }, { status: 401, headers })
     return Response.json(
-      { savedIds: await listSyncedKeepIds(auth.id) },
+      {
+        savedIds: await listSyncedKeepIds(auth.id),
+        displayName: await getKeepsSyncDisplayName(auth.id),
+      },
       { headers }
     )
   } catch {

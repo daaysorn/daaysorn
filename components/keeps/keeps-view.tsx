@@ -48,6 +48,12 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { trackKeepsEvent } from "@/lib/analytics"
+import {
+  favouritesStorageKey,
+  readDeviceSyncSession,
+  syncSessionStorageKey,
+  type DeviceSyncSession,
+} from "@/lib/device-sync"
 import type { Keep } from "@/lib/keeps/types"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import { cn } from "@/lib/utils"
@@ -365,11 +371,11 @@ const fetcher = async (url: string): Promise<{ keeps: Keep[] }> => {
   return response.json() as Promise<{ keeps: Keep[] }>
 }
 
-type KeepsSyncSession = { id: string; secret: string }
+type KeepsSyncSession = DeviceSyncSession
 type KeepsSyncChange = { keepId: string; saved: boolean }
 
-const favouritesKey = "daaysorn-keeps-favourites"
-const syncSessionKey = "daaysorn-keeps-sync-session"
+const favouritesKey = favouritesStorageKey
+const syncSessionKey = syncSessionStorageKey
 const pendingChangesKey = "daaysorn-keeps-sync-pending"
 
 function readStoredArray<T>(key: string): T[] {
@@ -416,16 +422,7 @@ function queueSyncChange(
 }
 
 function storedSyncSession(): KeepsSyncSession | null {
-  try {
-    const value = JSON.parse(
-      window.localStorage.getItem(syncSessionKey) ?? "null"
-    ) as Partial<KeepsSyncSession> | null
-    return typeof value?.id === "string" && typeof value.secret === "string"
-      ? { id: value.id, secret: value.secret }
-      : null
-  } catch {
-    return null
-  }
+  return readDeviceSyncSession()
 }
 
 function seededOrder(value: string) {

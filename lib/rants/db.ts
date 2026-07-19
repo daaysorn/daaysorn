@@ -42,7 +42,6 @@ async function ensureSchema() {
         id TEXT PRIMARY KEY,
         rant_id TEXT NOT NULL REFERENCES rants(id) ON DELETE CASCADE,
         name TEXT NOT NULL,
-        email TEXT,
         body TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending'
           CHECK (status IN ('pending', 'approved', 'rejected')),
@@ -50,6 +49,10 @@ async function ensureSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         reviewed_at TIMESTAMPTZ
       )
+    `
+    await sql`
+      ALTER TABLE rant_perspectives
+      DROP COLUMN IF EXISTS email
     `
     await sql`
       CREATE INDEX IF NOT EXISTS rant_perspectives_rant_status_idx
@@ -255,7 +258,6 @@ export async function listApprovedPerspectives(rantId: string) {
 export async function createPerspective(input: {
   rantId: string
   name: string
-  email: string | null
   body: string
   submitterHash: string
 }) {
@@ -274,10 +276,10 @@ export async function createPerspective(input: {
   const id = crypto.randomUUID()
   await sql`
     INSERT INTO rant_perspectives (
-      id, rant_id, name, email, body, submitter_hash
+      id, rant_id, name, body, submitter_hash
     ) VALUES (
-      ${id}, ${input.rantId}, ${input.name}, ${input.email},
-      ${input.body}, ${input.submitterHash}
+      ${id}, ${input.rantId}, ${input.name}, ${input.body},
+      ${input.submitterHash}
     )
   `
   return { status: "created" as const, id }

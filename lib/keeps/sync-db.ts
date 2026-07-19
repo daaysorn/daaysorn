@@ -14,6 +14,13 @@ function hashSecret(secret: string) {
   return createHash("sha256").update(secret).digest("hex")
 }
 
+function anonymousName(groupId: string) {
+  const adjectives = ["Calm", "Curious", "Gentle", "Quiet", "Thoughtful"]
+  const nouns = ["Finch", "Heron", "Mango", "Palm", "Robin"]
+  const hash = createHash("sha256").update(groupId).digest()
+  return `${adjectives[hash[0] % adjectives.length]} ${nouns[hash[1] % nouns.length]}`
+}
+
 async function ensureSyncSchema() {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
@@ -23,9 +30,14 @@ async function ensureSyncSchema() {
       CREATE TABLE IF NOT EXISTS keeps_sync_groups (
         id TEXT PRIMARY KEY,
         secret_hash TEXT NOT NULL,
+        display_name TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `
+    await sql`
+      ALTER TABLE keeps_sync_groups
+      ADD COLUMN IF NOT EXISTS display_name TEXT
     `
     await sql`
       CREATE TABLE IF NOT EXISTS keeps_sync_items (
@@ -52,8 +64,8 @@ export async function createKeepsSyncGroup(savedIds: string[]) {
   const secret = randomBytes(32).toString("base64url")
 
   await sql`
-    INSERT INTO keeps_sync_groups (id, secret_hash)
-    VALUES (${id}, ${hashSecret(secret)})
+    INSERT INTO keeps_sync_groups (id, secret_hash, display_name)
+    VALUES (${id}, ${hashSecret(secret)}, ${anonymousName(id)})
   `
 
   for (const keepId of savedIds) {
@@ -66,7 +78,7 @@ export async function createKeepsSyncGroup(savedIds: string[]) {
     `
   }
 
-  return { id, secret }
+  return { id, secret, displayName: anonymousName(id) }
 }
 
 export async function authenticateKeepsSyncGroup(id: string, secret: string) {
@@ -78,6 +90,33 @@ export async function authenticateKeepsSyncGroup(id: string, secret: string) {
     LIMIT 1
   `
   return rows.length > 0
+}
+
+export async function getKeepsSyncDisplayName(groupId: string) {
+  const sql = await ensureSyncSchema()
+  const existing = (await sql`
+    SELECT display_name FROM keeps_sync_groups WHERE id = ${groupId} LIMIT 1
+  `) as Array<{ display_name: string | null }>
+  if (existing[0]?.display_name) return existing[0].display_name
+
+  const fallback = anonymousName(groupId)
+  const rows = (await sql`
+    UPDATE keeps_sync_groups
+    SET display_name = ${fallback}, updated_at = NOW()
+    WHERE id = ${groupId} AND display_name IS NULL
+    RETURNING display_name
+  `) as Array<{ display_name: string }>
+  return rows[0]?.display_name ?? existing[0]?.display_name ?? fallback
+}
+
+export async function setKeepsSyncDisplayName(groupId: string, name: string) {
+  const sql = await ensureSyncSchema()
+  await sql`
+    UPDATE keeps_sync_groups
+    SET display_name = ${name}, updated_at = NOW()
+    WHERE id = ${groupId}
+  `
+  return name
 }
 
 export async function listSyncedKeepIds(groupId: string) {

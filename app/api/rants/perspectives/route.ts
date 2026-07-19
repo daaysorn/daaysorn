@@ -2,15 +2,26 @@ import { createHash } from "node:crypto"
 import { revalidatePath, revalidateTag } from "next/cache"
 
 import { createPerspective, getRantById } from "@/lib/rants/db"
+import {
+  authenticateKeepsSyncGroup,
+  getKeepsSyncDisplayName,
+  setKeepsSyncDisplayName,
+} from "@/lib/keeps/sync-db"
 import { sendRantsTelegramMessage } from "@/lib/rants/telegram"
 
 type Submission = {
   rantId?: string
   name?: string
-  email?: string
   body?: string
   website?: string
   turnstileToken?: string
+}
+
+function syncCredentials(request: Request) {
+  const authorization = request.headers.get("authorization")
+  if (!authorization?.startsWith("Bearer ")) return null
+  const [id, secret] = authorization.slice(7).split(".", 2)
+  return id && secret ? { id, secret } : null
 }
 
 async function validTurnstile(token: string | undefined, ip: string) {
@@ -36,14 +47,24 @@ export async function POST(request: Request) {
 
   const rantId = input.rantId?.trim() ?? ""
   const name = input.name?.trim().replace(/\s+/g, " ").slice(0, 60) ?? ""
-  const email = input.email?.trim().toLowerCase().slice(0, 160) || null
   const body = input.body?.trim().replace(/\r\n/g, "\n").slice(0, 1200) ?? ""
-  if (!rantId || name.length < 2 || body.length < 20) {
+  if (!rantId || !body) {
     return Response.json(
-      { error: "Add your name and a thoughtful response." },
+      { error: "Add your Perspective before continuing." },
       { status: 400 }
     )
   }
+
+  const sync = syncCredentials(request)
+  if (!sync || !(await authenticateKeepsSyncGroup(sync.id, sync.secret))) {
+    return Response.json(
+      { error: "This device identity is unavailable. Refresh and try again." },
+      { status: 401 }
+    )
+  }
+  const displayName = name
+    ? await setKeepsSyncDisplayName(sync.id, name)
+    : await getKeepsSyncDisplayName(sync.id)
 
   const rant = await getRantById(rantId)
   if (!rant || rant.status !== "published") {
@@ -61,13 +82,12 @@ export async function POST(request: Request) {
 
   const submitterHash = createHash("sha256")
     .update(
-      `${ip}:${request.headers.get("user-agent") ?? ""}:${process.env.TELEGRAM_WEBHOOK_SECRET ?? ""}`
+      `perspective:${sync.id}:${process.env.TELEGRAM_WEBHOOK_SECRET ?? ""}`
     )
     .digest("hex")
   const result = await createPerspective({
     rantId,
-    name,
-    email,
+    name: displayName,
     body,
     submitterHash,
   })
@@ -81,14 +101,27 @@ export async function POST(request: Request) {
   await sendRantsTelegramMessage(
     [
       `New Perspective on “${rant.title}”`,
-      `From: ${name}`,
+      `From: ${displayName}`,
       body,
-      `Approve: /approve ${result.id}`,
-      `Reject: /reject ${result.id}`,
-    ].join("\n\n")
+      "Use the buttons below to approve or reject this Perspective.",
+    ].join("\n\n"),
+    {
+      inlineKeyboard: [
+        [
+          {
+            text: "Approve",
+            callbackData: `approve_perspective:${result.id}`,
+          },
+          {
+            text: "Reject",
+            callbackData: `reject_perspective:${result.id}`,
+          },
+        ],
+      ],
+    }
   )
   revalidateTag("rants", { expire: 0 })
   revalidatePath(`/rants/${rant.slug}`)
 
-  return Response.json({ ok: true })
+  return Response.json({ ok: true, name: displayName })
 }

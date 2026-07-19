@@ -1213,7 +1213,7 @@ Formatted /rant message in Telegram
   → Cencori generates title, excerpt, slug, tags, and SEO description
   → PostgreSQL stores a private draft and the untouched body meaning
   → Telegram returns a signed, no-index preview link
-  → replying /publish exposes the article and invalidates Rants caches
+  → a one-tap Telegram Publish button exposes it and invalidates Rants caches
   → the article gets canonical metadata and an OG cover from the existing template
 ```
 
@@ -1227,6 +1227,12 @@ Use these owner-only commands:
 /approve <id>           Publish a pending Perspective
 /reject <id>            Reject a pending Perspective
 ```
+
+Draft confirmations include a **Publish Rant** inline button whose callback
+contains the Rant ID. Perspective notifications include **Approve** and
+**Reject** inline buttons. These execute immediately in one tap; the slash
+commands remain fallback controls. Register `callback_query` updates by
+rerunning `bun run telegram:webhook` after deployment.
 
 Editing the original Telegram `/rant` message regenerates its metadata and
 updates the same database row because `telegram_message_id` is unique. The
@@ -1255,8 +1261,22 @@ Perspectives are public submissions but never appear immediately. The API
 validates and bounds every field, uses a hidden honeypot, hashes requester
 identity for a ten-minute submission throttle, and optionally verifies
 Cloudflare Turnstile when its keys are configured. A pending submission is sent
-to Telegram with exact `/approve` and `/reject` commands. Approval invalidates
-the Rant cache and makes the Perspective visible; email addresses stay private.
+to Telegram with one-tap moderation buttons. Approval invalidates the Rant
+cache and makes the Perspective visible.
+
+Perspectives never collect email addresses. Keeps sync credentials are the
+shared anonymous daaysorn device identity: a Rants visitor adopts an existing
+Keeps session, while a first Perspective creates the same session that Keeps
+will later use. The sync group stores one display name across connected
+devices. A supplied name becomes that profile; otherwise the server assigns a
+stable adjective-and-noun name. Once known, the form displays “Posting as” and
+does not ask again.
+
+The Perspective form accepts any non-empty trimmed response, including short
+reactions such as `hmm`. Its quiet surface uses semantic muted tokens. The
+Continue button stays disabled until device identity is ready, the response is
+non-empty, and Turnstile is complete when configured. Opening a Rant does not
+create a sync row; a new group is created only on the first submission.
 
 After adding or changing the Rants bot commands, run:
 

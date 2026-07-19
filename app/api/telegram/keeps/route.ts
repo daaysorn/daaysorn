@@ -145,6 +145,12 @@ type TelegramUpdate = {
   message?: TelegramMessage
   edited_message?: TelegramMessage
   channel_post?: TelegramMessage
+  callback_query?: {
+    id: string
+    from: { id: number }
+    data?: string
+    message?: TelegramMessage
+  }
 }
 
 function findLinks(message: TelegramMessage): string[] {
@@ -191,7 +197,10 @@ function findCustomTags(text: string) {
 async function reply(
   chatId: number,
   text: string,
-  options?: { parseMode?: "HTML" }
+  options?: {
+    parseMode?: "HTML"
+    inlineKeyboard?: Array<Array<{ text: string; callbackData: string }>>
+  }
 ) {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
   if (!token) return
@@ -204,7 +213,27 @@ async function reply(
       text,
       parse_mode: options?.parseMode,
       link_preview_options: { is_disabled: true },
+      reply_markup: options?.inlineKeyboard
+        ? {
+            inline_keyboard: options.inlineKeyboard.map((row) =>
+              row.map((button) => ({
+                text: button.text,
+                callback_data: button.callbackData,
+              }))
+            ),
+          }
+        : undefined,
     }),
+  })
+}
+
+async function answerCallbackQuery(id: string, text: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
+  if (!token) return
+  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: id, text }),
   })
 }
 
@@ -339,6 +368,56 @@ export async function POST(request: Request) {
   }
 
   const update = (await request.json()) as TelegramUpdate
+  const callback = update.callback_query
+  if (callback) {
+    const ownerId = Number(process.env.TELEGRAM_OWNER_ID)
+    const chatId = callback.message?.chat.id
+    if (!Number.isSafeInteger(ownerId) || callback.from.id !== ownerId) {
+      return new Response("Forbidden", { status: 403 })
+    }
+    if (!chatId || !callback.data) return Response.json({ ok: true })
+
+    const publish = callback.data.match(/^publish_rant:([0-9a-f-]{36})$/i)
+    const moderation = callback.data.match(
+      /^(approve|reject)_perspective:([0-9a-f-]{36})$/i
+    )
+    after(async () => {
+      if (publish) {
+        const rant = await publishRantById(publish[1])
+        if (!rant) {
+          await answerCallbackQuery(callback.id, "Rant draft not found.")
+          return
+        }
+        invalidateRants(rant.slug)
+        await answerCallbackQuery(callback.id, "Rant published.")
+        await reply(chatId, `Published: ${siteConfig.url}/rants/${rant.slug}`)
+        return
+      }
+
+      if (moderation) {
+        const status = moderation[1] === "approve" ? "approved" : "rejected"
+        const rantId = await moderatePerspective(
+          moderation[2],
+          status as "approved" | "rejected"
+        )
+        if (!rantId) {
+          await answerCallbackQuery(callback.id, "Already reviewed or missing.")
+          return
+        }
+        invalidateRants()
+        await answerCallbackQuery(callback.id, `Perspective ${status}.`)
+        await reply(chatId, `Perspective ${status}.`)
+        return
+      }
+
+      await answerCallbackQuery(
+        callback.id,
+        "This action is no longer available."
+      )
+    })
+    return Response.json({ ok: true })
+  }
+
   const message = update.message ?? update.edited_message ?? update.channel_post
   if (!message) return Response.json({ ok: true })
 
@@ -405,10 +484,20 @@ export async function POST(request: Request) {
             `Rant draft: ${rant.title}`,
             `${rant.readingMinutes} min · ${rant.tags.join(", ")}`,
             previewUrl ? `Preview: ${previewUrl}` : "",
-            "To update the draft, edit your original /rant message above. To publish, reply /publish to that original message or send /publish followed by this preview link.",
+            "To update the draft, edit your original /rant message above.",
           ]
             .filter(Boolean)
-            .join("\n")
+            .join("\n"),
+          {
+            inlineKeyboard: [
+              [
+                {
+                  text: "Publish Rant",
+                  callbackData: `publish_rant:${rant.id}`,
+                },
+              ],
+            ],
+          }
         )
       } catch (error) {
         console.error("Rant draft creation failed", {
