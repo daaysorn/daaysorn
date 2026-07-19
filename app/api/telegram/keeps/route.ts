@@ -398,7 +398,7 @@ export async function POST(request: Request) {
             `Rant draft: ${rant.title}`,
             `${rant.readingMinutes} min · ${rant.tags.join(", ")}`,
             previewUrl ? `Preview: ${previewUrl}` : "",
-            "Reply /publish to make it public, or edit this Telegram message to update the draft.",
+            "To update the draft, edit your original /rant message above. Reply /publish to that same original message when it is ready.",
           ]
             .filter(Boolean)
             .join("\n")

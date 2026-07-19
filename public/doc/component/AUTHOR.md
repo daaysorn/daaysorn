@@ -1210,6 +1210,9 @@ Use these owner-only commands:
 
 Editing the original Telegram `/rant` message regenerates its metadata and
 updates the same database row because `telegram_message_id` is unique. The
+original means the owner's sent `/rant` message, not the bot's draft
+confirmation. `/publish` and `/deleterant` must also be replies to that original
+message. The
 formatted body itself is not rewritten by AI. Supported Telegram entities are
 bold, italic, underline, strikethrough, inline code, code blocks, blockquotes,
 plain URLs, and text links. AI failure falls back to deterministic metadata so
