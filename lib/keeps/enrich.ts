@@ -16,6 +16,7 @@ import {
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import {
   instagramResourceFromUrl,
+  isGenericKeepCopy,
   isInstagramAuthUrl,
   keepTagTaxonomy,
   originalKeepHref,
@@ -400,6 +401,29 @@ function cleanAiTitle(value: string) {
   )
 }
 
+async function analyzeInstagramThumbnail(
+  cencori: Cencori,
+  imageUrl: string | null
+) {
+  if (!imageUrl) return ""
+  try {
+    const response = await cencori.vision.analyze({
+      image: { url: imageUrl },
+      model: process.env.CENCORI_KEEPS_VISION_MODEL?.trim() || "gpt-4.1-nano",
+      prompt:
+        "Describe only the visible subject, objects, product names, and readable text in this Instagram thumbnail. Be factual and concise. Do not use marketing adjectives or infer events outside this single frame.",
+      maxTokens: 180,
+      temperature: 0,
+    })
+    return cleanEditorialText(response.analysis).slice(0, 800)
+  } catch (error) {
+    console.error("Instagram thumbnail analysis failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    })
+    return ""
+  }
+}
+
 export async function enrichKeep({
   href,
   rawText,
@@ -456,6 +480,10 @@ export async function enrichKeep({
   if (!apiKey) throw new Error("CENCORI_API_KEY is not configured")
 
   const cencori = new Cencori({ apiKey })
+  const thumbnailAnalysis =
+    source === "Instagram"
+      ? await analyzeInstagramThumbnail(cencori, page.imageUrl)
+      : ""
   const response = await cencori.ai.generateObject<AiKeep>({
     model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4.1-nano",
     schemaName: "keeps_entry",
@@ -482,7 +510,7 @@ export async function enrichKeep({
       {
         role: "system",
         content:
-          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general.",
+          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. The words impressive, stunning, and captivating are forbidden. Never write vague filler such as original content can be viewed. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts and do not claim what happens in the video. The thumbnail analysis describes one visible frame and is valid evidence only for objects, text, and context visible in that frame. Combine it with the caption without extrapolating beyond either source. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general.",
       },
       {
         role: "user",
@@ -492,6 +520,7 @@ export async function enrichKeep({
           pageDescription: page.description,
           pageAuthor: page.author,
           pageText,
+          thumbnailAnalysis,
           contentAvailability,
           source,
           instagramResourceKind: instagramResource?.kind,
@@ -505,11 +534,27 @@ export async function enrichKeep({
 
   const aiTitle = cleanAiTitle(response.object.title)
   const aiSummary = limitSentences(cleanEditorialText(response.object.summary))
+  const aiAuthor =
+    cleanAiTitle(response.object.author) ||
+    instagramResource?.handle ||
+    page.author ||
+    source
   const rejectedChallengeOutput = isChallengeContent(aiTitle, aiSummary)
+  const rejectedGenericOutput = isGenericKeepCopy(aiTitle, aiSummary)
+  const genericFallback =
+    rejectedGenericOutput && source === "Instagram"
+      ? {
+          source,
+          title: `Instagram ${instagramResource?.kind === "profile" ? "profile" : (instagramResource?.kind ?? "post")} by ${aiAuthor}`,
+          summary: `A saved Instagram ${instagramResource?.kind ?? "post"} from ${aiAuthor}. The available public metadata does not provide enough verified context, so the original provides the full details.`,
+          tags: response.object.tags,
+        }
+      : null
   const safeFallback = rejectedChallengeOutput
     ? challengeFallback(page.href, source)
-    : null
-  const imageUrl = safeFallback
+    : (genericFallback ??
+      (rejectedGenericOutput ? challengeFallback(page.href, source) : null))
+  const imageUrl = rejectedChallengeOutput
     ? await captureKeepScreenshotPreview(page.href)
     : ((await cacheKeepPreview(page.imageUrl, page.href)) ??
       (await captureKeepScreenshotPreview(page.href)))
@@ -517,12 +562,7 @@ export async function enrichKeep({
   return {
     href: page.href,
     source: safeFallback?.source ?? source,
-    author: safeFallback
-      ? source
-      : cleanAiTitle(response.object.author) ||
-        instagramResource?.handle ||
-        page.author ||
-        source,
+    author: genericFallback ? aiAuthor : safeFallback ? source : aiAuthor,
     title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
     summary: safeFallback?.summary ?? aiSummary,
     imageUrl,

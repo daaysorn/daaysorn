@@ -3,9 +3,32 @@ import { describe, test } from "node:test"
 
 import {
   instagramResourceFromUrl,
+  isGenericKeepCopy,
   isInstagramAuthUrl,
   originalKeepHref,
 } from "@/lib/keeps/metadata"
+
+describe("isGenericKeepCopy", () => {
+  test("rejects vague visual filler", () => {
+    assert.equal(
+      isGenericKeepCopy(
+        "Impressive Visuals",
+        "This reel showcases stunning visuals that are truly captivating."
+      ),
+      true
+    )
+  })
+
+  test("allows a factual thumbnail description", () => {
+    assert.equal(
+      isGenericKeepCopy(
+        "A Monitor and Laptop Display Setup",
+        "A creator holds a monitor showing the same car image as a nearby laptop."
+      ),
+      false
+    )
+  })
+})
 
 describe("instagramResourceFromUrl", () => {
   test("distinguishes reels from profiles", () => {
