@@ -13,6 +13,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { PiCaretLeftBold, PiCaretRightBold, PiXBold } from "react-icons/pi"
 
 import { Button } from "@/components/ui/button"
+import { trackAnalyticsEvent } from "@/lib/analytics"
 
 export type GalleryViewItem = {
   id: string
@@ -109,12 +110,18 @@ export function GalleryView({ media }: { media: GalleryViewItem[] }) {
   )
 
   const showPrevious = useCallback(() => {
+    trackAnalyticsEvent("gallery", "gallery_navigate", {
+      direction: "previous",
+    })
     setActiveIndex((current) =>
       current === null ? null : (current - 1 + media.length) % media.length
     )
   }, [media.length])
 
   const showNext = useCallback(() => {
+    trackAnalyticsEvent("gallery", "gallery_navigate", {
+      direction: "next",
+    })
     setActiveIndex((current) =>
       current === null ? null : (current + 1) % media.length
     )
@@ -141,7 +148,13 @@ export function GalleryView({ media }: { media: GalleryViewItem[] }) {
                 key={item.id}
                 type="button"
                 aria-label={`Preview ${item.label}`}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  trackAnalyticsEvent("gallery", "gallery_media_open", {
+                    media_type: item.type,
+                    media_source: item.remote ? "remote" : "local",
+                  })
+                  setActiveIndex(index)
+                }}
                 className="group relative block w-full cursor-pointer overflow-hidden rounded-xl bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={{
                   aspectRatio:
@@ -171,7 +184,10 @@ export function GalleryView({ media }: { media: GalleryViewItem[] }) {
       <DialogPrimitive.Root
         open={activeIndex !== null}
         onOpenChange={(open) => {
-          if (!open) setActiveIndex(null)
+          if (!open) {
+            trackAnalyticsEvent("gallery", "gallery_media_close")
+            setActiveIndex(null)
+          }
         }}
       >
         <DialogPrimitive.Portal>
@@ -195,6 +211,11 @@ export function GalleryView({ media }: { media: GalleryViewItem[] }) {
                     src={activeItem.previewSrc}
                     poster={activeItem.poster ?? undefined}
                     aria-label={activeItem.label}
+                    onPlay={() =>
+                      trackAnalyticsEvent("gallery", "gallery_video_play", {
+                        media_source: activeItem.remote ? "remote" : "local",
+                      })
+                    }
                     className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
                   />
                 ) : (

@@ -1,10 +1,11 @@
 "use client"
 
 import Image from "next/image"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { PiShareFatFill, PiXBold } from "react-icons/pi"
 
 import { Button } from "@/components/ui/button"
+import { trackAnalyticsEvent } from "@/lib/analytics"
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -41,6 +42,7 @@ function isIosBrowser() {
 }
 
 export function PWAInstallPrompt() {
+  const installTrackedRef = useRef(false)
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
     null
   )
@@ -60,6 +62,10 @@ export function PWAInstallPrompt() {
     }
 
     const installed = () => {
+      if (!installTrackedRef.current) {
+        installTrackedRef.current = true
+        trackAnalyticsEvent("pwa", "pwa_install", { outcome: "installed" })
+      }
       setInstallPrompt(null)
       setShowIosInstall(false)
     }
@@ -75,6 +81,10 @@ export function PWAInstallPrompt() {
   }, [readInstallPrompt])
 
   const dismiss = () => {
+    trackAnalyticsEvent("pwa", "pwa_install_prompt", {
+      action: "dismiss",
+      platform: showIosInstall ? "ios" : "other",
+    })
     window.localStorage.setItem(dismissalKey, String(Date.now()))
     setInstallPrompt(null)
     setShowIosInstall(false)
@@ -86,6 +96,10 @@ export function PWAInstallPrompt() {
     try {
       await installPrompt.prompt()
       const choice = await installPrompt.userChoice
+      trackAnalyticsEvent("pwa", "pwa_install_prompt", {
+        action: choice.outcome,
+        platform: "chromium",
+      })
       if (choice.outcome === "dismissed") {
         window.localStorage.setItem(dismissalKey, String(Date.now()))
       } else {
@@ -135,7 +149,15 @@ export function PWAInstallPrompt() {
         <Button
           type="button"
           size="sm"
-          onClick={() => setShowIosSteps((visible) => !visible)}
+          onClick={() => {
+            trackAnalyticsEvent("pwa", "pwa_install_prompt", {
+              action: showIosSteps
+                ? "instructions_closed"
+                : "instructions_opened",
+              platform: "ios",
+            })
+            setShowIosSteps((visible) => !visible)
+          }}
           aria-expanded={showIosSteps}
         >
           <PiShareFatFill aria-hidden />

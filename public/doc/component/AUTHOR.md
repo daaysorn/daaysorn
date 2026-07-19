@@ -256,6 +256,59 @@ through `lib/analytics.ts`. Google Analytics is initialized once in the root
 layout. Events intentionally exclude search text, original URLs, local-storage
 contents, sync-group IDs, sync secrets, and export links.
 
+The same helper records a small set of privacy-safe events outside Keeps:
+
+| Event                 | Feature   | What it measures                         |
+| --------------------- | --------- | ---------------------------------------- |
+| `gallery_media_open`  | `gallery` | Image/video previews opened              |
+| `gallery_media_close` | `gallery` | Gallery previews closed                  |
+| `gallery_navigate`    | `gallery` | Previous/next preview navigation         |
+| `gallery_video_play`  | `gallery` | Full gallery videos played               |
+| `perspective_submit`  | `rants`   | Successful or failed Perspective submits |
+| `pwa_install_prompt`  | `pwa`     | Install prompts accepted or dismissed    |
+| `pwa_install`         | `pwa`     | Confirmed installed-app events           |
+
+Media IDs, media URLs, Perspective names and text are deliberately excluded.
+
+##### Google Analytics onboarding checklist
+
+Google's onboarding list contains optional marketing and identity features as
+well as basic analytics. Do not enable every row merely to make the checklist
+look complete.
+
+| Google task                 | daaysorn decision                                                                                                                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set up data collection      | Implemented. The root layout loads `GoogleAnalytics` with `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID`. Confirm the production event in Realtime; Google's onboarding card may take up to 48 hours to update. |
+| Turn on Google signals      | Leave off for now. It enriches reporting with signed-in Google and ads-personalization data. Add a consent-management flow and update the privacy notice before enabling it.                       |
+| Create audiences            | Create the two reporting audiences below after events appear. They are for analysis, not advertising.                                                                                              |
+| Create custom insights      | Create the two anomaly alerts below after enough events have accumulated.                                                                                                                          |
+| Set up User-ID              | Not applicable. daaysorn has no signed-in user account. Never use a Saved Keeps collection ID, device ID, IP address, email, or other local identifier as GA User-ID.                              |
+| Set up user-provided data   | Not applicable. The site does not collect account email/phone data for analytics or advertising. Do not send Perspective names or content.                                                         |
+| Set up Measurement Protocol | Not needed. Visitor interactions happen in the browser through the Google tag. Telegram owner actions and server maintenance are not visitor conversions and should not pollute GA.                |
+
+To finish the useful Google-side tasks:
+
+1. Visit production and interact with Home, Keeps, Gallery, Rants and the PWA
+   install card.
+2. Open **Reports → Realtime** and confirm `page_view`, `keeps_view`,
+   `gallery_media_open`, `perspective_submit` (after a test submission), and
+   `pwa_install_prompt` as applicable.
+3. Open **Admin → Data display → Audiences → New audience → Create a custom
+   audience**.
+4. Create **Engaged Keeps readers** with an OR group containing event name
+   `keep_open`, `keep_favourite`, or `keep_share`; set membership to 30 days.
+5. Create **Gallery explorers** with event name `gallery_media_open`; set
+   membership to 30 days.
+6. Open **Reports → Reports snapshot → View all insights → Create**.
+7. Create **Keeps engagement dropped** using a weekly anomaly or percentage
+   decrease for `keep_open` event count.
+8. Create **Saved Keeps activity spiked** using a daily anomaly for
+   `keep_favourite` event count.
+
+Audiences only collect members from the time they are created. Custom insights
+need collected history before their comparisons become useful. Neither feature
+requires User-ID, Google signals, user-provided data, or Measurement Protocol.
+
 | Event                  | What it measures                                       |
 | ---------------------- | ------------------------------------------------------ |
 | `keeps_view`           | Collection visits and available Keep count             |
@@ -1273,10 +1326,13 @@ stable adjective-and-noun name. Once known, the form displays “Posting as” a
 does not ask again.
 
 The Perspective form accepts any non-empty trimmed response, including short
-reactions such as `hmm`. Its quiet surface uses semantic muted tokens. The
-Continue button stays disabled until device identity is ready, the response is
-non-empty, and Turnstile is complete when configured. Opening a Rant does not
-create a sync row; a new group is created only on the first submission.
+reactions such as `hmm`. Its selected design combines a quiet, border-only
+composer with a compact conversation reply: initials and the persistent name
+sit above a three-row field, while Turnstile appears only after typing. The
+**Post Perspective** button stays disabled until device identity is ready, the
+response is non-empty, and Turnstile is complete when configured. Opening a
+Rant does not create a sync row; a new group is created only on the first
+submission.
 
 After adding or changing the Rants bot commands, run:
 

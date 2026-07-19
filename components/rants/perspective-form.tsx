@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { trackAnalyticsEvent } from "@/lib/analytics"
 import {
   deviceNameStorageKey,
   favouritesStorageKey,
@@ -17,7 +18,18 @@ import { cn } from "@/lib/utils"
 declare global {
   interface Window {
     onRantTurnstile?: (token: string) => void
+    turnstile?: { reset: () => void }
   }
+}
+
+function initials(name: string) {
+  if (!name) return "?"
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
 }
 
 function savedKeepIds() {
@@ -105,11 +117,19 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
       }
       formRef.current?.reset()
       setBody("")
+      setToken("")
+      window.turnstile?.reset()
       setStatus("sent")
       setMessage("Thank you. Your Perspective will appear after review.")
+      trackAnalyticsEvent("rants", "perspective_submit", {
+        outcome: "success",
+      })
     } catch (error) {
       setStatus("error")
       setMessage(error instanceof Error ? error.message : "Please try again.")
+      trackAnalyticsEvent("rants", "perspective_submit", {
+        outcome: "error",
+      })
     }
   }
 
@@ -160,37 +180,51 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
     <form
       ref={formRef}
       onSubmit={submit}
-      className="mt-5 grid gap-3 rounded-xl border border-border bg-muted/30 p-4 xs:p-5"
+      className="mt-5 grid gap-3 border-y border-border bg-muted/20 py-4 xs:gap-4 xs:py-5"
       aria-label="Contribute a Perspective"
     >
-      {displayName ? (
-        <p className="text-sm text-muted-foreground">
-          Posting as{" "}
-          <span className="font-medium text-foreground">{displayName}</span>
-        </p>
-      ) : (
-        <div className="grid gap-1.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-medium text-muted-foreground"
+        >
+          {initials(displayName)}
+        </span>
+        {displayName ? (
+          <p className="min-w-0 text-sm">
+            <span className="text-muted-foreground">Replying as </span>
+            <span className="font-medium text-foreground">{displayName}</span>
+          </p>
+        ) : (
           <Input
             name="name"
             maxLength={60}
             placeholder="Name (optional)"
-            className="bg-background/50"
+            aria-label="Name, optional"
+            className="h-8 max-w-56 bg-background/40"
           />
-          <p className="text-xs text-muted-foreground">
-            Leave this blank and we’ll give you a private, reusable name.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
+      {!displayName ? (
+        <p className="text-xs text-muted-foreground">
+          Leave your name blank for a private name that stays with your synced
+          identity.
+        </p>
+      ) : null}
+      <label htmlFor={`perspective-${rantId}`} className="sr-only">
+        Reply to this Rant
+      </label>
       <textarea
+        id={`perspective-${rantId}`}
         name="body"
         required
         minLength={1}
         maxLength={1200}
-        rows={4}
+        rows={3}
         value={body}
         onChange={(event) => setBody(event.target.value)}
-        placeholder="Add your perspective"
-        className="min-h-24 w-full min-w-0 resize-y rounded-md border border-input bg-background/50 px-2.5 py-2 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+        placeholder="What would you add?"
+        className="min-h-20 w-full min-w-0 resize-y rounded-md border border-input bg-background/40 px-2.5 py-2 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
       />
       <input
         name="website"
@@ -199,7 +233,7 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
         aria-hidden="true"
         className="hidden"
       />
-      {siteKey ? (
+      {siteKey && body.trim() ? (
         <>
           <Script
             src="https://challenges.cloudflare.com/turnstile/v0/api.js"
@@ -213,14 +247,23 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
           />
         </>
       ) : null}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          {siteKey
+            ? body.trim()
+              ? token
+                ? "Human check complete"
+                : "Complete the human check to post"
+              : "Human check appears after you start typing"
+            : "Your synced identity stays private"}
+        </p>
         <Button type="submit" size="sm" disabled={!canContinue}>
-          {status === "sending" ? "Sending…" : "Continue"}
+          {status === "sending" ? "Posting…" : "Post Perspective"}
         </Button>
         {message ? (
           <p
             className={cn(
-              "text-sm",
+              "w-full text-sm",
               status === "error" ? "text-destructive" : "text-muted-foreground"
             )}
             role="status"
