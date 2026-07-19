@@ -15,6 +15,7 @@ import {
 } from "@/lib/keeps/preview-storage"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import {
+  hasVerifiedInstagramContext,
   instagramResourceFromUrl,
   isGenericKeepCopy,
   isInstagramAuthUrl,
@@ -90,6 +91,62 @@ function meta(html: string, key: string) {
   }
 
   return ""
+}
+
+async function readInstagramPage(url: URL) {
+  const requestUrl = new URL(url)
+  requestUrl.hostname = "www.instagram.com"
+  const userAgents = [
+    "Mozilla/5.0",
+    "facebookexternalhit/1.1 (+https://www.facebook.com/externalhit_uatext.php)",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131 Safari/537.36",
+  ]
+
+  for (const [attempt, userAgent] of userAgents.entries()) {
+    try {
+      const publicUrl = await assertPublicUrl(requestUrl.toString())
+      const response = await fetch(publicUrl, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(10_000),
+        headers: {
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "en-US,en;q=0.9",
+          "User-Agent": userAgent,
+        },
+      })
+      if (!response.ok) continue
+
+      const html = (await response.text()).slice(0, 750_000)
+      const title = meta(html, "og:title")
+      const description =
+        meta(html, "og:description") || meta(html, "description")
+      const image = meta(html, "og:image") || meta(html, "twitter:image")
+      if (!title && !description && !image) continue
+
+      const author =
+        description.match(/-\s*([\w.]+)\s+on\s+/i)?.[1] ||
+        title.match(/^(.+?)\s+on Instagram:/i)?.[1] ||
+        "Instagram"
+      const context = description || title
+      return {
+        href: normalizeKeepUrl(url.toString()),
+        title,
+        description: context,
+        author: cleanEditorialText(author),
+        imageUrl: image ? new URL(image, publicUrl).toString() : null,
+        body: context,
+      }
+    } catch (error) {
+      if (attempt === userAgents.length - 1) {
+        console.error("Instagram metadata retries failed", {
+          message: error instanceof Error ? error.message : "Unknown error",
+        })
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)))
+  }
+
+  return null
 }
 
 async function readTikTokEmbed(url: URL) {
@@ -197,6 +254,11 @@ function contentTypeLabel(contentType: string) {
 
 async function readPage(initialUrl: string) {
   let url = await assertPublicUrl(normalizeKeepUrl(initialUrl))
+
+  if (sourceFrom(url) === "Instagram") {
+    const instagramPage = await readInstagramPage(url)
+    if (instagramPage) return instagramPage
+  }
 
   for (let redirect = 0; redirect < 4; redirect += 1) {
     const response = await fetch(url, {
@@ -452,7 +514,7 @@ export async function enrichKeep({
 
   // Challenge pages contain no useful source material. Avoid paying for an AI
   // rewrite unless the owner supplied a trusted note with actual context.
-  if (pageWasChallenge && !ownerNote) {
+  if (pageWasChallenge && !ownerNote && source !== "Instagram") {
     const imageUrl = await captureKeepScreenshotPreview(page.href)
     return {
       href: page.href,
@@ -480,10 +542,31 @@ export async function enrichKeep({
   if (!apiKey) throw new Error("CENCORI_API_KEY is not configured")
 
   const cencori = new Cencori({ apiKey })
+  const instagramPreview =
+    source === "Instagram"
+      ? ((await cacheKeepPreview(page.imageUrl, page.href)) ??
+        (await captureKeepScreenshotPreview(page.href)))
+      : null
   const thumbnailAnalysis =
     source === "Instagram"
-      ? await analyzeInstagramThumbnail(cencori, page.imageUrl)
+      ? await analyzeInstagramThumbnail(
+          cencori,
+          page.imageUrl ?? instagramPreview
+        )
       : ""
+  if (
+    source === "Instagram" &&
+    !hasVerifiedInstagramContext({
+      ownerNote,
+      thumbnailAnalysis,
+      title: page.title,
+      description: page.description,
+    })
+  ) {
+    throw new Error(
+      "Instagram did not provide enough verified metadata to save this link"
+    )
+  }
   const response = await cencori.ai.generateObject<AiKeep>({
     model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4.1-nano",
     schemaName: "keeps_entry",
@@ -554,10 +637,12 @@ export async function enrichKeep({
     ? challengeFallback(page.href, source)
     : (genericFallback ??
       (rejectedGenericOutput ? challengeFallback(page.href, source) : null))
-  const imageUrl = rejectedChallengeOutput
-    ? await captureKeepScreenshotPreview(page.href)
-    : ((await cacheKeepPreview(page.imageUrl, page.href)) ??
-      (await captureKeepScreenshotPreview(page.href)))
+  const imageUrl =
+    instagramPreview ??
+    (rejectedChallengeOutput
+      ? await captureKeepScreenshotPreview(page.href)
+      : ((await cacheKeepPreview(page.imageUrl, page.href)) ??
+        (await captureKeepScreenshotPreview(page.href))))
 
   return {
     href: page.href,
