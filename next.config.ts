@@ -14,6 +14,15 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      ...["/keeps", "/gallery", "/rants", "/rants/:path*"].map((source) => ({
+        source,
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
+          },
+        ],
+      })),
       {
         source: "/sw.js",
         headers: [

@@ -1,5 +1,4 @@
 import { after } from "next/server"
-import { revalidatePath, revalidateTag } from "next/cache"
 
 import {
   claimGalleryBatch,
@@ -27,7 +26,6 @@ import {
   deletePerspectiveById,
   deletePerspectiveBySlugAndName,
   deleteRantByTelegramMessageId,
-  getRantById,
   moderatePerspective,
   moderatePerspectiveEdit,
   publishRantById,
@@ -253,25 +251,7 @@ async function notifyPublicKeepsChanged() {
   }
 }
 
-function invalidatePublicKeeps() {
-  revalidateTag("keeps", { expire: 0 })
-  revalidatePath("/keeps")
-}
-
-function invalidateGallery() {
-  revalidateTag("gallery", { expire: 0 })
-  revalidatePath("/gallery")
-}
-
-function invalidateRants(slug?: string) {
-  revalidateTag("rants", { expire: 0 })
-  revalidatePath("/rants")
-  if (slug) revalidatePath(`/rants/${slug}`)
-}
-
 async function notifyRantsChanged(rantId: string) {
-  const rant = await getRantById(rantId)
-  invalidateRants(rant?.slug)
   try {
     await publishRantsChanged(rantId)
   } catch (error) {
@@ -341,8 +321,6 @@ async function processGalleryMedia(
     (result) => result.status === "duplicate"
   ).length
   let failed = results.filter((result) => result.status === "failed").length
-  if (added && instructions.destinations.gallery) invalidateGallery()
-
   let instagramPublished = false
   if (addedMedia.length && instructions.destinations.instagram) {
     try {
@@ -418,7 +396,6 @@ export async function POST(request: Request) {
           await answerCallbackQuery(callback.id, "Rant draft not found.")
           return
         }
-        invalidateRants(rant.slug)
         await answerCallbackQuery(callback.id, "Rant published.")
         await reply(chatId, `Published: ${siteConfig.url}/rants/${rant.slug}`)
         return
@@ -534,7 +511,6 @@ export async function POST(request: Request) {
           bodyText,
           readingMinutes: estimateReadingMinutes(bodyText),
         })
-        if (rant.status === "published") invalidateRants(rant.slug)
         const token = createRantPreviewToken(rant.id)
         const previewUrl = token
           ? `${siteConfig.url}/rants/preview/${rant.id}?token=${token}`
@@ -596,7 +572,6 @@ export async function POST(request: Request) {
         await reply(message.chat.id, "That message is not a Rant draft.")
         return
       }
-      invalidateRants(rant.slug)
       await reply(
         message.chat.id,
         `Published: ${siteConfig.url}/rants/${rant.slug}`
@@ -697,7 +672,6 @@ export async function POST(request: Request) {
     if (/^\/rant(?:@\w+)?(?:\s|$)/i.test(repliedText) && replied) {
       after(async () => {
         const deleted = await deleteRantByTelegramMessageId(replied.message_id)
-        if (deleted) invalidateRants()
         await reply(
           message.chat.id,
           deleted ? "Deleted that Rant." : "That message is not a saved Rant."
@@ -737,7 +711,6 @@ export async function POST(request: Request) {
             return
           }
 
-          invalidateGallery()
           try {
             await deleteGalleryObjects(objectKeys)
           } catch (error) {
@@ -857,7 +830,6 @@ export async function POST(request: Request) {
         )
         const deletedCount = deleted.filter(Boolean).length
         if (deletedCount) {
-          invalidatePublicKeeps()
           await notifyPublicKeepsChanged()
         }
         await reply(
@@ -932,7 +904,6 @@ export async function POST(request: Request) {
       return
     }
 
-    invalidatePublicKeeps()
     await notifyPublicKeepsChanged()
 
     const titles = saved.map((keep) => `• ${keep.title}`).join("\n")

@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto"
-import { revalidatePath, revalidateTag } from "next/cache"
 
 import {
   createPerspective,
@@ -56,12 +55,6 @@ async function authenticatedSync(request: Request) {
     return null
   }
   return sync
-}
-
-async function refreshRant(rantId: string) {
-  const rant = await getRantById(rantId)
-  revalidateTag("rants", { expire: 0 })
-  if (rant) revalidatePath(`/rants/${rant.slug}`)
 }
 
 async function validTurnstile(token: string | undefined, ip: string) {
@@ -168,7 +161,6 @@ export async function POST(request: Request) {
   ].join("\n\n")
 
   if (autoApproved) {
-    await refreshRant(rantId)
     await publishRantsChanged(rantId)
     await sendRantsTelegramMessage(notification, {
       inlineKeyboard: [
@@ -255,7 +247,6 @@ export async function PATCH(request: Request) {
     if (!rantId) {
       return Response.json({ error: "Comment not found." }, { status: 404 })
     }
-    await refreshRant(rantId)
     await publishRantsChanged(rantId)
     return Response.json({ ok: true, body, published: true })
   }
@@ -312,7 +303,6 @@ export async function DELETE(request: Request) {
   if (!rantId) {
     return Response.json({ error: "Comment not found." }, { status: 404 })
   }
-  await refreshRant(rantId)
   await publishRantsChanged(rantId)
   return Response.json({ ok: true })
 }

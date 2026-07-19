@@ -243,9 +243,9 @@ merged independently.
 Telegram additions, edits, and deletions publish a lightweight `changed` event
 to the subscribe-only `public:keeps` Ably channel. Connected readers immediately
 fetch a fresh, query-keyed `/api/keeps` response. The public feed still refreshes
-every ten minutes, on focus, and on reconnect as a durability fallback. Normal
-responses are cached at the edge for one minute and can be served stale while
-they refresh for ten minutes. Do not restore the old two-second SSE database
+every ten minutes, on focus, and on reconnect as a durability fallback. Public
+feed responses use `no-store`; neither the browser nor Vercel may serve an old
+feed response. Do not restore the old two-second SSE database
 polling: every reader held a function open and repeatedly queried Postgres,
 which is unsuitable for the Vercel free plan.
 
@@ -756,9 +756,8 @@ bun run keeps:cache-previews --publish
 
 The command selects only Instagram previews that are not already stored under
 the R2 Keeps prefix. It does not invoke AI or reformat Keep text.
-When a backfill changes preview URLs directly in PostgreSQL, bump the
-`listKeeps` cache-key version before deploying so Vercel cannot reuse a
-persistent cached payload containing the old Instagram CDN URLs.
+Backfilled preview URLs appear on the next request because Keeps queries and
+responses are uncached.
 
 #### Supported link types
 
@@ -822,10 +821,12 @@ polling loop.
 
 #### Free-plan cost controls
 
-- `/keeps` is statically generated, revalidates daily, and is invalidated by
-  Telegram changes. `listKeeps()` is cached for a day with the `keeps` tag.
-- Public `/api/keeps` responses are shared at the edge. Ably provides immediate
-  invalidation, so fallback polling can stay infrequent.
+- `/keeps`, `/gallery`, `/rants`, Rant slugs, and Rant previews are dynamically
+  rendered with `force-dynamic`, `revalidate = 0`, `force-no-store`, and an
+  explicit `no-store` response header. Their database list queries are never
+  shared across requests.
+- Public `/api/keeps` responses use `no-store`. Ably still provides immediate
+  updates, so fallback polling can stay infrequent.
 - Public Ably subscribe-only tokens are cached at the edge for five minutes;
   Ably tokens last six hours to reduce token-function invocations.
 - Saved Keeps only writes to Postgres after a user explicitly exports. Local
@@ -912,7 +913,7 @@ Tomiwa sends images, videos, or a Telegram media album
   → images get responsive WebP variants; videos retain their Telegram poster
   → immutable media files are uploaded to Cloudflare R2
   → PostgreSQL stores routing flags, media metadata, and Telegram message IDs
-  → Gallery-targeted media invalidates the Gallery cache
+  → Gallery-targeted media becomes visible on the next uncached request
   → Instagram-targeted media is published through Buffer
   → /gallery reads the updated metadata and renders the masonry layout
 ```
@@ -933,7 +934,7 @@ Gallery uploads must not change link bookmarking:
 - A non-image document receives usage instructions and is not inserted into
   either collection unless its text or caption contains a valid Keep URL.
 - Gallery and Keeps use separate database tables, validation, storage helpers,
-  cache tags, and Ably events if Gallery realtime updates are added later.
+  and Ably events if Gallery realtime updates are added later.
 
 Media-first routing prevents a media caption containing a URL from accidentally
 creating a Keep. The Telegram webhook can be shared safely; the processing
@@ -1259,8 +1260,8 @@ Because the variants are already optimized, the Gallery should serve them
 directly from the Cloudflare custom domain rather than run every request through
 Vercel Image Optimization. This avoids Vercel transformation usage while the
 Cloudflare edge cache handles repeated delivery. The Gallery metadata query can
-use a long server cache tagged `gallery`; successful Telegram additions and
-deletions invalidate only that tag.
+remain uncached so successful Telegram additions and deletions are visible on
+the next page request.
 
 Cloudflare R2 Standard currently includes 10 GB-month of storage, one million
 Class A operations, ten million Class B operations, and free internet egress per
@@ -1287,7 +1288,7 @@ Formatted /rant message in Telegram
   → Cencori generates title, excerpt, slug, tags, and SEO description
   → PostgreSQL stores a private draft and the untouched body meaning
   → Telegram returns a signed, no-index preview link
-  → a one-tap Telegram Publish button exposes it and invalidates Rants caches
+  → a one-tap Telegram Publish button exposes it and notifies live Rant readers
   → the article gets canonical metadata and an OG cover from the existing template
 ```
 
@@ -1340,8 +1341,8 @@ configured. A small Cencori moderation request scans every Perspective, reply,
 and proposed edit. Clearly suitable content publishes automatically; ambiguous
 or risky content is held and sent to Telegram with one-tap moderation buttons.
 An unavailable or failed moderation call always falls back to human review.
-Publication invalidates the Rant cache and publishes a tiny Ably `public:rants`
-change event so the thread updates without a page refresh.
+Publication publishes a tiny Ably `public:rants` change event so the uncached
+thread updates without a page refresh.
 
 The complete model audit has three active generation sites: Keeps editorial
 metadata, Rant metadata, and Perspective moderation. All default to the tested
@@ -1423,8 +1424,8 @@ a Delete button whether they were escalated or automatically published. The
 owner may also send `/deleteperspective <slug> <commenter name>` at any time.
 That command uses a case-insensitive exact name match and deletes the newest
 matching Perspective or reply. These Telegram actions are restricted by
-`TELEGRAM_OWNER_ID`, work without a web admin session, invalidate the Rant cache,
-and publish the same realtime update as web actions.
+`TELEGRAM_OWNER_ID`, work without a web admin session, and publish the same
+realtime update as web actions.
 
 Every approved Perspective has a reply action. Replies store a self-referencing
 parent ID, render as a compact thread, use the same synced identity and
@@ -1502,11 +1503,14 @@ The worker provides only capabilities that match this project:
   parameters are intentionally omitted because Keeps accepts links; owner media
   publishing remains in the Telegram Gallery workflow.
 - Home, Keeps, Gallery, the offline fallback, manifest, icons, visited Next.js
-  assets, and local images are cached. Remote Cloudflare Gallery media bypasses
-  the service worker so image responses and video range requests remain valid;
-  Cloudflare and the browser provide their immutable caching.
-- Navigations use network-first delivery and fall back to the cached page or
-  `/offline` when no saved response exists.
+  assets, and local images are cached. Keeps, Gallery, Rants, Rant slugs, and
+  Rant previews are never written to the service-worker page cache. Remote
+  Cloudflare Gallery media bypasses the service worker so image responses and
+  video range requests remain valid; Cloudflare and the browser provide their
+  immutable caching.
+- Static navigations use network-first delivery and fall back to the cached page
+  or `/offline`. Dynamic navigations always use a `no-store` network request and
+  may fall back only to the generic `/offline` page, never stale page content.
 - Saved Keeps changes remain in the page's local fallback queue and are also
   copied into a deduplicated IndexedDB outbox owned by the service worker when
   the device is offline or an immediate sync request fails. Supported browsers
@@ -1514,10 +1518,10 @@ The worker provides only capabilities that match this project:
   authenticated changes after connectivity stabilizes, removes only the exact
   submitted versions, and notifies open Keeps tabs with the returned saved IDs.
 - After a connection loss, supported browsers also register
-  `daaysorn-refresh-offline-content` to refresh the cached pages.
+  `daaysorn-refresh-offline-content` to refresh the cached static pages.
 - Supported browsers may register `daaysorn-daily-content-refresh` with a
-  one-day minimum interval. Its Periodic Sync handler refreshes cached Home,
-  Keeps, Gallery, and offline pages. Browser scheduling and permission remain
+  one-day minimum interval. Its Periodic Sync handler refreshes cached Home and
+  offline pages. Browser scheduling and permission remain
   discretionary.
 - Browsers without Background Sync or Periodic Sync continue to use the
   localStorage queue, network-first caching, and the existing online, focus,

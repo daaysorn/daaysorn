@@ -1,16 +1,11 @@
-const CACHE_VERSION = "daaysorn-v4"
+const CACHE_VERSION = "daaysorn-v5"
 const PAGE_CACHE = `${CACHE_VERSION}-pages`
 const ASSET_CACHE = `${CACHE_VERSION}-assets`
 const KEEPS_SYNC_DATABASE = "daaysorn-keeps-sync"
 const KEEPS_SYNC_STORE = "outbox"
 const KEEPS_SYNC_TAG = "daaysorn-sync-saved-keeps"
 const OFFLINE_URL = "/offline"
-const REFRESH_URLS = [
-  "/",
-  "/keeps",
-  "/gallery",
-  OFFLINE_URL,
-]
+const REFRESH_URLS = ["/", OFFLINE_URL]
 const PRECACHE_URLS = [
   ...REFRESH_URLS,
   "/manifest.webmanifest",
@@ -267,6 +262,15 @@ async function networkFirst(request, preloadResponse) {
   }
 }
 
+function isDynamicPage(pathname) {
+  return (
+    pathname === "/keeps" ||
+    pathname === "/gallery" ||
+    pathname === "/rants" ||
+    pathname.startsWith("/rants/")
+  )
+}
+
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(ASSET_CACHE)
   const cached = await cache.match(request)
@@ -315,6 +319,14 @@ self.addEventListener("fetch", (event) => {
     return
 
   if (request.mode === "navigate") {
+    if (isDynamicPage(url.pathname)) {
+      event.respondWith(
+        fetch(request, { cache: "no-store" }).catch(() =>
+          caches.match(OFFLINE_URL)
+        )
+      )
+      return
+    }
     event.respondWith(networkFirst(request, event.preloadResponse))
     return
   }

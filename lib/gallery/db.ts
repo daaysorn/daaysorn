@@ -1,5 +1,4 @@
 import { neon } from "@neondatabase/serverless"
-import { unstable_cache } from "next/cache"
 
 import type {
   GalleryMedia,
@@ -143,11 +142,7 @@ export async function listGalleryMediaFresh(): Promise<GalleryMedia[]> {
   return rows.map(toGalleryMedia)
 }
 
-export const listGalleryMedia = unstable_cache(
-  listGalleryMediaFresh,
-  ["gallery-list"],
-  { tags: ["gallery"], revalidate: 86400 }
-)
+export const listGalleryMedia = listGalleryMediaFresh
 
 export async function galleryMediaExists(
   telegramFileUniqueId: string,

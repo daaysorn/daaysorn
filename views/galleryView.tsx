@@ -7,7 +7,7 @@ import {
   type GalleryViewItem,
 } from "@/components/gallery/gallery-view"
 import { PageBackLink } from "@/components/nav/page-back-link"
-import { listGalleryMedia, listGalleryMediaFresh } from "@/lib/gallery/db"
+import { listGalleryMedia } from "@/lib/gallery/db"
 
 const galleryDirectory = join(process.cwd(), "public", "images", "gallery")
 const supportedImagePattern = /\.(?:avif|gif|jpe?g|png|webp)$/i
@@ -72,9 +72,7 @@ async function getLocalGalleryMedia() {
 
 export default async function GalleryView() {
   const [remoteMedia, localMedia] = await Promise.all([
-    process.env.NODE_ENV === "development"
-      ? listGalleryMediaFresh()
-      : listGalleryMedia(),
+    listGalleryMedia(),
     getLocalGalleryMedia(),
   ])
   const media: GalleryViewItem[] = [

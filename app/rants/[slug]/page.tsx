@@ -1,13 +1,10 @@
 import type { Metadata } from "next"
-import { getPublishedRantBySlug, listPublishedRants } from "@/lib/rants/db"
+import { getPublishedRantBySlug } from "@/lib/rants/db"
 import { RantArticleView } from "@/views"
 
-export const revalidate = 86400
-
-export async function generateStaticParams() {
-  const rants = await listPublishedRants()
-  return rants.map((rant) => ({ slug: rant.slug }))
-}
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+export const fetchCache = "force-no-store"
 
 export async function generateMetadata({
   params,

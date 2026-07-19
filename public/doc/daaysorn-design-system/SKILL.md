@@ -37,6 +37,10 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 17. Every actionable link must show a pointer cursor. The runtime enforces this globally with `a[href] { cursor: pointer; }`; preserve that rule and use `cursor-pointer` when a component must state the behavior locally.
 18. Keep App Router page files thin. `app/**/page.tsx` owns route concerns such as metadata, params, and revalidation, then imports the page composition from `views/`. Data loading and the full body layout belong in that view. A feature with one view uses `views/<routeName>View.tsx`, such as `views/galleryView.tsx`. As soon as a feature has more than one view file, create `views/<feature>/`, keep all of its views there, and add `views/<feature>/index.ts` to export them to the root `views/index.ts`. Rants therefore lives in `views/rants/`. Reusable or interactive sections belong in `components/<feature>/`. Do not rebuild an entire page body directly in its route file.
 19. Never use Unicode arrow glyphs such as `←`, `→`, `‹`, or `›` as navigation icons. Use `react-icons` caret/chevron components such as `PiCaretLeftBold` and `PiCaretRightBold`, paired with an accessible text label.
+20. Treat performance as part of the visual system. Static page copy and layout stay in Server Components; add the smallest practical Client Component around state, browser APIs, realtime, or gestures. Do not make a whole page client-side for one interactive detail.
+21. Use CSS-first motion for page reveals, fades, simple transforms, skeletons, and reduced-motion fallbacks. Do not add a JavaScript animation library for effects expressible in `app/globals.css`. Keep Motion only where continuous pointer physics or gesture state materially improves the interaction, such as Dock magnification.
+22. Link previews must be lightweight. Internal links use generated OG/static preview images and must never load a full local route in an iframe. External screenshots should be generated once and cached where practical. A hover must not start page analytics, realtime connections, media polling, or service-worker work for the previewed page.
+23. Loading feedback must preserve the final layout. Show a skeleton only while an asset has never loaded in the current session; once a preview succeeds or fails, retain that settled state and do not flash the skeleton again during ordinary hover/open cycles.
 
 ## Token → utility quick map
 
@@ -113,6 +117,10 @@ After writing UI:
 - [ ] Reads well at base width (iPhone 12 = base + xs:)
 - [ ] Long tokens/URLs/env lines wrap (`min-w-0 break-all`) — no horizontal overflow
 - [ ] Route file is thin; page composition lives in the matching `views/*View.tsx`
+- [ ] Static layout/content stays server-rendered; client boundaries wrap only interaction
+- [ ] Simple motion is CSS-first and has a reduced-motion outcome
+- [ ] Internal link previews use OG/static images, never full-page iframes
+- [ ] Settled previews do not flash their skeleton again
 ```
 
 ## Portability (use on any site)
@@ -128,7 +136,7 @@ Same system, swap **token values only** (keep token names + component APIs). `ap
 | Radius                                  | §5                                 |
 | Layout / shell                          | §6                                 |
 | Responsive / breakpoints                | §7                                 |
-| Motion / ghost / loaders / shimmer      | §8 (incl. §8.7)                    |
+| Motion / ghost / loaders / previews     | §8 (incl. §8.7–§8.8)               |
 | Theming (light/dark)                    | §9                                 |
 | Component variants/APIs                 | §10                                |
 | Accessibility                           | §12                                |

@@ -8,7 +8,7 @@ export async function GET() {
       { keeps: await listKeeps() },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=600",
+          "Cache-Control": "no-store, max-age=0",
         },
       }
     )

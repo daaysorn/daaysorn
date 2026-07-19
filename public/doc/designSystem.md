@@ -48,6 +48,7 @@
 | **Neutral chrome**              | Near-monochrome light/dark with a single warm-red destructive accent                                |
 | **Role-based type**             | Body = Geist, headings = Montserrat, code = JetBrains Mono                                          |
 | **Composable UI**               | shadcn + Radix primitives; Magic UI registry available (`@magicui`)                                 |
+| **Performance is visual quality** | Server-render static composition; hydrate only interaction; avoid hidden work that makes motion or feedback feel slow |
 
 ---
 
@@ -711,6 +712,13 @@ Do **not** put primary brand layout inside `watch:` min-width alone — that wou
 
 From `app/globals.css`: enabled `button` and `[role="button"]` elements use the pointer affordance on hover (see the base layer in that file).
 
+Page and route reveals are CSS-first. `AppShell` uses
+`shell-transition-pending` for the initial component entrance and
+`app/template.tsx` uses `page-transition-pending` for route-body transitions.
+The keyframes live in `app/globals.css`, finish in roughly `0.6s`, and remove
+motion under `prefers-reduced-motion: reduce`. Do not add GSAP or another
+JavaScript animation runtime for these simple opacity/translate effects.
+
 ### 8.2 Button motion (`components/ui/button.tsx`)
 
 | State              | Behavior                              |
@@ -814,6 +822,24 @@ Defined via `@utility animate-text-shimmer` and `@utility animate-music-pulse`.
 - Shimmer is for **live muted text**, not for every caption.
 - Keep shimmer slow (`~5.5s ease-in-out`) — do not speed it into a strobe.
 - Stagger related pulses with `animation-delay` when sequencing (e.g. icon then title).
+
+### 8.8 Performance, previews & perceived speed
+
+Performance choices are design choices because they control how quickly the
+interface settles, whether skeletons flash, and whether navigation feels calm.
+
+| Pattern | Rule |
+| ------- | ---- |
+| Static composition | Render headings, prose, layout and non-interactive media in Server Components. Use a small client island only for browser state, gestures, dialogs, realtime or form behavior. |
+| Internal link preview | Use the route's generated OG image or a stored static preview. Never render the full local page in an iframe. |
+| External preview | Prefer a generated screenshot cached in R2 or another durable asset store. Avoid rebuilding the same preview on each hover. |
+| Skeleton lifecycle | Match the final box size, use `bg-muted`, and stop showing it after that preview has settled during the session. |
+| Decorative motion | Prefer CSS transitions/keyframes with `motion-safe:` and an explicit reduced-motion state. |
+| Physics/gesture motion | A focused client library is acceptable only when continuous pointer or gesture calculations are the interaction itself, such as Dock magnification. |
+
+A preview is visual context, not an embedded copy of the destination. Hovering
+it must not boot the destination's analytics, Spotify polling, database reads,
+realtime connection, or service worker.
 
 ---
 
@@ -1022,14 +1048,12 @@ Env vars:
 
 ### 10.6 Home view — `views/homeView.tsx`
 
-Reference composition for type + button + theme hint:
-
-```
-Project ready!                          ← h1 Montserrat
-You may now add components…             ← Geist body
-[ Button ]                              ← primary default
-(Press d to toggle dark mode)           ← JetBrains Mono xs muted
-```
+Reference composition for the shared body column: Montserrat title, Geist
+prose, a floated portrait at phone/desktop sizes, semantic inline links and
+compact glass preview cards. Internal links preview generated OG images rather
+than loading their routes. Preview cards keep a fixed aspect ratio, use
+`bg-muted` skeletons only before first settlement, and remain clickable to the
+destination.
 
 ---
 
@@ -1347,6 +1371,7 @@ consistent across body links, cards, navigation, previews, and social links.
 | shadcn Create | Documented origin of `globals.css` from [ui.shadcn.com/create](https://ui.shadcn.com/create); §2.1, §9.4, §15.7 — replace theme values freely, keep token names; shadcn `add` works unchanged                                                                                                                                        |
 | Overflow wrap | §13.6 — long tokens/URLs/env lines must use `break-all` + `overflow-wrap` / `min-w-0`; Spotify auth callback fixed                                                                                                                                                                                                                   |
 | Feedback UI   | §3.6 muted text hierarchy; §8.7 ghost patterns, skeletons, pulse, text-shimmer (`5.5s ease-in-out`)                                                                                                                                                                                                                                  |
+| Performance UI | Added performance as a design principle; §8.1 CSS-only page reveals; §8.8 server/client boundaries, lightweight OG previews, settled skeleton behavior and reduced-motion rules |
 
 ---
 
