@@ -15,6 +15,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Long unbroken strings (tokens, URLs, env lines, hashes) must wrap — use `min-w-0` with `break-all` / `overflow-wrap-anywhere`.
 - Always write the brand name as lowercase `daaysorn`, including at the beginning of sentences and in names such as `daaysorn account` and `daaysorn-cmp`.
 
+## Fintech Best-Practices Skill Pipeline
+
+Four-stage pipeline that builds the AI-agent skill at `public/skill/fintech-best-practices/` (served publicly at `/skill/fintech-best-practices/SKILL.md`). Code lives in `lib/fintech/` and `scripts/`. Run the stages in order:
+
+1. `bun run fintech:scrape` — pulls practitioner timelines from twitterapi.io into the `fintech_tweets` table. Defaults to `@smartnakamoura` and `@Akintola_steve`; override with `--handles=a,b`, include replies with `--replies`. Retweets are skipped.
+2. `bun run fintech:classify` — cencori classifies unclassified tweets in batches of 25 (relevance, category, distilled claim, confidence). Cap a run with `--limit=N`. Rerunnable; only processes rows where `relevant IS NULL`.
+3. `bun run fintech:docs` — Valyu web search fills the `fintech_docs` table with authoritative sources (OWASP, PCI DSS, KYC/AML, payments engineering) per category. Filter with `--category=<name>`.
+4. `bun run fintech:skill` — synthesizes `SKILL.md` + `references/<category>.md` with a generate → independent review → revise loop. Authoritative docs outrank tweet claims; every recommendation cites its source. Chapters failing review twice are still written but flagged with a warning banner and exit code 1. Rebuild one chapter with `--category=<name>`.
+
+Categories are defined once in `lib/fintech/types.ts` (security, data-protection, fraud, compliance, payments, reliability, ux-trust) and shared by the classifier, Valyu queries, and skill output. Requires `TWITTERAPI_IO_KEY`, `VALYU_API_KEY`, `CENCORI_API_KEY`, and `DATABASE_URL`; tables are created by `bun run db:migrate` (`migrateFintechSchema`).
+
 ## Learned Workspace Facts
 
 - Fonts are wired via `next/font` CSS variables: `--font-heading` (Montserrat), `--font-sans` (Geist), `--font-mono` (JetBrains Mono).

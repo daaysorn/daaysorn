@@ -19,6 +19,10 @@
     "keeps:cache-previews": "bun scripts/cache-instagram-keep-previews.ts",
     "keeps:audit-previews": "bun scripts/audit-keeps-previews.ts",
     "db:migrate": "bun scripts/migrate-database.ts",
+    "fintech:scrape": "bun scripts/scrape-fintech-tweets.ts",
+    "fintech:classify": "bun scripts/classify-fintech-tweets.ts",
+    "fintech:docs": "bun scripts/fetch-fintech-docs.ts",
+    "fintech:skill": "bun scripts/build-fintech-skill.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
