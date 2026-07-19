@@ -219,10 +219,13 @@ export function GalleryView({ media }: { media: GalleryViewItem[] }) {
                     className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
                   />
                 ) : (
-                  <div className="relative size-full min-w-0">
+                  <div
+                    key={activeItem.id}
+                    className="relative size-full min-w-0"
+                  >
                     <Image
                       fill
-                      priority
+                      preload
                       unoptimized={activeItem.remote}
                       src={activeItem.previewSrc}
                       alt={activeItem.label}

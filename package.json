@@ -17,6 +17,7 @@
     "telegram:webhook": "bun scripts/set-telegram-keeps-webhook.ts",
     "keeps:reformat": "bun scripts/reformat-keeps.ts",
     "keeps:cache-previews": "bun scripts/cache-instagram-keep-previews.ts",
+    "keeps:audit-previews": "bun scripts/audit-keeps-previews.ts",
     "db:migrate": "bun scripts/migrate-database.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"

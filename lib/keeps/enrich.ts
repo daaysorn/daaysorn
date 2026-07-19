@@ -9,10 +9,15 @@ import {
   titleFromKeepUrl,
 } from "@/lib/keeps/fallback"
 import { limitSentences } from "@/lib/keeps/text"
-import { cacheInstagramPreview } from "@/lib/keeps/preview-storage"
+import {
+  cacheKeepPreview,
+  captureKeepScreenshotPreview,
+} from "@/lib/keeps/preview-storage"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import {
+  hasVerifiedInstagramContext,
   instagramResourceFromUrl,
+  isGenericKeepCopy,
   isInstagramAuthUrl,
   keepTagTaxonomy,
   originalKeepHref,
@@ -86,6 +91,62 @@ function meta(html: string, key: string) {
   }
 
   return ""
+}
+
+async function readInstagramPage(url: URL) {
+  const requestUrl = new URL(url)
+  requestUrl.hostname = "www.instagram.com"
+  const userAgents = [
+    "Mozilla/5.0",
+    "facebookexternalhit/1.1 (+https://www.facebook.com/externalhit_uatext.php)",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131 Safari/537.36",
+  ]
+
+  for (const [attempt, userAgent] of userAgents.entries()) {
+    try {
+      const publicUrl = await assertPublicUrl(requestUrl.toString())
+      const response = await fetch(publicUrl, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(10_000),
+        headers: {
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "en-US,en;q=0.9",
+          "User-Agent": userAgent,
+        },
+      })
+      if (!response.ok) continue
+
+      const html = (await response.text()).slice(0, 750_000)
+      const title = meta(html, "og:title")
+      const description =
+        meta(html, "og:description") || meta(html, "description")
+      const image = meta(html, "og:image") || meta(html, "twitter:image")
+      if (!title && !description && !image) continue
+
+      const author =
+        description.match(/-\s*([\w.]+)\s+on\s+/i)?.[1] ||
+        title.match(/^(.+?)\s+on Instagram:/i)?.[1] ||
+        "Instagram"
+      const context = description || title
+      return {
+        href: normalizeKeepUrl(url.toString()),
+        title,
+        description: context,
+        author: cleanEditorialText(author),
+        imageUrl: image ? new URL(image, publicUrl).toString() : null,
+        body: context,
+      }
+    } catch (error) {
+      if (attempt === userAgents.length - 1) {
+        console.error("Instagram metadata retries failed", {
+          message: error instanceof Error ? error.message : "Unknown error",
+        })
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)))
+  }
+
+  return null
 }
 
 async function readTikTokEmbed(url: URL) {
@@ -193,6 +254,11 @@ function contentTypeLabel(contentType: string) {
 
 async function readPage(initialUrl: string) {
   let url = await assertPublicUrl(normalizeKeepUrl(initialUrl))
+
+  if (sourceFrom(url) === "Instagram") {
+    const instagramPage = await readInstagramPage(url)
+    if (instagramPage) return instagramPage
+  }
 
   for (let redirect = 0; redirect < 4; redirect += 1) {
     const response = await fetch(url, {
@@ -382,6 +448,96 @@ type AiKeep = {
   tags: string[]
 }
 
+type AiKeepReview = {
+  accepted: boolean
+  feedback: string
+  unsupportedClaims: string[]
+}
+
+const keepSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    title: { type: "string", minLength: 4, maxLength: 100 },
+    summary: { type: "string", minLength: 30, maxLength: 320 },
+    author: { type: "string", minLength: 1, maxLength: 80 },
+    tags: {
+      type: "array",
+      minItems: 1,
+      maxItems: 2,
+      items: { type: "string", enum: [...keepTagTaxonomy] },
+    },
+  },
+  required: ["title", "summary", "author", "tags"],
+}
+
+const editorialSystemPrompt =
+  "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. The words impressive, stunning, and captivating are forbidden. Never write vague filler such as original content can be viewed. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts and do not claim what happens in the video. The thumbnail analysis describes one visible frame and is valid evidence only for objects, text, and context visible in that frame. Combine it with the caption without extrapolating beyond either source. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general."
+
+async function generateKeepMetadata(
+  cencori: Cencori,
+  evidence: Record<string, unknown>,
+  revisionFeedback = ""
+) {
+  return cencori.ai.generateObject<AiKeep>({
+    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4.1-nano",
+    schemaName: "keeps_entry",
+    schemaDescription:
+      "A concise editorial entry for Tomiwa David's public Keeps page.",
+    schema: keepSchema,
+    maxTokens: 350,
+    messages: [
+      { role: "system", content: editorialSystemPrompt },
+      {
+        role: "user",
+        content: JSON.stringify({
+          ...evidence,
+          revisionFeedback: revisionFeedback || undefined,
+        }),
+      },
+    ],
+  })
+}
+
+async function reviewKeepMetadata(
+  cencori: Cencori,
+  evidence: Record<string, unknown>,
+  candidate: AiKeep
+) {
+  return cencori.ai.generateObject<AiKeepReview>({
+    model: process.env.CENCORI_KEEPS_REVIEW_MODEL?.trim() || "gpt-4.1-mini",
+    schemaName: "keeps_entry_review",
+    schemaDescription:
+      "An evidence-based quality review of proposed Keeps metadata.",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        accepted: { type: "boolean" },
+        feedback: { type: "string", minLength: 1, maxLength: 400 },
+        unsupportedClaims: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string", maxLength: 160 },
+        },
+      },
+      required: ["accepted", "feedback", "unsupportedClaims"],
+    },
+    maxTokens: 300,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are the independent quality gate for public editorial metadata. Compare the candidate only with the supplied evidence. Reject unsupported claims, guessed events, truly generic or tautological titles, promotional filler, incorrect authors or resource types, unrelated tags, and summaries that merely say to view the original. A thumbnail analysis proves only what is visible in one frame. Read the candidate carefully and never claim it omitted a detail that it explicitly contains. Do not demand details absent from the evidence. A broad but factual title based on the source caption is acceptable. Give concrete, evidence-bounded rewrite instructions when rejecting. Accept specific, natural, factual copy.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({ evidence, candidate }),
+      },
+    ],
+  })
+}
+
 function cleanEditorialText(value: string) {
   return value
     .replace(/#[\p{L}\p{N}_-]+/gu, " ")
@@ -395,6 +551,29 @@ function cleanAiTitle(value: string) {
   return cleanEditorialText(
     value.replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, " ")
   )
+}
+
+async function analyzeInstagramThumbnail(
+  cencori: Cencori,
+  imageUrl: string | null
+) {
+  if (!imageUrl) return ""
+  try {
+    const response = await cencori.vision.analyze({
+      image: { url: imageUrl },
+      model: process.env.CENCORI_KEEPS_VISION_MODEL?.trim() || "gpt-4.1-nano",
+      prompt:
+        "Describe only the visible subject, objects, product names, and readable text in this Instagram thumbnail. Be factual and concise. Do not use marketing adjectives or infer events outside this single frame.",
+      maxTokens: 180,
+      temperature: 0,
+    })
+    return cleanEditorialText(response.analysis).slice(0, 800)
+  } catch (error) {
+    console.error("Instagram thumbnail analysis failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    })
+    return ""
+  }
 }
 
 export async function enrichKeep({
@@ -425,14 +604,15 @@ export async function enrichKeep({
 
   // Challenge pages contain no useful source material. Avoid paying for an AI
   // rewrite unless the owner supplied a trusted note with actual context.
-  if (pageWasChallenge && !ownerNote) {
+  if (pageWasChallenge && !ownerNote && source !== "Instagram") {
+    const imageUrl = await captureKeepScreenshotPreview(page.href)
     return {
       href: page.href,
       source: challengeSafeCopy.source,
       author: source,
       title: cleanAiTitle(challengeSafeCopy.title),
       summary: challengeSafeCopy.summary,
-      imageUrl: null,
+      imageUrl,
       tags: challengeSafeCopy.tags,
       telegramMessageId,
       rawText,
@@ -452,79 +632,96 @@ export async function enrichKeep({
   if (!apiKey) throw new Error("CENCORI_API_KEY is not configured")
 
   const cencori = new Cencori({ apiKey })
-  const response = await cencori.ai.generateObject<AiKeep>({
-    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4.1-nano",
-    schemaName: "keeps_entry",
-    schemaDescription:
-      "A concise editorial entry for Tomiwa David's public Keeps page.",
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        title: { type: "string", minLength: 4, maxLength: 100 },
-        summary: { type: "string", minLength: 30, maxLength: 320 },
-        author: { type: "string", minLength: 1, maxLength: 80 },
-        tags: {
-          type: "array",
-          minItems: 1,
-          maxItems: 2,
-          items: { type: "string", enum: [...keepTagTaxonomy] },
-        },
-      },
-      required: ["title", "summary", "author", "tags"],
-    },
-    maxTokens: 350,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general.",
-      },
-      {
-        role: "user",
-        content: JSON.stringify({
-          ownerNote,
-          pageTitle: page.title,
-          pageDescription: page.description,
-          pageAuthor: page.author,
-          pageText,
-          contentAvailability,
-          source,
-          instagramResourceKind: instagramResource?.kind,
-          instagramHandle: instagramResource?.handle,
-          previousTagsAsHints: customTags,
-          allowedTags: keepTagTaxonomy,
-        }),
-      },
-    ],
-  })
-
-  const aiTitle = cleanAiTitle(response.object.title)
-  const aiSummary = limitSentences(cleanEditorialText(response.object.summary))
-  const rejectedChallengeOutput = isChallengeContent(aiTitle, aiSummary)
-  const safeFallback = rejectedChallengeOutput
-    ? challengeFallback(page.href, source)
-    : null
-  const imageUrl =
+  const instagramPreview =
     source === "Instagram"
-      ? await cacheInstagramPreview(page.imageUrl)
-      : page.imageUrl
+      ? ((await cacheKeepPreview(page.imageUrl, page.href)) ??
+        (await captureKeepScreenshotPreview(page.href)))
+      : null
+  const thumbnailAnalysis =
+    source === "Instagram"
+      ? await analyzeInstagramThumbnail(
+          cencori,
+          page.imageUrl ?? instagramPreview
+        )
+      : ""
+  if (
+    source === "Instagram" &&
+    !hasVerifiedInstagramContext({
+      ownerNote,
+      thumbnailAnalysis,
+      title: page.title,
+      description: page.description,
+    })
+  ) {
+    throw new Error(
+      "Instagram did not provide enough verified metadata to save this link"
+    )
+  }
+  const evidence = {
+    ownerNote,
+    pageTitle: page.title,
+    pageDescription: page.description,
+    pageAuthor: page.author,
+    pageText,
+    thumbnailAnalysis,
+    contentAvailability,
+    source,
+    instagramResourceKind: instagramResource?.kind,
+    instagramHandle: instagramResource?.handle,
+    previousTagsAsHints: customTags,
+    allowedTags: keepTagTaxonomy,
+  }
+  let candidate = (await generateKeepMetadata(cencori, evidence)).object
+  let aiTitle = cleanAiTitle(candidate.title)
+  let aiSummary = limitSentences(cleanEditorialText(candidate.summary))
+  let deterministicRejection =
+    isChallengeContent(aiTitle, aiSummary) ||
+    isGenericKeepCopy(aiTitle, aiSummary)
+  let review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
+
+  if (deterministicRejection || !review.accepted) {
+    const feedback = [
+      deterministicRejection
+        ? "The draft failed deterministic checks for generic, challenge, or unsupported copy."
+        : "",
+      review.feedback,
+      ...review.unsupportedClaims.map((claim) => `Unsupported: ${claim}`),
+    ]
+      .filter(Boolean)
+      .join(" ")
+    candidate = (await generateKeepMetadata(cencori, evidence, feedback)).object
+    aiTitle = cleanAiTitle(candidate.title)
+    aiSummary = limitSentences(cleanEditorialText(candidate.summary))
+    deterministicRejection =
+      isChallengeContent(aiTitle, aiSummary) ||
+      isGenericKeepCopy(aiTitle, aiSummary)
+    review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
+  }
+
+  if (deterministicRejection || !review.accepted) {
+    throw new Error("AI metadata review rejected the corrected draft")
+  }
+
+  const aiAuthor =
+    cleanAiTitle(candidate.author) ||
+    instagramResource?.handle ||
+    page.author ||
+    source
+  const imageUrl =
+    instagramPreview ??
+    (await cacheKeepPreview(page.imageUrl, page.href)) ??
+    (await captureKeepScreenshotPreview(page.href))
 
   return {
     href: page.href,
-    source: safeFallback?.source ?? source,
-    author: safeFallback
-      ? source
-      : cleanAiTitle(response.object.author) ||
-        instagramResource?.handle ||
-        page.author ||
-        source,
-    title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
-    summary: safeFallback?.summary ?? aiSummary,
-    imageUrl: safeFallback ? null : imageUrl,
+    source,
+    author: aiAuthor,
+    title: aiTitle,
+    summary: aiSummary,
+    imageUrl,
     tags: [
       ...new Set(
-        (safeFallback?.tags ?? response.object.tags)
+        candidate.tags
           .map((tag) => tag.replace(/^#+/, "").trim())
           .filter(Boolean)
       ),

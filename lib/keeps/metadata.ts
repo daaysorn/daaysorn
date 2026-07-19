@@ -18,6 +18,39 @@ export const keepTagTaxonomy = [
   "Travel",
 ] as const
 
+const genericEditorialPhrases = [
+  "impressive",
+  "stunning",
+  "captivating",
+  "original content can be viewed",
+  "instagram post overview",
+  "instagram reel link",
+  "public caption and thumbnail content",
+  "saved link to an instagram",
+  "complete details and context",
+  "refer to the original source",
+]
+
+export function isGenericKeepCopy(...values: string[]) {
+  const copy = values.join(" ").toLowerCase()
+  return genericEditorialPhrases.some((phrase) => copy.includes(phrase))
+}
+
+export function hasVerifiedInstagramContext({
+  ownerNote,
+  thumbnailAnalysis,
+  title,
+  description,
+}: {
+  ownerNote: string
+  thumbnailAnalysis: string
+  title: string
+  description: string
+}) {
+  if (ownerNote || thumbnailAnalysis) return true
+  return Boolean(description && !isGenericKeepCopy(title, description))
+}
+
 export type InstagramResource =
   | { kind: "profile"; handle: string }
   | { kind: "reel" | "post" | "story"; handle: null }
