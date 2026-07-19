@@ -4,6 +4,10 @@ const challengePhrases = [
   "browser settings",
   "checking your browser",
   "just a moment",
+  "verify you're not a robot",
+  "confirm you are not a robot",
+  "javascript verification required",
+  "verification required",
 ]
 
 export function sourceFromKeepUrl(href: string) {

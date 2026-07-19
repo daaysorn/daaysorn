@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "node -e \"require('node:fs').rmSync('.next',{recursive:true,force:true,maxRetries:5,retryDelay:100})\" && next dev",
     "registry": "shadcn build",
     "build": "shadcn build && next build",
     "start": "next start",
@@ -14,6 +15,7 @@
     "buffer:channels": "bun scripts/list-buffer-channels.ts",
     "buffer:sync-gallery": "bun scripts/sync-gallery-to-buffer.ts",
     "telegram:webhook": "bun scripts/set-telegram-keeps-webhook.ts",
+    "keeps:reformat": "bun scripts/reformat-keeps.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

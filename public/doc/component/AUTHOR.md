@@ -636,6 +636,13 @@ enforce uniqueness on each canonical URL.
 
 #### Public card and summary rules
 
+- Every Keep passes through AI, including Instagram and TikTok entries. Titles
+  and summaries are translated and rewritten into natural English.
+- Every title begins with one contextually relevant emoji. A deterministic
+  fallback adds `✨` if the model omits an emoji.
+- Titles are editorial rewrites, not raw source captions. Hashtags are removed
+  from titles and summaries after generation even if the model returns one.
+  Topic tags remain separate structured metadata and display without `#`.
 - Cencori must return no more than two concise summary sentences. The prompt,
   response handler, and database read layer all enforce this rule, so older
   saved summaries are also limited when displayed.
@@ -651,6 +658,18 @@ enforce uniqueness on each canonical URL.
 - The **Latest** filter sits immediately after **All** and restores the
   database's newest-first order. **All** returns to the visit's randomized
   discovery order.
+
+To preview AI reformatting for legacy Keeps without changing the database:
+
+```bash
+bun run keeps:reformat
+```
+
+Use `--publish --continue-on-error` to save successful rows and continue past
+temporarily inaccessible sources. Completed rows are checkpointed with an AI
+format version, so rerunning the command resumes unfinished work. Use `--all`
+only when intentionally reprocessing every row after changing the editorial
+prompt.
 
 #### Supported link types
 
@@ -1306,6 +1325,7 @@ out until daaysorn has a real feature requiring them.
 
 ```bash
 bun run dev             # develop
+bun run dev:clean       # clear stale Turbopack state, then develop
 bun run registry        # regenerate public/r/*.json after editing a component
 bun run build           # registry + next build (what deploy runs)
 bun run typecheck       # tsc --noEmit

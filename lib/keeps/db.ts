@@ -32,12 +32,14 @@ async function ensureSchema() {
         tags TEXT[] NOT NULL DEFAULT '{}',
         telegram_message_id BIGINT NOT NULL,
         raw_text TEXT NOT NULL,
+        ai_format_version INTEGER NOT NULL DEFAULT 0,
         saved_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `
     await sql`
       ALTER TABLE keeps
-      ADD COLUMN IF NOT EXISTS image_url TEXT
+      ADD COLUMN IF NOT EXISTS image_url TEXT,
+      ADD COLUMN IF NOT EXISTS ai_format_version INTEGER NOT NULL DEFAULT 0
     `
     await sql`
       ALTER TABLE keeps
@@ -140,10 +142,10 @@ export async function saveKeep(draft: KeepDraft) {
   await sql`
     INSERT INTO keeps (
       id, href, source, author, title, summary, image_url, tags,
-      telegram_message_id, raw_text
+      telegram_message_id, raw_text, ai_format_version
     ) VALUES (
       ${id}, ${draft.href}, ${draft.source}, ${draft.author}, ${draft.title},
-      ${draft.summary}, ${draft.imageUrl}, ${draft.tags}, ${draft.telegramMessageId}, ${draft.rawText}
+      ${draft.summary}, ${draft.imageUrl}, ${draft.tags}, ${draft.telegramMessageId}, ${draft.rawText}, 1
     )
     ON CONFLICT (href) DO UPDATE SET
       source = EXCLUDED.source,
@@ -154,7 +156,66 @@ export async function saveKeep(draft: KeepDraft) {
       tags = EXCLUDED.tags,
       telegram_message_id = EXCLUDED.telegram_message_id,
       raw_text = EXCLUDED.raw_text,
+      ai_format_version = 1,
       saved_at = NOW()
+  `
+}
+
+export type KeepForReformat = {
+  id: string
+  href: string
+  rawText: string
+  telegramMessageId: number
+  tags: string[]
+}
+
+export async function listKeepsForReformat(
+  includeFormatted = false
+): Promise<KeepForReformat[]> {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+
+  const rows = (await sql`
+    SELECT id, href, raw_text, telegram_message_id, tags
+    FROM keeps
+    WHERE ${includeFormatted} = TRUE OR ai_format_version < 1
+    ORDER BY saved_at ASC
+  `) as Array<{
+    id: string
+    href: string
+    raw_text: string
+    telegram_message_id: string | number
+    tags: string[]
+  }>
+
+  return rows.map((row) => ({
+    id: row.id,
+    href: row.href,
+    rawText: row.raw_text,
+    telegramMessageId: Number(row.telegram_message_id),
+    tags: row.tags,
+  }))
+}
+
+export async function updateKeepEditorial(
+  id: string,
+  draft: Pick<
+    KeepDraft,
+    "source" | "author" | "title" | "summary" | "imageUrl" | "tags"
+  >
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+
+  await sql`
+    UPDATE keeps
+    SET source = ${draft.source}, author = ${draft.author},
+      title = ${draft.title}, summary = ${draft.summary},
+      image_url = COALESCE(${draft.imageUrl}, image_url), tags = ${draft.tags},
+      ai_format_version = 1
+    WHERE id = ${id}
   `
 }
 

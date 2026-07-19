@@ -368,6 +368,23 @@ type AiKeep = {
   tags: string[]
 }
 
+const emojiPattern = /\p{Extended_Pictographic}/u
+
+function cleanEditorialText(value: string) {
+  return value
+    .replace(/#[\p{L}\p{N}_-]+/gu, " ")
+    .replaceAll("#", "")
+    .replace(/\s+([,.;!?])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function cleanAiTitle(value: string) {
+  const title = cleanEditorialText(value)
+  const withEmoji = emojiPattern.test(title) ? title : `✨ ${title}`
+  return withEmoji.replace(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u, "$1 ")
+}
+
 export async function enrichKeep({
   href,
   rawText,
@@ -383,6 +400,7 @@ export async function enrichKeep({
   const ownerNote = rawText
     .replace(/https?:\/\/[^\s<>]+/gi, "")
     .replace(/(?:^|\s)#[\p{L}\p{N}_-]{2,24}/gu, " ")
+    .replace(/(?:^|\s)\/keep(?:@\w+)?\b/gi, " ")
     .trim()
   const source = sourceFrom(new URL(page.href))
   const contentAvailability =
@@ -392,47 +410,6 @@ export async function enrichKeep({
         ? "Public embed metadata only. A transcript may not be available."
         : "Public page metadata and readable page text."
   const pageText = source === "Instagram" ? page.description : page.body
-
-  if (source === "TikTok" && !page.body && !ownerNote) {
-    return {
-      href: page.href,
-      source,
-      author: page.author,
-      title: page.title,
-      summary: `A saved TikTok post from ${page.author}. View the original post for its photos, caption, and full context.`,
-      imageUrl: page.imageUrl,
-      tags: [...new Set([...customTags, "TikTok"])].slice(0, 5),
-      telegramMessageId,
-      rawText,
-    }
-  }
-
-  if (source === "Instagram" && !ownerNote) {
-    const caption = page.description.replace(/\s+/g, " ").trim()
-    const title =
-      caption.split(/[.!?](?:\s|$)/, 1)[0]?.trim() ||
-      `Instagram reel by ${page.author}`
-    const quotedCaption = caption
-      .replace(/[.!?]+(?=\s|$)/g, ";")
-      .replace(/“([^”]+)”/g, "‘$1’")
-      .replace(
-        /;\s+([A-Z])/g,
-        (_, letter: string) => `; ${letter.toLowerCase()}`
-      )
-      .replace(/;+$/, "")
-
-    return {
-      href: page.href,
-      source,
-      author: page.author,
-      title,
-      summary: `@${page.author.replace(/^@/, "")} shared the caption “${quotedCaption}.” Open the original reel for the full video context.`,
-      imageUrl: page.imageUrl,
-      tags: [...new Set([...customTags, "Instagram"])].slice(0, 5),
-      telegramMessageId,
-      rawText,
-    }
-  }
 
   const apiKey = process.env.CENCORI_API_KEY?.trim()
   if (!apiKey) throw new Error("CENCORI_API_KEY is not configured")
@@ -464,7 +441,7 @@ export async function enrichKeep({
       {
         role: "system",
         content:
-          "You edit Tomiwa David's public Keeps collection. Write plain, non-technical English. The summary must contain no more than two concise sentences. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never use em dashes and never mention that AI created the summary. Return short Title Case tags. For Instagram, the supplied text is public caption metadata, not a reel transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, say that the original post provides the full context. Do not describe the social platform in general.",
+          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Begin each title with exactly one relevant emoji. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. Return short Title Case tags without # symbols. For Instagram, the supplied text is public caption metadata, not a reel transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, say that the original post provides the full context. Do not describe the social platform in general.",
       },
       {
         role: "user",
@@ -481,14 +458,27 @@ export async function enrichKeep({
     ],
   })
 
+  const aiTitle = cleanAiTitle(response.object.title)
+  const aiSummary = limitSentences(cleanEditorialText(response.object.summary))
+  const rejectedChallengeOutput = isChallengeContent(aiTitle, aiSummary)
+  const safeFallback = rejectedChallengeOutput
+    ? challengeFallback(page.href, source)
+    : null
+
   return {
     href: page.href,
-    source,
+    source: safeFallback?.source ?? source,
     author: response.object.author,
-    title: response.object.title,
-    summary: limitSentences(response.object.summary),
+    title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
+    summary: safeFallback?.summary ?? aiSummary,
     imageUrl: page.imageUrl,
-    tags: [...new Set([...customTags, ...response.object.tags])].slice(0, 5),
+    tags: [
+      ...new Set(
+        [...customTags, ...(safeFallback?.tags ?? response.object.tags)]
+          .map((tag) => tag.replace(/^#+/, "").trim())
+          .filter(Boolean)
+      ),
+    ].slice(0, 5),
     telegramMessageId,
     rawText,
   }
