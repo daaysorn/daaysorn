@@ -78,6 +78,7 @@ Videos cannot be included in a carousel.
 <b>✍️ Rants</b>
 /rant <code>&lt;text&gt;</code>  Create or update a draft
 /publish  Reply to a draft to publish
+/publish <code>&lt;preview link&gt;</code>  Publish by private preview URL
 /deleterant  Reply to a Rant to delete
 
 <b>💬 Perspectives</b>

@@ -25,6 +25,7 @@ import { publishPublicKeepsChanged } from "@/lib/keeps/realtime"
 import {
   deleteRantByTelegramMessageId,
   moderatePerspective,
+  publishRantById,
   publishRantByTelegramMessageId,
   saveRantDraft,
 } from "@/lib/rants/db"
@@ -233,6 +234,12 @@ function invalidateRants(slug?: string) {
   if (slug) revalidatePath(`/rants/${slug}`)
 }
 
+function findRantPreviewId(text: string) {
+  return text.match(
+    /\/rants\/preview\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#]|$)/i
+  )?.[1]
+}
+
 async function processGalleryMedia(
   chatId: number,
   rawText: string,
@@ -398,7 +405,7 @@ export async function POST(request: Request) {
             `Rant draft: ${rant.title}`,
             `${rant.readingMinutes} min · ${rant.tags.join(", ")}`,
             previewUrl ? `Preview: ${previewUrl}` : "",
-            "To update the draft, edit your original /rant message above. Reply /publish to that same original message when it is ready.",
+            "To update the draft, edit your original /rant message above. To publish, reply /publish to that original message or send /publish followed by this preview link.",
           ]
             .filter(Boolean)
             .join("\n")
@@ -419,14 +426,22 @@ export async function POST(request: Request) {
 
   if (/^\/publish(?:@\w+)?\b/i.test(rawText)) {
     const repliedMessageId = message.reply_to_message?.message_id
-    if (!repliedMessageId) {
+    const previewId = findRantPreviewId(
+      `${rawText}\n${message.reply_to_message?.text ?? ""}`
+    )
+    if (!repliedMessageId && !previewId) {
       after(() =>
-        reply(message.chat.id, "Reply /publish to the original /rant message.")
+        reply(
+          message.chat.id,
+          "Reply /publish to the original /rant message, or send /publish followed by its preview link."
+        )
       )
       return Response.json({ ok: true })
     }
     after(async () => {
-      const rant = await publishRantByTelegramMessageId(repliedMessageId)
+      const rant = previewId
+        ? await publishRantById(previewId)
+        : await publishRantByTelegramMessageId(repliedMessageId as number)
       if (!rant) {
         await reply(message.chat.id, "That message is not a Rant draft.")
         return

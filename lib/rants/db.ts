@@ -156,6 +156,21 @@ export async function publishRantByTelegramMessageId(messageId: number) {
   return rows[0] ? toRant(rows[0]) : null
 }
 
+export async function publishRantById(id: string) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = (await sql`
+    UPDATE rants SET
+      status = 'published',
+      published_at = COALESCE(published_at, NOW()),
+      updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `) as RantRow[]
+  return rows[0] ? toRant(rows[0]) : null
+}
+
 export async function deleteRantByTelegramMessageId(messageId: number) {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
