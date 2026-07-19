@@ -134,6 +134,16 @@ A distilled knowledge base for AI agents building fintech applications, synthesi
 
 Generated on ${generatedOn} from ${stats.relevant} practitioner insights (of ${stats.total} tweets analyzed) plus curated authoritative documents.
 
+## Install
+
+Run this inside your project to install the skill for Claude Code:
+
+\`\`\`bash
+curl -fsSL https://daaysorn.com/skill/fintech-best-practices/install.sh | bash
+\`\`\`
+
+For Cursor, set \`FINTECH_SKILL_TARGET_DIR=.cursor/skills/fintech-best-practices\` before running. Re-run the command any time to pull the latest chapters.
+
 ## How to use this skill
 
 Read the reference chapter that matches the work at hand before writing code or giving advice. When chapters disagree with newer official guidance, the official guidance wins. Treat practitioner insights as field-tested heuristics, not regulation.
@@ -149,6 +159,35 @@ Whatever you build, always: never store raw card numbers, CVVs, or plaintext cre
 
   await writeFile(join(skillDirectory, "SKILL.md"), skillMarkdown)
   console.log("\nWrote SKILL.md")
+
+  const installScript = `#!/usr/bin/env bash
+# Install the fintech-best-practices skill into the current project.
+# Usage: curl -fsSL https://daaysorn.com/skill/fintech-best-practices/install.sh | bash
+# Override the target for other tools, e.g. Cursor:
+#   FINTECH_SKILL_TARGET_DIR=.cursor/skills/fintech-best-practices bash install.sh
+set -euo pipefail
+
+BASE_URL="\${FINTECH_SKILL_BASE_URL:-https://daaysorn.com/skill/fintech-best-practices}"
+TARGET_DIR="\${FINTECH_SKILL_TARGET_DIR:-.claude/skills/fintech-best-practices}"
+
+mkdir -p "$TARGET_DIR/references"
+echo "Installing fintech-best-practices into $TARGET_DIR"
+curl -fsSL "$BASE_URL/SKILL.md" -o "$TARGET_DIR/SKILL.md"
+echo "  SKILL.md"
+
+for chapter in ${fintechCategories.join(" ")}; do
+  if curl -fsSL "$BASE_URL/references/$chapter.md" -o "$TARGET_DIR/references/$chapter.md" 2>/dev/null; then
+    echo "  references/$chapter.md"
+  else
+    rm -f "$TARGET_DIR/references/$chapter.md"
+    echo "  skipped $chapter (not published yet)"
+  fi
+done
+
+echo "Done. Agents reading $TARGET_DIR now load this skill for fintech work."
+`
+  await writeFile(join(skillDirectory, "install.sh"), installScript)
+  console.log("Wrote install.sh")
 }
 
 console.log(

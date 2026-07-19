@@ -9,6 +9,16 @@ A distilled knowledge base for AI agents building fintech applications, synthesi
 
 Generated on 19 Jul 2026 from 106 practitioner insights (of 381 tweets analyzed) plus curated authoritative documents.
 
+## Install
+
+Run this inside your project to install the skill for Claude Code:
+
+```bash
+curl -fsSL https://daaysorn.com/skill/fintech-best-practices/install.sh | bash
+```
+
+For Cursor, set `FINTECH_SKILL_TARGET_DIR=.cursor/skills/fintech-best-practices` before running. Re-run the command any time to pull the latest chapters.
+
 ## How to use this skill
 
 Read the reference chapter that matches the work at hand before writing code or giving advice. When chapters disagree with newer official guidance, the official guidance wins. Treat practitioner insights as field-tested heuristics, not regulation.
