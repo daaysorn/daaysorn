@@ -191,7 +191,7 @@ const HomeView = () => {
   const accountHref = links.account.createHref.trim()
 
   return (
-    <article className="min-w-0 pb-8 md:pb-24">
+    <article className="min-w-0 pb-8 md:pb-14">
       <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
         Tomiwa David
       </h1>

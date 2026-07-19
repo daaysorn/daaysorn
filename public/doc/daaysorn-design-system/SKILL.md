@@ -35,6 +35,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 15. The brand name is always written as lowercase **daaysorn**, including at the beginning of a sentence and in names such as **daaysorn account** and **daaysorn-cmp**.
 16. Page body content must stay inside the shared `<main>` column used by Home: `w-full min-w-0`, with the same left and right edges. Do not use viewport-width breakout layouts, negative translation, or page-specific horizontal offsets unless the user explicitly requests a wider page.
 17. Every actionable link must show a pointer cursor. The runtime enforces this globally with `a[href] { cursor: pointer; }`; preserve that rule and use `cursor-pointer` when a component must state the behavior locally.
+18. Keep App Router page files thin. `app/**/page.tsx` owns route concerns such as metadata, params, and revalidation, then imports the page composition from `views/`. Data loading and the full body layout belong in that view. A feature with one view uses `views/<routeName>View.tsx`, such as `views/galleryView.tsx`. As soon as a feature has more than one view file, create `views/<feature>/`, keep all of its views there, and add `views/<feature>/index.ts` to export them to the root `views/index.ts`. Rants therefore lives in `views/rants/`. Reusable or interactive sections belong in `components/<feature>/`. Do not rebuild an entire page body directly in its route file.
 
 ## Token → utility quick map
 
@@ -109,6 +110,7 @@ After writing UI:
 - [ ] Renders in light AND dark (semantic tokens only)
 - [ ] Reads well at base width (iPhone 12 = base + xs:)
 - [ ] Long tokens/URLs/env lines wrap (`min-w-0 break-all`) — no horizontal overflow
+- [ ] Route file is thin; page composition lives in the matching `views/*View.tsx`
 ```
 
 ## Portability (use on any site)

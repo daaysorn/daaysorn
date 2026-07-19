@@ -832,8 +832,10 @@ the media caption controls its destination and its links are not sent to Keeps.
 
 #### Telegram media commands
 
-The bot command menu and `/help` response contain the same quick reference.
-Commands can be placed in the media caption. Rerun
+The bot command menu is a compact command index. `/help` and `/start` return a
+formatted, sectioned guide for Keeps, Gallery, Instagram, Rants, Perspectives,
+and deletion instead of one dense wall of text. Commands can be placed in the
+media caption. Rerun
 `bun run telegram:webhook` after deploying command-menu changes.
 
 | Bot input                     | Destination and behavior                                |
@@ -1158,6 +1160,75 @@ Official references:
 - [Cloudflare R2 public buckets](https://developers.cloudflare.com/r2/buckets/public-buckets/)
 - [Telegram Bot API `getFile`](https://core.telegram.org/bots/api#getfile)
 
+### Rants editorial pipeline
+
+Rants uses Telegram as the private authoring surface and PostgreSQL as the
+editorial source of truth. Public pages follow the Archive direction in the
+daaysorn design system: compact chronological rows at `/rants`, minimal article
+pages at `/rants/[slug]`, and moderated Perspectives below each published Rant.
+
+```text
+Formatted /rant message in Telegram
+  → Telegram entities are converted to a restricted safe HTML subset
+  → Cencori generates title, excerpt, slug, tags, and SEO description
+  → PostgreSQL stores a private draft and the untouched body meaning
+  → Telegram returns a signed, no-index preview link
+  → replying /publish exposes the article and invalidates Rants caches
+  → the article gets canonical metadata and an OG cover from the existing template
+```
+
+Use these owner-only commands:
+
+```text
+/rant <formatted text>  Create a private draft
+/publish + reply        Publish the replied-to /rant message
+/deleterant + reply     Delete the replied-to Rant
+/approve <id>           Publish a pending Perspective
+/reject <id>            Reject a pending Perspective
+```
+
+Editing the original Telegram `/rant` message regenerates its metadata and
+updates the same database row because `telegram_message_id` is unique. The
+formatted body itself is not rewritten by AI. Supported Telegram entities are
+bold, italic, underline, strikethrough, inline code, code blocks, blockquotes,
+plain URLs, and text links. AI failure falls back to deterministic metadata so
+the author's writing is never lost.
+
+The private preview token is an HMAC of the Rant ID. Set a dedicated
+`RANTS_PREVIEW_SECRET`; when omitted, the server falls back to the existing
+Telegram webhook secret. Preview pages are marked `noindex` and are excluded
+from the sitemap. Published Rant slugs are added to the generated sitemap.
+
+```env
+CENCORI_RANTS_MODEL=gpt-4o-mini
+RANTS_PREVIEW_SECRET=
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+```
+
+Perspectives are public submissions but never appear immediately. The API
+validates and bounds every field, uses a hidden honeypot, hashes requester
+identity for a ten-minute submission throttle, and optionally verifies
+Cloudflare Turnstile when its keys are configured. A pending submission is sent
+to Telegram with exact `/approve` and `/reject` commands. Approval invalidates
+the Rant cache and makes the Perspective visible; email addresses stay private.
+
+After adding or changing the Rants bot commands, run:
+
+```bash
+bun run telegram:webhook
+```
+
+#### Page structure rule
+
+Route files remain thin. `app/rants/page.tsx` owns metadata and renders
+`views/rants/rantsView.tsx`; dynamic article and preview routes render
+compositions from `views/rants/rantArticleView.tsx`. The feature folder exports
+through `views/rants/index.ts`, then the root `views/index.ts`. Reusable article
+and Perspective UI lives in `components/rants/`. Gallery has one view and stays
+at `views/galleryView.tsx`. This structure is mandatory in the canonical design
+system and must be used for future pages.
+
 ### PWA offline and background refresh
 
 `public/sw.js` is a dependency-free service worker registered immediately in
@@ -1175,9 +1246,8 @@ The worker provides only capabilities that match this project:
   seven days.
 - iOS browsers do not expose `beforeinstallprompt`. On an eligible iPhone or
   iPad, the same card instead gives the native Share → Add to Home Screen steps.
-- The manifest deliberately omits `orientation`, allowing the installed app to
-  follow the device's current orientation instead of locking portrait or
-  landscape.
+- The manifest sets `orientation: "landscape"`, so supported installed PWA
+  environments request a fixed landscape presentation.
 - The OS share target posts `title`, `text`, and `url` as
   `multipart/form-data` to `/api/keeps/share-target`. The handler validates and
   bounds the strings, redirects to a temporary fragment on `/keeps`, and the

@@ -2,6 +2,7 @@ import { readdir } from "node:fs/promises"
 import { join } from "node:path"
 import type { MetadataRoute } from "next"
 
+import { listPublishedRants } from "@/lib/rants/db"
 import { siteConfig } from "@/lib/seo"
 
 const pageFilePattern = /^page\.(?:[cm]?[jt]sx?)$/
@@ -49,9 +50,13 @@ async function discoverStaticRoutes(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const routes = await discoverStaticRoutes(join(process.cwd(), "app"))
+  const [routes, rants] = await Promise.all([
+    discoverStaticRoutes(join(process.cwd(), "app")),
+    listPublishedRants(),
+  ])
+  const rantRoutes = rants.map((rant) => `/rants/${rant.slug}`)
 
-  return [...new Set(routes)]
+  return [...new Set([...routes, ...rantRoutes])]
     .filter((route) => !excludedRoutes.has(route))
     .sort()
     .map((route) => ({

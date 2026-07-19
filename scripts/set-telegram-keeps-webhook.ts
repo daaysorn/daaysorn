@@ -70,7 +70,24 @@ const commandsResponse = await fetch(
         },
         {
           command: "delete",
-          description: "Delete shortcut for Keeps or Gallery",
+          description: "Delete shortcut for Keeps, Gallery, or Rants",
+        },
+        { command: "rant", description: "Create a formatted Rant draft" },
+        {
+          command: "publish",
+          description: "Reply to a Rant draft to publish it",
+        },
+        {
+          command: "deleterant",
+          description: "Reply to a Rant to delete it",
+        },
+        {
+          command: "approve",
+          description: "Approve a submitted Rant Perspective",
+        },
+        {
+          command: "reject",
+          description: "Reject a submitted Rant Perspective",
         },
       ],
     }),

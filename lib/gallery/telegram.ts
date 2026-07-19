@@ -54,25 +54,37 @@ export function parseGalleryPostInstructions(
   }
 }
 
-export const telegramBotHelp = `daaysorn posting commands
+export const telegramBotHelp = `<b>daaysorn bot</b>
+Choose what you want to do.
 
-KEEPS
-/keep <link> → Add a link to Keeps
-/keep <link> #design #tools → Add a Keep with custom tags
-/deletekeep <link> → Delete a Keep
-You can also send up to 5 links without /keep.
+<b>📌 Keeps</b>
+<code>/keep &lt;link&gt;</code>  Save a link
+Add <code>#tags</code> if needed. You can send up to five links.
+<code>/deletekeep &lt;link&gt;</code>  Delete a Keep
 
-GALLERY & INSTAGRAM
-Send a photo or video normally → Gallery only
-/gallery + media → Gallery only
-/insta + media → Instagram only
-/instagal + media → Gallery and Instagram
-/intatag "life update" + album → Instagram carousel captioned “life update”
-/instagal_tag "life update" + album → Gallery and Instagram carousel (typing /instagal-tag also works)
+<b>🖼 Gallery</b>
+Send media normally, or use <code>/gallery</code>.
+<code>/deletegallery</code>  Reply to media to delete it
 
-For a carousel, select 2–10 photos and send them as one Telegram album. Instagram carousels cannot mix photos and videos.
+<b>📸 Instagram</b>
+<code>/insta</code>  Instagram only
+<code>/instagal</code>  Gallery + Instagram
 
-/deletegallery + reply → Delete the replied-to Gallery photo or video
-/delete → Shortcut: delete a Keep by link or Gallery media by reply
-/help → Show this complete guide
-/start → Show this complete guide`
+<b>Carousel</b> <i>(2–10 photos)</i>
+<code>/intatag "life update"</code>  Instagram only
+<code>/instagal_tag "life update"</code>  Gallery + Instagram
+Videos cannot be included in a carousel.
+
+<b>✍️ Rants</b>
+<code>/rant &lt;text&gt;</code>  Create or update a draft
+<code>/publish</code>  Reply to a draft to publish
+<code>/deleterant</code>  Reply to a Rant to delete
+
+<b>💬 Perspectives</b>
+<code>/approve &lt;id&gt;</code>  Approve a submission
+<code>/reject &lt;id&gt;</code>  Reject a submission
+
+<b>More</b>
+<code>/delete</code>  Keeps/Gallery delete shortcut
+<code>/help</code>  Show this guide
+<code>/start</code>  Start here`

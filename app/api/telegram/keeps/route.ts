@@ -22,11 +22,27 @@ import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import { publishPublicKeepsChanged } from "@/lib/keeps/realtime"
+import {
+  deleteRantByTelegramMessageId,
+  moderatePerspective,
+  publishRantByTelegramMessageId,
+  saveRantDraft,
+} from "@/lib/rants/db"
+import {
+  estimateReadingMinutes,
+  generateRantMetadata,
+} from "@/lib/rants/enrich"
+import { stripRantCommand } from "@/lib/rants/format"
+import { createRantPreviewToken } from "@/lib/rants/preview"
+import type { TelegramTextEntity } from "@/lib/rants/types"
+import { siteConfig } from "@/lib/seo"
 
 export const maxDuration = 60
 
 type TelegramEntity = {
   type: string
+  offset: number
+  length: number
   url?: string
 }
 
@@ -171,14 +187,23 @@ function findCustomTags(text: string) {
   ].slice(0, 5)
 }
 
-async function reply(chatId: number, text: string) {
+async function reply(
+  chatId: number,
+  text: string,
+  options?: { parseMode?: "HTML" }
+) {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
   if (!token) return
 
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: options?.parseMode,
+      link_preview_options: { is_disabled: true },
+    }),
   })
 }
 
@@ -200,6 +225,12 @@ function invalidatePublicKeeps() {
 function invalidateGallery() {
   revalidateTag("gallery", { expire: 0 })
   revalidatePath("/gallery")
+}
+
+function invalidateRants(slug?: string) {
+  revalidateTag("rants", { expire: 0 })
+  revalidatePath("/rants")
+  if (slug) revalidatePath(`/rants/${slug}`)
 }
 
 async function processGalleryMedia(
@@ -314,17 +345,148 @@ export async function POST(request: Request) {
   const galleryAttachment = findGalleryAttachment(message)
   const isDeleteKeepCommand = /^\/deletekeep(?:@\w+)?\b/i.test(rawText)
   const isDeleteGalleryCommand = /^\/deletegallery(?:@\w+)?\b/i.test(rawText)
+  const isDeleteRantCommand = /^\/deleterant(?:@\w+)?\b/i.test(rawText)
   const isLegacyDeleteCommand = /^\/delete(?:@\w+)?\b/i.test(rawText)
   const isHelpCommand = /^\/(?:help|start)(?:@\w+)?\b/i.test(rawText)
   const isKeepCommand = /^\/keep(?:@\w+)?\b/i.test(rawText)
+  const isRantCommand = /^\/rant(?:@\w+)?(?:\s|$)/i.test(rawText)
   const isMediaCommand =
     /^\/(?:gallery|insta|instagal(?:-|_)tag|instagal|intatag)(?:@\w+)?\b/i.test(
       rawText
     )
 
   if (isHelpCommand) {
-    after(() => reply(message.chat.id, telegramBotHelp))
+    after(() => reply(message.chat.id, telegramBotHelp, { parseMode: "HTML" }))
     return Response.json({ ok: true })
+  }
+
+  if (isRantCommand) {
+    const { bodyText, bodyHtml } = stripRantCommand(
+      rawText,
+      (message.entities ??
+        message.caption_entities ??
+        []) as TelegramTextEntity[]
+    )
+    if (bodyText.length < 30) {
+      after(() =>
+        reply(
+          message.chat.id,
+          "Write at least a few sentences after /rant so I can prepare the draft."
+        )
+      )
+      return Response.json({ ok: true })
+    }
+
+    after(async () => {
+      try {
+        const metadata = await generateRantMetadata(bodyText)
+        const rant = await saveRantDraft({
+          telegramMessageId: message.message_id,
+          ...metadata,
+          bodyHtml,
+          bodyText,
+          readingMinutes: estimateReadingMinutes(bodyText),
+        })
+        if (rant.status === "published") invalidateRants(rant.slug)
+        const token = createRantPreviewToken(rant.id)
+        const previewUrl = token
+          ? `${siteConfig.url}/rants/preview/${rant.id}?token=${token}`
+          : null
+        await reply(
+          message.chat.id,
+          [
+            `Rant draft: ${rant.title}`,
+            `${rant.readingMinutes} min · ${rant.tags.join(", ")}`,
+            previewUrl ? `Preview: ${previewUrl}` : "",
+            "Reply /publish to make it public, or edit this Telegram message to update the draft.",
+          ]
+            .filter(Boolean)
+            .join("\n")
+        )
+      } catch (error) {
+        console.error("Rant draft creation failed", {
+          message: error instanceof Error ? error.message : "Unknown error",
+          telegramMessageId: message.message_id,
+        })
+        await reply(
+          message.chat.id,
+          "I could not save that Rant. Please try again."
+        )
+      }
+    })
+    return Response.json({ ok: true })
+  }
+
+  if (/^\/publish(?:@\w+)?\b/i.test(rawText)) {
+    const repliedMessageId = message.reply_to_message?.message_id
+    if (!repliedMessageId) {
+      after(() =>
+        reply(message.chat.id, "Reply /publish to the original /rant message.")
+      )
+      return Response.json({ ok: true })
+    }
+    after(async () => {
+      const rant = await publishRantByTelegramMessageId(repliedMessageId)
+      if (!rant) {
+        await reply(message.chat.id, "That message is not a Rant draft.")
+        return
+      }
+      invalidateRants(rant.slug)
+      await reply(
+        message.chat.id,
+        `Published: ${siteConfig.url}/rants/${rant.slug}`
+      )
+    })
+    return Response.json({ ok: true })
+  }
+
+  const moderation = rawText.match(
+    /^\/(approve|reject)(?:@\w+)?\s+([0-9a-f-]{36})\s*$/i
+  )
+  if (moderation) {
+    after(async () => {
+      const status =
+        moderation[1].toLowerCase() === "approve" ? "approved" : "rejected"
+      const rantId = await moderatePerspective(
+        moderation[2],
+        status as "approved" | "rejected"
+      )
+      if (!rantId) {
+        await reply(
+          message.chat.id,
+          "That Perspective is missing or already reviewed."
+        )
+        return
+      }
+      invalidateRants()
+      await reply(message.chat.id, `Perspective ${status}.`)
+    })
+    return Response.json({ ok: true })
+  }
+
+  if (isDeleteRantCommand || isLegacyDeleteCommand) {
+    const replied = message.reply_to_message
+    const repliedText = replied?.text ?? replied?.caption ?? ""
+    if (/^\/rant(?:@\w+)?(?:\s|$)/i.test(repliedText) && replied) {
+      after(async () => {
+        const deleted = await deleteRantByTelegramMessageId(replied.message_id)
+        if (deleted) invalidateRants()
+        await reply(
+          message.chat.id,
+          deleted ? "Deleted that Rant." : "That message is not a saved Rant."
+        )
+      })
+      return Response.json({ ok: true })
+    }
+    if (isDeleteRantCommand) {
+      after(() =>
+        reply(
+          message.chat.id,
+          "Reply /deleterant to the original /rant message."
+        )
+      )
+      return Response.json({ ok: true })
+    }
   }
 
   if (isDeleteGalleryCommand || isLegacyDeleteCommand) {

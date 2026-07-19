@@ -70,10 +70,39 @@ components/
     dock.tsx           ← Magic UI–style magnifying dock
 views/
   homeView.tsx         ← home composition
+  galleryView.tsx      ← Gallery data loading + page composition
+  rants/
+    index.ts           ← feature exports consumed by views/index.ts
+    rantsView.tsx      ← Rants Archive index composition
+    rantArticleView.tsx ← published Rant + private preview composition
 lib/
   utils.ts             ← cn() = clsx + tailwind-merge
 components.json        ← shadcn config
 ```
+
+### Route-to-view structure
+
+App Router route files stay deliberately thin. A page file owns framework-level
+concerns such as metadata, route params, revalidation, and Open Graph wiring,
+then renders a composition imported from `views/`. The matching view owns page
+data loading and the complete body layout. Reusable or client-interactive
+sections live under `components/<feature>/` and are composed by the view.
+
+```tsx
+// app/gallery/page.tsx
+import { GalleryView } from "@/views"
+
+export default function GalleryPage() {
+  return <GalleryView />
+}
+```
+
+Use `<routeName>View.tsx` directly under `views/` while a feature has only one
+view file. When it needs a second view, create `views/<feature>/`, move every
+view for that feature into the folder, and expose them through the feature's
+`index.ts`. The root `views/index.ts` imports only from that local barrel. Do
+not place Gallery, Rants, or another page's full data-loading and body
+implementation directly in `app/**/page.tsx`.
 
 ### Stack preview
 
