@@ -638,8 +638,8 @@ enforce uniqueness on each canonical URL.
 
 - Every Keep passes through AI, including Instagram and TikTok entries. Titles
   and summaries are translated and rewritten into natural English.
-- Every title begins with one contextually relevant emoji. A deterministic
-  fallback adds `✨` if the model omits an emoji.
+- Keep titles never contain emojis. The prompt forbids them and deterministic
+  cleanup removes any emoji returned by the model.
 - Titles are editorial rewrites, not raw source captions. Hashtags are removed
   from titles and summaries after generation even if the model returns one.
   Topic tags remain separate structured metadata and display without `#`.

@@ -368,8 +368,6 @@ type AiKeep = {
   tags: string[]
 }
 
-const emojiPattern = /\p{Extended_Pictographic}/u
-
 function cleanEditorialText(value: string) {
   return value
     .replace(/#[\p{L}\p{N}_-]+/gu, " ")
@@ -380,9 +378,9 @@ function cleanEditorialText(value: string) {
 }
 
 function cleanAiTitle(value: string) {
-  const title = cleanEditorialText(value)
-  const withEmoji = emojiPattern.test(title) ? title : `✨ ${title}`
-  return withEmoji.replace(/^(\p{Extended_Pictographic}\uFE0F?)\s*/u, "$1 ")
+  return cleanEditorialText(
+    value.replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, " ")
+  )
 }
 
 export async function enrichKeep({
@@ -441,7 +439,7 @@ export async function enrichKeep({
       {
         role: "system",
         content:
-          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Begin each title with exactly one relevant emoji. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. Return short Title Case tags without # symbols. For Instagram, the supplied text is public caption metadata, not a reel transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, say that the original post provides the full context. Do not describe the social platform in general.",
+          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. Return short Title Case tags without # symbols. For Instagram, the supplied text is public caption metadata, not a reel transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, say that the original post provides the full context. Do not describe the social platform in general.",
       },
       {
         role: "user",
