@@ -94,6 +94,14 @@ const commandsResponse = await fetch(
           command: "reject",
           description: "Reject a submitted Rant Perspective",
         },
+        {
+          command: "deleteperspective",
+          description: "Delete by Rant slug and commenter name",
+        },
+        {
+          command: "adminid",
+          description: "List recent synced device IDs",
+        },
       ],
     }),
   }

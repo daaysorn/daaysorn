@@ -162,7 +162,16 @@ export async function POST(request: Request) {
   if (autoApproved) {
     await refreshRant(rantId)
     await publishRantsChanged(rantId)
-    await sendRantsTelegramMessage(notification)
+    await sendRantsTelegramMessage(notification, {
+      inlineKeyboard: [
+        [
+          {
+            text: "Delete",
+            callbackData: `delete_perspective:${result.id}`,
+          },
+        ],
+      ],
+    })
   } else {
     await sendRantsTelegramMessage(notification, {
       inlineKeyboard: [
@@ -174,6 +183,10 @@ export async function POST(request: Request) {
           {
             text: "Reject",
             callbackData: `reject_perspective:${result.id}`,
+          },
+          {
+            text: "Delete",
+            callbackData: `delete_perspective:${result.id}`,
           },
         ],
       ],
@@ -261,6 +274,10 @@ export async function PATCH(request: Request) {
           {
             text: "Reject edit",
             callbackData: `reject_edit:${id}`,
+          },
+          {
+            text: "Delete",
+            callbackData: `delete_perspective:${id}`,
           },
         ],
       ],

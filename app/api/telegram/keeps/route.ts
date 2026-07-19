@@ -22,7 +22,10 @@ import { deleteKeepByHref, saveKeep } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import { publishPublicKeepsChanged } from "@/lib/keeps/realtime"
+import { listRecentKeepsSyncGroups } from "@/lib/keeps/sync-db"
 import {
+  deletePerspectiveById,
+  deletePerspectiveBySlugAndName,
   deleteRantByTelegramMessageId,
   getRantById,
   moderatePerspective,
@@ -399,6 +402,9 @@ export async function POST(request: Request) {
     const editModeration = callback.data.match(
       /^(approve|reject)_edit:([0-9a-f-]{36})$/i
     )
+    const deletePerspective = callback.data.match(
+      /^delete_perspective:([0-9a-f-]{36})$/i
+    )
     after(async () => {
       if (publish) {
         const rant = await publishRantById(publish[1])
@@ -444,6 +450,18 @@ export async function POST(request: Request) {
         await notifyRantsChanged(rantId)
         await answerCallbackQuery(callback.id, `Perspective edit ${status}.`)
         await reply(chatId, `Perspective edit ${status}.`)
+        return
+      }
+
+      if (deletePerspective) {
+        const rantId = await deletePerspectiveById(deletePerspective[1])
+        if (!rantId) {
+          await answerCallbackQuery(callback.id, "Perspective already deleted.")
+          return
+        }
+        await notifyRantsChanged(rantId)
+        await answerCallbackQuery(callback.id, "Perspective deleted.")
+        await reply(chatId, "Perspective deleted.")
         return
       }
 
@@ -601,6 +619,52 @@ export async function POST(request: Request) {
       }
       await notifyRantsChanged(rantId)
       await reply(message.chat.id, `Perspective ${status}.`)
+    })
+    return Response.json({ ok: true })
+  }
+
+  if (/^\/adminid(?:@\w+)?\s*$/i.test(rawText)) {
+    after(async () => {
+      const groups = await listRecentKeepsSyncGroups()
+      const configured = process.env.RANTS_ADMIN_SYNC_ID?.trim()
+      const lines = groups.map(
+        (group) =>
+          `${group.id === configured ? "✓ " : ""}${group.display_name ?? "Unnamed device"}: ${group.id}`
+      )
+      await reply(
+        message.chat.id,
+        lines.length
+          ? [
+              "Recent synced identities:",
+              ...lines,
+              "Set RANTS_ADMIN_SYNC_ID to the ID for your phone or admin device. ✓ is currently configured.",
+            ].join("\n")
+          : "No synced identities exist yet. Open Keeps or submit a Perspective first."
+      )
+    })
+    return Response.json({ ok: true })
+  }
+
+  const deletePerspective = rawText.match(
+    /^\/deleteperspective(?:@\w+)?\s+([^\s]+)\s+(.+?)\s*$/i
+  )
+  if (deletePerspective) {
+    after(async () => {
+      const slug = deletePerspective[1].trim()
+      const commenterName = deletePerspective[2].trim().replace(/\s+/g, " ")
+      const rantId = await deletePerspectiveBySlugAndName(slug, commenterName)
+      if (!rantId) {
+        await reply(
+          message.chat.id,
+          `No Perspective by “${commenterName}” was found on “${slug}”.`
+        )
+        return
+      }
+      await notifyRantsChanged(rantId)
+      await reply(
+        message.chat.id,
+        `Deleted the newest Perspective by “${commenterName}” on “${slug}”.`
+      )
     })
     return Response.json({ ok: true })
   }

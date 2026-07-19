@@ -84,6 +84,8 @@ Videos cannot be included in a carousel.
 <b>💬 Perspectives</b>
 /approve <code>&lt;id&gt;</code>  Approve a submission
 /reject <code>&lt;id&gt;</code>  Reject a submission
+/deleteperspective <code>&lt;slug&gt; &lt;commenter name&gt;</code>  Delete their newest comment or reply
+/adminid  List recent synced device IDs
 
 <b>More</b>
 /delete  Keeps/Gallery delete shortcut

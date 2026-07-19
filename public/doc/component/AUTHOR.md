@@ -933,21 +933,23 @@ commands; only arguments and example values use code styling. Commands can be
 placed in the media caption. Rerun
 `bun run telegram:webhook` after deploying command-menu changes.
 
-| Bot input                     | Destination and behavior                                |
-| ----------------------------- | ------------------------------------------------------- |
-| `/start`                      | Show the complete bot guide                             |
-| `/help`                       | Show every command and example                          |
-| `/keep <link>`                | Add one link to Keeps                                   |
-| `/keep <link> #design #tools` | Add a Keep with custom tags                             |
-| `/deletekeep <link>`          | Delete a Keep using its original link                   |
-| No command                    | Gallery only                                            |
-| `/gallery`                    | Gallery only                                            |
-| `/insta`                      | Instagram only                                          |
-| `/instagal`                   | Gallery and Instagram                                   |
-| `/intatag "life update"`      | Instagram carousel with the caption `life update`       |
-| `/instagal_tag "life update"` | Gallery plus Instagram carousel captioned `life update` |
-| `/deletegallery`              | Reply to original Gallery media to delete it            |
-| `/delete`                     | Backward-compatible shortcut for either delete action   |
+| Bot input                                    | Destination and behavior                                   |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| `/start`                                     | Show the complete bot guide                                |
+| `/help`                                      | Show every command and example                             |
+| `/keep <link>`                               | Add one link to Keeps                                      |
+| `/keep <link> #design #tools`                | Add a Keep with custom tags                                |
+| `/deletekeep <link>`                         | Delete a Keep using its original link                      |
+| No command                                   | Gallery only                                               |
+| `/gallery`                                   | Gallery only                                               |
+| `/insta`                                     | Instagram only                                             |
+| `/instagal`                                  | Gallery and Instagram                                      |
+| `/intatag "life update"`                     | Instagram carousel with the caption `life update`          |
+| `/instagal_tag "life update"`                | Gallery plus Instagram carousel captioned `life update`    |
+| `/deletegallery`                             | Reply to original Gallery media to delete it               |
+| `/deleteperspective <slug> <commenter name>` | Delete their newest comment or reply as the Telegram owner |
+| `/adminid`                                   | List recent synced identities and their admin IDs          |
+| `/delete`                                    | Backward-compatible shortcut for either delete action      |
 
 Telegram command names may contain only lowercase letters, digits, and
 underscores, so the registered menu command is `/instagal_tag`. The webhook
@@ -1348,8 +1350,8 @@ secondary heading. The identity label reads **Reply as**.
 While a submission is in flight, the send glyph becomes an animated spinner.
 Comment, reply, and edit fields start at one compact row, have no manual resize
 handle, and grow automatically with their text up to a bounded height. The
-placeholder shows `⌘ Enter` on Apple platforms or `Ctrl Enter` elsewhere for
-submission, plus `Shift Enter` for a new line. It does not repeat “Write a
+placeholder reads `⌘ + Enter to send · Shift + Enter for a new line` on Apple
+platforms, replacing `⌘` with `Ctrl` elsewhere. It does not repeat “Write a
 reply as”; identity remains in the separate **Reply as** label.
 Approved Perspectives and the composer use deterministic DiceBear `adventurer`
 avatars with pastel backgrounds, seeded by the persistent public name. This
@@ -1381,9 +1383,23 @@ the admin Keeps/Perspectives identity and run this in the browser console:
 JSON.parse(localStorage.getItem("daaysorn-keeps-sync-session")).id
 ```
 
+This is JavaScript for the browser Developer Tools **Console**, not a zsh or Bun
+terminal command. From a phone, use the owner-only Telegram command `/adminid`
+instead. It lists the ten most recently active synced identities and marks the
+currently configured ID with `✓`.
+
 Copy only the returned `id` into the deployment environment. Never copy or
 publish the adjacent `secret` value. The local environment is already bound to
 the current Quiet Robin identity.
+
+Telegram remains the recommended phone moderation surface. Perspective and
+reply notifications include Approve/Reject buttons when AI escalates them and
+a Delete button whether they were escalated or automatically published. The
+owner may also send `/deleteperspective <slug> <commenter name>` at any time.
+That command uses a case-insensitive exact name match and deletes the newest
+matching Perspective or reply. These Telegram actions are restricted by
+`TELEGRAM_OWNER_ID`, work without a web admin session, invalidate the Rant cache,
+and publish the same realtime update as web actions.
 
 Every approved Perspective has a reply action. Replies store a self-referencing
 parent ID, render as a compact thread, use the same synced identity and

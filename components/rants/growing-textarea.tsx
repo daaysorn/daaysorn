@@ -57,8 +57,8 @@ export function GrowingTextarea({
     }
   }
 
-  const shortcut = isMac ? "⌘ Enter" : "Ctrl Enter"
-  const guidance = `${shortcut} to send · Shift Enter for a new line`
+  const shortcut = isMac ? "⌘ + Enter" : "Ctrl + Enter"
+  const guidance = `${shortcut} to send · Shift + Enter for a new line`
 
   return (
     <textarea

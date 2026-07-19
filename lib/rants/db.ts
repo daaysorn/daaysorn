@@ -445,6 +445,42 @@ export async function deleteOwnedPerspective(
   return rows[0]?.rant_id ? String(rows[0].rant_id) : null
 }
 
+export async function deletePerspectiveById(id: string) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = await sql`
+    DELETE FROM rant_perspectives
+    WHERE id = ${id}
+    RETURNING rant_id
+  `
+  return rows[0]?.rant_id ? String(rows[0].rant_id) : null
+}
+
+export async function deletePerspectiveBySlugAndName(
+  slug: string,
+  name: string
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = await sql`
+    WITH target AS (
+      SELECT perspective.id
+      FROM rant_perspectives AS perspective
+      JOIN rants AS rant ON rant.id = perspective.rant_id
+      WHERE LOWER(rant.slug) = LOWER(${slug})
+        AND LOWER(perspective.name) = LOWER(${name})
+      ORDER BY perspective.created_at DESC
+      LIMIT 1
+    )
+    DELETE FROM rant_perspectives
+    WHERE id = (SELECT id FROM target)
+    RETURNING rant_id
+  `
+  return rows[0]?.rant_id ? String(rows[0].rant_id) : null
+}
+
 export async function moderatePerspectiveEdit(
   id: string,
   status: "approved" | "rejected"

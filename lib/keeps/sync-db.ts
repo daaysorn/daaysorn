@@ -119,6 +119,16 @@ export async function setKeepsSyncDisplayName(groupId: string, name: string) {
   return name
 }
 
+export async function listRecentKeepsSyncGroups() {
+  const sql = await ensureSyncSchema()
+  return (await sql`
+    SELECT id, display_name
+    FROM keeps_sync_groups
+    ORDER BY updated_at DESC
+    LIMIT 10
+  `) as Array<{ id: string; display_name: string | null }>
+}
+
 export async function listSyncedKeepIds(groupId: string) {
   const sql = await ensureSyncSchema()
   const rows = (await sql`
