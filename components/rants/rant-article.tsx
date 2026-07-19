@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { PerspectiveForm } from "@/components/rants/perspective-form"
+import { PerspectiveAvatar } from "@/components/rants/perspective-avatar"
 import type { Perspective, Rant } from "@/lib/rants/types"
 
 function formatDate(value: string | null) {
@@ -93,13 +94,22 @@ export function RantArticle({
           {perspectives.length ? (
             <div className="mt-7 divide-y divide-border border-y border-border">
               {perspectives.map((perspective) => (
-                <article key={perspective.id} className="py-5">
-                  <p className="text-sm font-medium text-foreground">
-                    {perspective.name}
-                  </p>
-                  <p className="mt-2 text-sm leading-7 whitespace-pre-wrap text-muted-foreground">
-                    {perspective.body}
-                  </p>
+                <article
+                  key={perspective.id}
+                  className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 py-6"
+                >
+                  <PerspectiveAvatar seed={perspective.name} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">
+                      {perspective.name}
+                    </p>
+                    <time className="mt-0.5 block font-mono text-xs text-muted-foreground">
+                      {formatDate(perspective.createdAt)}
+                    </time>
+                    <p className="mt-3 text-sm leading-7 whitespace-pre-wrap text-muted-foreground">
+                      {perspective.body}
+                    </p>
+                  </div>
                 </article>
               ))}
             </div>

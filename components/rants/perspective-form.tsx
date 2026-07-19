@@ -1,10 +1,10 @@
 "use client"
 
-import Script from "next/script"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PerspectiveAvatar } from "@/components/rants/perspective-avatar"
 import { trackAnalyticsEvent } from "@/lib/analytics"
 import {
   deviceNameStorageKey,
@@ -17,19 +17,18 @@ import { cn } from "@/lib/utils"
 
 declare global {
   interface Window {
-    onRantTurnstile?: (token: string) => void
-    turnstile?: { reset: () => void }
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string
+          theme: "auto"
+          callback: (token: string) => void
+        }
+      ) => string
+      remove: (widgetId: string) => void
+    }
   }
-}
-
-function initials(name: string) {
-  if (!name) return "?"
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase()
 }
 
 function savedKeepIds() {
@@ -68,6 +67,7 @@ async function ensureDeviceSession() {
 
 export function PerspectiveForm({ rantId }: { rantId: string }) {
   const formRef = useRef<HTMLFormElement>(null)
+  const turnstileRef = useRef<HTMLDivElement>(null)
   const [token, setToken] = useState("")
   const [body, setBody] = useState("")
   const [displayName, setDisplayName] = useState("")
@@ -118,7 +118,6 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
       formRef.current?.reset()
       setBody("")
       setToken("")
-      window.turnstile?.reset()
       setStatus("sent")
       setMessage("Thank you. Your Perspective will appear after review.")
       trackAnalyticsEvent("rants", "perspective_submit", {
@@ -168,98 +167,132 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
     void loadIdentity()
   }, [])
 
+  const hasBody = Boolean(body.trim())
+
   useEffect(() => {
-    if (!siteKey) return
-    window.onRantTurnstile = setToken
-    return () => {
-      delete window.onRantTurnstile
+    if (!siteKey || !hasBody || !turnstileRef.current) return
+    const scriptId = "daaysorn-turnstile-script"
+    const scriptSource =
+      "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null
+    let widgetId: string | null = null
+    let cancelled = false
+
+    const renderWidget = () => {
+      if (cancelled || !turnstileRef.current || !window.turnstile) return
+      widgetId = window.turnstile.render(turnstileRef.current, {
+        sitekey: siteKey,
+        theme: "auto",
+        callback: setToken,
+      })
     }
-  }, [siteKey])
+
+    if (window.turnstile) {
+      renderWidget()
+    } else if (script) {
+      script.addEventListener("load", renderWidget, { once: true })
+    } else {
+      script = document.createElement("script")
+      script.id = scriptId
+      script.src = scriptSource
+      script.async = true
+      script.defer = true
+      script.addEventListener("load", renderWidget, { once: true })
+      document.head.appendChild(script)
+    }
+
+    return () => {
+      cancelled = true
+      script?.removeEventListener("load", renderWidget)
+      if (widgetId && window.turnstile) window.turnstile.remove(widgetId)
+    }
+  }, [hasBody, siteKey])
 
   return (
     <form
       ref={formRef}
       onSubmit={submit}
-      className="mt-5 grid gap-3 border-y border-border bg-muted/20 py-4 xs:gap-4 xs:py-5"
+      className="mt-7 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 border-b border-border pb-6"
       aria-label="Contribute a Perspective"
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-medium text-muted-foreground"
-        >
-          {initials(displayName)}
-        </span>
+      <PerspectiveAvatar seed={displayName || "new daaysorn reader"} />
+      <div className="grid min-w-0 gap-3">
         {displayName ? (
-          <p className="min-w-0 text-sm">
+          <p className="text-sm">
             <span className="text-muted-foreground">Replying as </span>
             <span className="font-medium text-foreground">{displayName}</span>
           </p>
         ) : (
-          <Input
-            name="name"
-            maxLength={60}
-            placeholder="Name (optional)"
-            aria-label="Name, optional"
-            className="h-8 max-w-56 bg-background/40"
-          />
+          <div className="grid gap-1.5">
+            <Input
+              name="name"
+              maxLength={60}
+              placeholder="Name (optional)"
+              aria-label="Name, optional"
+              className="h-8 max-w-56 bg-transparent"
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave this blank for a private name that stays with your synced
+              identity.
+            </p>
+          </div>
         )}
-      </div>
-      {!displayName ? (
-        <p className="text-xs text-muted-foreground">
-          Leave your name blank for a private name that stays with your synced
-          identity.
-        </p>
-      ) : null}
-      <label htmlFor={`perspective-${rantId}`} className="sr-only">
-        Reply to this Rant
-      </label>
-      <textarea
-        id={`perspective-${rantId}`}
-        name="body"
-        required
-        minLength={1}
-        maxLength={1200}
-        rows={3}
-        value={body}
-        onChange={(event) => setBody(event.target.value)}
-        placeholder="What would you add?"
-        className="min-h-20 w-full min-w-0 resize-y rounded-md border border-input bg-background/40 px-2.5 py-2 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
-      />
-      <input
-        name="website"
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        className="hidden"
-      />
-      {siteKey && body.trim() ? (
-        <>
-          <Script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-            strategy="lazyOnload"
-          />
+        <label htmlFor={`perspective-${rantId}`} className="sr-only">
+          Reply to this Rant
+        </label>
+        <textarea
+          id={`perspective-${rantId}`}
+          name="body"
+          required
+          minLength={1}
+          maxLength={1200}
+          rows={4}
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          placeholder={
+            displayName ? `Write a reply as ${displayName}` : "Write a reply"
+          }
+          className="min-h-24 w-full min-w-0 resize-y rounded-xl border border-input bg-muted/40 px-3 py-3 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+        />
+        <input
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="hidden"
+        />
+        {siteKey ? (
           <div
-            className="cf-turnstile opacity-80"
-            data-sitekey={siteKey}
-            data-callback="onRantTurnstile"
-            data-theme="auto"
+            ref={turnstileRef}
+            className={cn("opacity-80", !hasBody && "hidden")}
           />
-        </>
-      ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {siteKey
-            ? body.trim()
-              ? token
-                ? "Human check complete"
-                : "Complete the human check to post"
-              : "Human check appears after you start typing"
-            : "Your synced identity stays private"}
-        </p>
-        <Button type="submit" size="sm" disabled={!canContinue}>
-          {status === "sending" ? "Posting…" : "Post Perspective"}
-        </Button>
+        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            {siteKey
+              ? body.trim()
+                ? token
+                  ? "Human check complete"
+                  : "Complete the human check to reply"
+                : "Human check appears after you start typing"
+              : "Your synced identity stays private"}
+          </p>
+          <div className="flex items-center gap-2">
+            {body ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setBody("")}
+              >
+                Cancel
+              </Button>
+            ) : null}
+            <Button type="submit" size="sm" disabled={!canContinue}>
+              {status === "sending" ? "Posting…" : "Reply"}
+            </Button>
+          </div>
+        </div>
         {message ? (
           <p
             className={cn(

@@ -1328,11 +1328,22 @@ does not ask again.
 The Perspective form accepts any non-empty trimmed response, including short
 reactions such as `hmm`. Its selected design combines a quiet, border-only
 composer with a compact conversation reply: initials and the persistent name
-sit above a three-row field, while Turnstile appears only after typing. The
-**Post Perspective** button stays disabled until device identity is ready, the
+sit beside a four-row reply field, while Turnstile appears only after typing.
+Approved Perspectives and the composer use deterministic DiceBear `thumbs`
+avatars seeded by the persistent public name, so identity remains visually
+consistent across Rants and synced devices. The SVG loads directly from
+DiceBear without Vercel image optimization. The **Reply** button stays disabled
+until device identity is ready, the
 response is non-empty, and Turnstile is complete when configured. Opening a
 Rant does not create a sync row; a new group is created only on the first
 submission.
+
+The Turnstile loader is appended imperatively from an effect only after the
+visitor starts typing, then renders into a persistent ref with explicit mode.
+No executable `<script>` or `next/script` element is returned from the Rants
+React tree. The PWA registrar follows the same rule and runs its browser APIs
+directly from an effect, preventing React 19 from encountering inert script
+elements inside the client-side theme boundary.
 
 After adding or changing the Rants bot commands, run:
 
