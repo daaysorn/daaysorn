@@ -6,6 +6,7 @@ import {
   GalleryView as GalleryMediaView,
   type GalleryViewItem,
 } from "@/components/gallery/gallery-view"
+import { PageBackLink } from "@/components/nav/page-back-link"
 import { listGalleryMedia, listGalleryMediaFresh } from "@/lib/gallery/db"
 
 const galleryDirectory = join(process.cwd(), "public", "images", "gallery")
@@ -102,6 +103,7 @@ export default async function GalleryView() {
 
   return (
     <article className="min-w-0 pb-8 md:pb-24">
+      <PageBackLink className="mb-7" />
       <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
         Gallery
       </h1>

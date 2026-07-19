@@ -6,6 +6,7 @@ import { PiPaperPlaneTiltFill, PiSpinnerGapBold } from "react-icons/pi"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PerspectiveAvatar } from "@/components/rants/perspective-avatar"
+import { GrowingTextarea } from "@/components/rants/growing-textarea"
 import { trackAnalyticsEvent } from "@/lib/analytics"
 import {
   deviceNameStorageKey,
@@ -71,12 +72,10 @@ async function ensureDeviceSession() {
 export function PerspectiveForm({
   rantId,
   parentId = null,
-  replyToName,
   onSubmitted,
 }: {
   rantId: string
   parentId?: string | null
-  replyToName?: string
   onSubmitted?: (id: string) => void
 }) {
   const formRef = useRef<HTMLFormElement>(null)
@@ -269,23 +268,16 @@ export function PerspectiveForm({
         Reply to this Rant
       </label>
       <div className="relative min-w-0">
-        <textarea
+        <GrowingTextarea
           id={`perspective-${rantId}`}
           name="body"
           required
           minLength={1}
           maxLength={1200}
-          rows={4}
           value={body}
           onChange={(event) => setBody(event.target.value)}
-          placeholder={
-            replyToName
-              ? `Reply to ${replyToName}`
-              : displayName
-                ? `Write a reply as ${displayName}`
-                : "Write a reply"
-          }
-          className="min-h-24 w-full min-w-0 resize-y rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-14 pb-12 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+          onSubmitShortcut={() => formRef.current?.requestSubmit()}
+          className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-14 pb-12 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
         />
         <Button
           type="submit"

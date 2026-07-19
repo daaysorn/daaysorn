@@ -12,6 +12,17 @@ function formatDate(value: string | null) {
   }).format(new Date(value ?? Date.now()))
 }
 
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-NG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Africa/Lagos",
+  }).format(new Date(value))
+}
+
 function shouldShowExcerpt(rant: Rant) {
   const normalize = (value: string) =>
     value
@@ -40,6 +51,11 @@ export function RantArticle({
   preview?: boolean
 }) {
   const showExcerpt = shouldShowExcerpt(rant)
+  const editedAfterPublishing = Boolean(
+    rant.publishedAt &&
+    new Date(rant.updatedAt).getTime() - new Date(rant.publishedAt).getTime() >
+      1000
+  )
 
   return (
     <article className="min-w-0 pb-10 md:pb-24">
@@ -58,7 +74,11 @@ export function RantArticle({
       <header className="mt-8">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs tracking-wide text-muted-foreground uppercase">
           <span>Rant</span>
-          <span>{formatDate(rant.publishedAt ?? rant.createdAt)}</span>
+          <span>
+            {editedAfterPublishing
+              ? `Last edited · ${formatDateTime(rant.updatedAt)}`
+              : formatDate(rant.publishedAt ?? rant.createdAt)}
+          </span>
           <span>{rant.readingMinutes} min</span>
         </div>
         <h1 className="mt-4 max-w-[15ch] text-3xl leading-tight font-semibold tracking-tight xs:text-4xl md:text-5xl">

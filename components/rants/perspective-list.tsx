@@ -13,6 +13,7 @@ import {
 
 import { PerspectiveAvatar } from "@/components/rants/perspective-avatar"
 import { PerspectiveForm } from "@/components/rants/perspective-form"
+import { GrowingTextarea } from "@/components/rants/growing-textarea"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -80,6 +81,7 @@ export function PerspectiveList({
   const [perspectives, setPerspectives] = useState(initialPerspectives)
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set())
   const [isAdmin, setIsAdmin] = useState(false)
+  const [hasContributed, setHasContributed] = useState(false)
   const [ownershipReady, setOwnershipReady] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
@@ -107,9 +109,11 @@ export function PerspectiveList({
         const result = (await response.json()) as {
           ownedIds?: string[]
           isAdmin?: boolean
+          hasContributed?: boolean
         }
         setOwnedIds(new Set(result.ownedIds ?? []))
         setIsAdmin(result.isAdmin === true)
+        setHasContributed(result.hasContributed === true)
       })
       .catch(() => undefined)
       .finally(() => setOwnershipReady(true))
@@ -220,6 +224,11 @@ export function PerspectiveList({
     }
   }
 
+  const rememberSubmission = (id: string) => {
+    setHasContributed(true)
+    setOwnedIds((current) => new Set(current).add(id))
+  }
+
   const renderPerspective = (perspective: Perspective, depth = 0) => {
     const owned = ownedIds.has(perspective.id)
     const canDelete = owned || isAdmin
@@ -259,13 +268,13 @@ export function PerspectiveList({
 
             {editing ? (
               <div className="relative mt-3 min-w-0">
-                <textarea
+                <GrowingTextarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   maxLength={1200}
-                  rows={3}
                   aria-label="Edit comment"
-                  className="min-h-20 w-full min-w-0 resize-y rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-20 pb-10 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+                  onSubmitShortcut={() => void save(perspective.id)}
+                  className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-20 pb-10 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
                 />
                 <div className="absolute right-2 bottom-2 flex gap-1">
                   <IconTooltip label="Cancel edit">
@@ -401,10 +410,7 @@ export function PerspectiveList({
               <PerspectiveForm
                 rantId={rantId}
                 parentId={perspective.id}
-                replyToName={perspective.name}
-                onSubmitted={(id) =>
-                  setOwnedIds((current) => new Set(current).add(id))
-                }
+                onSubmitted={rememberSubmission}
               />
             ) : null}
           </div>
@@ -436,13 +442,8 @@ export function PerspectiveList({
             {feedback}
           </p>
         ) : null}
-        {ownershipReady && ownedIds.size === 0 ? (
-          <PerspectiveForm
-            rantId={rantId}
-            onSubmitted={(id) =>
-              setOwnedIds((current) => new Set(current).add(id))
-            }
-          />
+        {ownershipReady && !hasContributed ? (
+          <PerspectiveForm rantId={rantId} onSubmitted={rememberSubmission} />
         ) : null}
       </div>
     </TooltipProvider>

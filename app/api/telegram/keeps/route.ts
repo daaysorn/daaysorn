@@ -429,14 +429,16 @@ export async function POST(request: Request) {
       }
 
       if (editModeration) {
-        const status =
-          editModeration[1] === "approve" ? "approved" : "rejected"
+        const status = editModeration[1] === "approve" ? "approved" : "rejected"
         const rantId = await moderatePerspectiveEdit(
           editModeration[2],
           status as "approved" | "rejected"
         )
         if (!rantId) {
-          await answerCallbackQuery(callback.id, "Edit already reviewed or missing.")
+          await answerCallbackQuery(
+            callback.id,
+            "Edit already reviewed or missing."
+          )
           return
         }
         await notifyRantsChanged(rantId)

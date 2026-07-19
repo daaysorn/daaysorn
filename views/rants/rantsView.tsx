@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { PageBackLink } from "@/components/nav/page-back-link"
 import { listPublishedRants } from "@/lib/rants/db"
 
 function archiveDate(value: string | null) {
@@ -19,6 +20,7 @@ export default async function RantsView() {
   const rants = await listPublishedRants()
   return (
     <article className="min-w-0 pb-10 md:pb-24">
+      <PageBackLink className="mb-7" />
       <header className="flex items-end justify-between gap-4 border-b border-border pb-6">
         <div>
           <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">

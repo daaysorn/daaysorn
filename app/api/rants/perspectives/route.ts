@@ -6,6 +6,7 @@ import {
   deleteOwnedPerspective,
   getOwnedPerspectiveForEdit,
   getRantById,
+  hasPerspectiveContribution,
   listOwnedPerspectiveIds,
   stageOwnedPerspectiveEdit,
   updateOwnedPerspective,
@@ -197,8 +198,12 @@ export async function GET(request: Request) {
     return Response.json({ error: "Rant ID is required." }, { status: 400 })
   }
   const ownedIds = await listOwnedPerspectiveIds(rantId, submitterHash(sync.id))
+  const hasContributed = await hasPerspectiveContribution(
+    rantId,
+    submitterHash(sync.id)
+  )
   return Response.json(
-    { ownedIds, isAdmin: isAdminSync(sync.id) },
+    { ownedIds, hasContributed, isAdmin: isAdminSync(sync.id) },
     { headers: { "Cache-Control": "private, no-store" } }
   )
 }

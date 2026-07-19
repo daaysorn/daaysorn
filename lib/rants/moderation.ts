@@ -21,7 +21,7 @@ export async function moderatePerspectiveContent(input: {
       model:
         process.env.CENCORI_RANTS_MODERATION_MODEL?.trim() ||
         process.env.CENCORI_RANTS_MODEL?.trim() ||
-        "gpt-4o-mini",
+        "gpt-4.1-nano",
       schemaName: "rant_perspective_moderation",
       schemaDescription:
         "A conservative moderation decision for a public discussion contribution.",

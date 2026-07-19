@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { trackKeepsEvent } from "@/lib/analytics"
+import { PageBackLink } from "@/components/nav/page-back-link"
 import {
   favouritesStorageKey,
   readDeviceSyncSession,
@@ -997,6 +998,7 @@ export function KeepsView({
 
   return (
     <article className="w-full min-w-0 pb-8 md:pb-24">
+      <PageBackLink className="mb-7" />
       <header className="flex flex-col gap-5 pb-4 md:pb-5">
         <div className="flex min-w-0 flex-col gap-3">
           <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">

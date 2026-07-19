@@ -415,7 +415,7 @@ export async function enrichKeep({
 
   const cencori = new Cencori({ apiKey })
   const response = await cencori.ai.generateObject<AiKeep>({
-    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4o-mini",
+    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4.1-nano",
     schemaName: "keeps_entry",
     schemaDescription:
       "A concise editorial entry for Tomiwa David's public Keeps page.",

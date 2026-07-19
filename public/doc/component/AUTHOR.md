@@ -437,7 +437,7 @@ Tomiwa shares a link with the Telegram bot
   → the route verifies Telegram's secret and Tomiwa's Telegram user ID
   → the route acknowledges Telegram immediately
   → background processing reads safe public metadata from the link
-  → Cencori + gpt-4o-mini creates a structured title, summary, author, and tags
+  → Cencori + gpt-4.1-nano creates a structured title, summary, author, and tags
   → PostgreSQL inserts the Keep or refreshes an existing matching URL
   → the webhook publishes changed on Ably's public:keeps channel
   → /api/keeps returns the public fields
@@ -471,7 +471,7 @@ commit them, paste them into documentation, or share them in chat.
 ```env
 DATABASE_URL=
 CENCORI_API_KEY=
-CENCORI_KEEPS_MODEL=gpt-4o-mini
+CENCORI_KEEPS_MODEL=gpt-4.1-nano
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_WEBHOOK_SECRET=
 TELEGRAM_OWNER_ID=
@@ -481,9 +481,9 @@ ABLY_API_KEY=
 - `DATABASE_URL` is a PostgreSQL connection string. Neon is the recommended
   host, but another hosted PostgreSQL service can be used.
 - `CENCORI_API_KEY` is a server-side `csk_...` project key.
-- `CENCORI_KEEPS_MODEL` defaults to `gpt-4o-mini`. It is fast and economical for
-  short classification and summarization, and its structured output works
-  reliably through Cencori. `gpt-5-mini` currently returns
+- `CENCORI_KEEPS_MODEL` defaults to `gpt-4.1-nano`. It is substantially cheaper
+  while retaining structured output for short classification and summarization.
+  `gpt-5.4-nano` currently returns
   `provider_invalid_request` for this schema through Cencori, so do not switch
   back without retesting the exact Keeps request.
 - `TELEGRAM_BOT_TOKEN` comes from the verified `@BotFather` account.
@@ -1306,20 +1306,29 @@ Telegram webhook secret. Preview pages are marked `noindex` and are excluded
 from the sitemap. Published Rant slugs are added to the generated sitemap.
 
 ```env
-CENCORI_RANTS_MODEL=gpt-4o-mini
+CENCORI_RANTS_MODEL=gpt-4.1-nano
+CENCORI_RANTS_MODERATION_MODEL=gpt-4.1-nano
 RANTS_PREVIEW_SECRET=
+RANTS_ADMIN_SYNC_ID=
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
 ```
 
-Perspectives are public submissions but never appear immediately. The API
-validates and bounds every field, uses a hidden honeypot, hashes requester
-identity for a 30-second submission throttle, and optionally verifies
-Cloudflare Turnstile when its keys are configured. A pending submission is sent
-to Telegram with one-tap moderation buttons. Approval invalidates the Rant
-cache, publishes a tiny Ably `public:rants` change event, and makes the
-Perspective visible without requiring readers to refresh the page. This
-realtime path invokes no AI service.
+Perspectives are public submissions. The API validates and bounds every field,
+uses a hidden honeypot, hashes requester identity for a 30-second submission
+throttle, and optionally verifies Cloudflare Turnstile when its keys are
+configured. A small Cencori moderation request scans every Perspective, reply,
+and proposed edit. Clearly suitable content publishes automatically; ambiguous
+or risky content is held and sent to Telegram with one-tap moderation buttons.
+An unavailable or failed moderation call always falls back to human review.
+Publication invalidates the Rant cache and publishes a tiny Ably `public:rants`
+change event so the thread updates without a page refresh.
+
+The complete model audit has three active generation sites: Keeps editorial
+metadata, Rant metadata, and Perspective moderation. All default to the tested
+`gpt-4.1-nano` structured-output path. Do not replace it with a marginally
+cheaper catalog model without running the exact `generateObject` schemas;
+`gpt-5.4-nano` currently fails those requests through Cencori.
 
 Perspectives never collect email addresses. Keeps sync credentials are the
 shared anonymous daaysorn device identity: a Rants visitor adopts an existing
@@ -1337,28 +1346,60 @@ inside the field at its bottom-right corner, and no human-check helper copy is
 shown. The section label is simply **Perspectives**, without a count or a
 secondary heading. The identity label reads **Reply as**.
 While a submission is in flight, the send glyph becomes an animated spinner.
-Approved Perspectives and the composer use deterministic DiceBear `thumbs`
-avatars seeded by the persistent public name, so identity remains visually
-consistent across Rants and synced devices. The SVG loads directly from
-DiceBear without Vercel image optimization. The send button stays disabled
+Comment, reply, and edit fields start at one compact row, have no manual resize
+handle, and grow automatically with their text up to a bounded height. The
+placeholder shows `⌘ Enter` on Apple platforms or `Ctrl Enter` elsewhere for
+submission, plus `Shift Enter` for a new line. It does not repeat “Write a
+reply as”; identity remains in the separate **Reply as** label.
+Approved Perspectives and the composer use deterministic DiceBear `adventurer`
+avatars with pastel backgrounds, seeded by the persistent public name. This
+style has billions of combinations and remains legible at 32px in both themes,
+so identities are visually distinct while remaining consistent across Rants
+and synced devices. The SVG loads directly from DiceBear without Vercel image
+optimization. The send button stays disabled
 until device identity is ready, the
 response is non-empty, and Turnstile is complete when configured. Opening a
 Rant does not create a sync row; a new group is created only on the first
 submission.
 
-An approved Perspective shows edit and delete controls only when its stored
+An approved Perspective shows edit controls only when its stored
 submitter hash matches the current synced-device identity. Updates and deletes
 repeat that ownership check in the database, so hiding the controls is not the
-security boundary. Edit and delete are icon-only actions with accessible labels
-and tooltips. Delete uses an inline confirmation, and edits remain bounded to
-the same 1,200-character limit.
+security boundary. The sync group named by `RANTS_ADMIN_SYNC_ID` may delete any
+Perspective or reply, but cannot edit another person's words. Edit and delete
+are icon-only actions with accessible labels and tooltips. Delete uses an inline
+confirmation and a pulsing/spinning pending state. Save/confirm uses the
+destructive red role and cancel uses the semantic green `success` role. Edits
+remain bounded to the same 1,200-character limit; edits requiring human review
+are staged in `pending_body`, leaving the published text unchanged until the
+Telegram decision.
+
+To obtain `RANTS_ADMIN_SYNC_ID`, open the deployed site on the device that owns
+the admin Keeps/Perspectives identity and run this in the browser console:
+
+```js
+JSON.parse(localStorage.getItem("daaysorn-keeps-sync-session")).id
+```
+
+Copy only the returned `id` into the deployment environment. Never copy or
+publish the adjacent `secret` value. The local environment is already bound to
+the current Quiet Robin identity.
 
 Every approved Perspective has a reply action. Replies store a self-referencing
 parent ID, render as a compact thread, use the same synced identity and
 Turnstile protection, and enter the same Telegram approval queue as top-level
 Perspectives. This includes replies written by the site owner, so every reply
-still reaches Telegram before publication. Deleting a parent cascades to its
-thread.
+still reaches Telegram—informationally after automatic publication or with
+approval buttons when escalated. Deleting a parent cascades to its thread.
+
+After a synced identity has submitted any top-level Perspective or reply on a
+Rant, the standalone composer is hidden. That identity can continue through
+edit and reply actions only. Pending submissions count immediately, so the box
+does not briefly return while moderation is in progress.
+
+Article metadata shows the publication date until a published Rant is edited.
+After an edit, that date is replaced with **Last edited** plus the edit date and
+Africa/Lagos time.
 
 The Turnstile loader is appended imperatively from an effect only after the
 visitor starts typing, then renders into a persistent ref with explicit mode.
@@ -1385,6 +1426,11 @@ through `views/rants/index.ts`, then the root `views/index.ts`. Reusable article
 and Perspective UI lives in `components/rants/`. Gallery has one view and stays
 at `views/galleryView.tsx`. This structure is mandatory in the canonical design
 system and must be used for future pages.
+
+Every non-home, non-dynamic page begins with the shared caret-based **Back**
+link to `/`. Current coverage is Keeps, Gallery, Rants, and Offline. Dynamic
+Rant and preview routes keep their existing contextual navigation and must not
+receive a duplicate page-level back link.
 
 ### PWA offline and background refresh
 

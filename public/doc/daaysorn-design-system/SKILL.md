@@ -54,7 +54,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 | Borders / inputs      | `border-border` / `border-input`                        |
 | Focus ring            | `ring-ring` (buttons already handle it)                 |
 | Danger                | `variant="destructive"` / `text-destructive`            |
-| Success               | `text-success` / `bg-success`                             |
+| Success               | `text-success` / `bg-success`                           |
 | Actionable link       | `cursor-pointer` (also enforced globally for `a[href]`) |
 
 ## Typography

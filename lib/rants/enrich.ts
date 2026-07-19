@@ -44,7 +44,7 @@ export async function generateRantMetadata(bodyText: string) {
       model:
         process.env.CENCORI_RANTS_MODEL?.trim() ||
         process.env.CENCORI_KEEPS_MODEL?.trim() ||
-        "gpt-4o-mini",
+        "gpt-4.1-nano",
       schemaName: "rant_editorial_metadata",
       schemaDescription:
         "Editorial metadata for a personal Rant written by Tomiwa David.",

@@ -71,6 +71,19 @@ async function ensureSchema() {
       CREATE INDEX IF NOT EXISTS rant_perspectives_parent_idx
       ON rant_perspectives (parent_id, status, created_at ASC)
     `
+    await sql`
+      CREATE TABLE IF NOT EXISTS rant_participants (
+        rant_id TEXT NOT NULL REFERENCES rants(id) ON DELETE CASCADE,
+        submitter_hash TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (rant_id, submitter_hash)
+      )
+    `
+    await sql`
+      INSERT INTO rant_participants (rant_id, submitter_hash)
+      SELECT DISTINCT rant_id, submitter_hash FROM rant_perspectives
+      ON CONFLICT (rant_id, submitter_hash) DO NOTHING
+    `
   })()
 
   await schemaReady
@@ -318,7 +331,27 @@ export async function createPerspective(input: {
       ${input.status === "approved" ? new Date() : null}
     )
   `
+  await sql`
+    INSERT INTO rant_participants (rant_id, submitter_hash)
+    VALUES (${input.rantId}, ${input.submitterHash})
+    ON CONFLICT (rant_id, submitter_hash) DO NOTHING
+  `
   return { status: "created" as const, id, parentName }
+}
+
+export async function hasPerspectiveContribution(
+  rantId: string,
+  submitterHash: string
+) {
+  const sql = database()
+  if (!sql) return false
+  await ensureSchema()
+  const rows = await sql`
+    SELECT 1 FROM rant_participants
+    WHERE rant_id = ${rantId} AND submitter_hash = ${submitterHash}
+    LIMIT 1
+  `
+  return rows.length > 0
 }
 
 export async function listOwnedPerspectiveIds(
