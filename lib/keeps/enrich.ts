@@ -9,7 +9,10 @@ import {
   titleFromKeepUrl,
 } from "@/lib/keeps/fallback"
 import { limitSentences } from "@/lib/keeps/text"
-import { cacheInstagramPreview } from "@/lib/keeps/preview-storage"
+import {
+  cacheKeepPreview,
+  captureKeepScreenshotPreview,
+} from "@/lib/keeps/preview-storage"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import {
   instagramResourceFromUrl,
@@ -426,13 +429,14 @@ export async function enrichKeep({
   // Challenge pages contain no useful source material. Avoid paying for an AI
   // rewrite unless the owner supplied a trusted note with actual context.
   if (pageWasChallenge && !ownerNote) {
+    const imageUrl = await captureKeepScreenshotPreview(page.href)
     return {
       href: page.href,
       source: challengeSafeCopy.source,
       author: source,
       title: cleanAiTitle(challengeSafeCopy.title),
       summary: challengeSafeCopy.summary,
-      imageUrl: null,
+      imageUrl,
       tags: challengeSafeCopy.tags,
       telegramMessageId,
       rawText,
@@ -505,10 +509,10 @@ export async function enrichKeep({
   const safeFallback = rejectedChallengeOutput
     ? challengeFallback(page.href, source)
     : null
-  const imageUrl =
-    source === "Instagram"
-      ? await cacheInstagramPreview(page.imageUrl)
-      : page.imageUrl
+  const imageUrl = safeFallback
+    ? await captureKeepScreenshotPreview(page.href)
+    : ((await cacheKeepPreview(page.imageUrl, page.href)) ??
+      (await captureKeepScreenshotPreview(page.href)))
 
   return {
     href: page.href,
@@ -521,7 +525,7 @@ export async function enrichKeep({
         source,
     title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
     summary: safeFallback?.summary ?? aiSummary,
-    imageUrl: safeFallback ? null : imageUrl,
+    imageUrl,
     tags: [
       ...new Set(
         (safeFallback?.tags ?? response.object.tags)
