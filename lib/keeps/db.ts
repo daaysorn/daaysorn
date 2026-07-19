@@ -127,7 +127,7 @@ async function queryKeeps(): Promise<Keep[]> {
   return rows.map(toKeep)
 }
 
-export const listKeeps = unstable_cache(queryKeeps, ["keeps-list"], {
+export const listKeeps = unstable_cache(queryKeeps, ["keeps-list-v2"], {
   tags: ["keeps"],
   revalidate: 86400,
 })

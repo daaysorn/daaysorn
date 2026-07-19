@@ -686,6 +686,9 @@ bun run keeps:cache-previews --publish
 
 The command selects only Instagram previews that are not already stored under
 the R2 Keeps prefix. It does not invoke AI or reformat Keep text.
+When a backfill changes preview URLs directly in PostgreSQL, bump the
+`listKeeps` cache-key version before deploying so Vercel cannot reuse a
+persistent cached payload containing the old Instagram CDN URLs.
 
 #### Supported link types
 
