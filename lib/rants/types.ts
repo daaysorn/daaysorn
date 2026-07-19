@@ -25,6 +25,8 @@ export type RantDraft = Omit<
 export type Perspective = {
   id: string
   rantId: string
+  parentId: string | null
+  parentName: string | null
   name: string
   body: string
   createdAt: string

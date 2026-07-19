@@ -785,7 +785,9 @@ command menu.
 
 Before a link is read or saved, Keeps removes fragments and common tracking
 parameters, converts Twitter URLs to `x.com`, removes X share parameters, and
-normalizes YouTube short and full URLs to one canonical form. PostgreSQL also
+normalizes every X status path to `/i/status/<id>` so share links and redirected
+author links match during save and delete. YouTube short and full URLs likewise
+use one canonical form. PostgreSQL also
 enforces a unique constraint on `href`, and `saveKeep()` uses an upsert. Sending
 the same content again refreshes the existing Keep instead of creating another
 card. On schema initialization, existing URLs are normalized and older duplicate
@@ -1312,34 +1314,57 @@ TURNSTILE_SECRET_KEY=
 
 Perspectives are public submissions but never appear immediately. The API
 validates and bounds every field, uses a hidden honeypot, hashes requester
-identity for a ten-minute submission throttle, and optionally verifies
+identity for a 30-second submission throttle, and optionally verifies
 Cloudflare Turnstile when its keys are configured. A pending submission is sent
 to Telegram with one-tap moderation buttons. Approval invalidates the Rant
-cache and makes the Perspective visible.
+cache, publishes a tiny Ably `public:rants` change event, and makes the
+Perspective visible without requiring readers to refresh the page. This
+realtime path invokes no AI service.
 
 Perspectives never collect email addresses. Keeps sync credentials are the
 shared anonymous daaysorn device identity: a Rants visitor adopts an existing
 Keeps session, while a first Perspective creates the same session that Keeps
 will later use. The sync group stores one display name across connected
 devices. A supplied name becomes that profile; otherwise the server assigns a
-stable adjective-and-noun name. Once known, the form displays “Posting as” and
+stable adjective-and-noun name. Once known, the form displays “Reply as” and
 does not ask again.
 
 The Perspective form accepts any non-empty trimmed response, including short
 reactions such as `hmm`. Its selected design combines a quiet, border-only
 composer with a compact conversation reply: initials and the persistent name
-sit beside a four-row reply field, while Turnstile appears only after typing.
+sit above a full-width four-row reply field. The filled send icon is inset
+inside the field at its bottom-right corner, and no human-check helper copy is
+shown. The section label is simply **Perspectives**, without a count or a
+secondary heading. The identity label reads **Reply as**.
+While a submission is in flight, the send glyph becomes an animated spinner.
 Approved Perspectives and the composer use deterministic DiceBear `thumbs`
 avatars seeded by the persistent public name, so identity remains visually
 consistent across Rants and synced devices. The SVG loads directly from
-DiceBear without Vercel image optimization. The **Reply** button stays disabled
+DiceBear without Vercel image optimization. The send button stays disabled
 until device identity is ready, the
 response is non-empty, and Turnstile is complete when configured. Opening a
 Rant does not create a sync row; a new group is created only on the first
 submission.
 
+An approved Perspective shows edit and delete controls only when its stored
+submitter hash matches the current synced-device identity. Updates and deletes
+repeat that ownership check in the database, so hiding the controls is not the
+security boundary. Edit and delete are icon-only actions with accessible labels
+and tooltips. Delete uses an inline confirmation, and edits remain bounded to
+the same 1,200-character limit.
+
+Every approved Perspective has a reply action. Replies store a self-referencing
+parent ID, render as a compact thread, use the same synced identity and
+Turnstile protection, and enter the same Telegram approval queue as top-level
+Perspectives. This includes replies written by the site owner, so every reply
+still reaches Telegram before publication. Deleting a parent cascades to its
+thread.
+
 The Turnstile loader is appended imperatively from an effect only after the
 visitor starts typing, then renders into a persistent ref with explicit mode.
+Its `flexible` size fills the available form width responsively.
+The widget uses `interaction-only` appearance, allowing Cloudflare's Managed
+mode to remain invisible unless a visitor actually needs an interactive check.
 No executable `<script>` or `next/script` element is returned from the Rants
 React tree. The PWA registrar follows the same rule and runs its browser APIs
 directly from an effect, preventing React 19 from encountering inert script

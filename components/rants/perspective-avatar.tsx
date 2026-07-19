@@ -7,7 +7,7 @@ export function PerspectiveAvatar({
   seed: string
   className?: string
 }) {
-  const source = `https://api.dicebear.com/10.x/thumbs/svg?seed=${encodeURIComponent(seed || "daaysorn-reader")}`
+  const source = `https://api.dicebear.com/10.x/notionists/svg?seed=${encodeURIComponent(seed || "daaysorn-reader")}&backgroundColor=transparent&radius=50`
 
   return (
     <span

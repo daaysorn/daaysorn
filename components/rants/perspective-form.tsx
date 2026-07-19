@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
+import { PiPaperPlaneTiltFill, PiSpinnerGapBold } from "react-icons/pi"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,8 @@ declare global {
         options: {
           sitekey: string
           theme: "auto"
+          size: "flexible"
+          appearance: "interaction-only"
           callback: (token: string) => void
         }
       ) => string
@@ -65,7 +68,17 @@ async function ensureDeviceSession() {
   return session
 }
 
-export function PerspectiveForm({ rantId }: { rantId: string }) {
+export function PerspectiveForm({
+  rantId,
+  parentId = null,
+  replyToName,
+  onSubmitted,
+}: {
+  rantId: string
+  parentId?: string | null
+  replyToName?: string
+  onSubmitted?: (id: string) => void
+}) {
   const formRef = useRef<HTMLFormElement>(null)
   const turnstileRef = useRef<HTMLDivElement>(null)
   const [token, setToken] = useState("")
@@ -99,6 +112,7 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
         },
         body: JSON.stringify({
           rantId,
+          parentId,
           name: form.get("name"),
           body: form.get("body"),
           website: form.get("website"),
@@ -107,9 +121,12 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
       })
       const result = (await response.json()) as {
         error?: string
+        id?: string
         name?: string
+        published?: boolean
       }
       if (!response.ok) throw new Error(result.error || "Submission failed")
+      if (result.id) onSubmitted?.(result.id)
       const resolvedName = result.name ?? displayName
       if (resolvedName) {
         window.localStorage.setItem(deviceNameStorageKey, resolvedName)
@@ -119,7 +136,15 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
       setBody("")
       setToken("")
       setStatus("sent")
-      setMessage("Thank you. Your Perspective will appear after review.")
+      setMessage(
+        result.published
+          ? parentId
+            ? "Your reply is live."
+            : "Your Perspective is live."
+          : parentId
+            ? "Your reply was sent for further review."
+            : "Your Perspective was sent for further review."
+      )
       trackAnalyticsEvent("rants", "perspective_submit", {
         outcome: "success",
       })
@@ -183,6 +208,8 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
       widgetId = window.turnstile.render(turnstileRef.current, {
         sitekey: siteKey,
         theme: "auto",
+        size: "flexible",
+        appearance: "interaction-only",
         callback: setToken,
       })
     }
@@ -212,14 +239,14 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
     <form
       ref={formRef}
       onSubmit={submit}
-      className="mt-7 grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 border-b border-border pb-6"
+      className="mt-7 grid min-w-0 gap-3 pb-6"
       aria-label="Contribute a Perspective"
     >
-      <PerspectiveAvatar seed={displayName || "new daaysorn reader"} />
-      <div className="grid min-w-0 gap-3">
+      <div className="flex min-w-0 items-start gap-3">
+        <PerspectiveAvatar seed={displayName || "new daaysorn reader"} />
         {displayName ? (
-          <p className="text-sm">
-            <span className="text-muted-foreground">Replying as </span>
+          <p className="min-w-0 pt-1 text-sm">
+            <span className="text-muted-foreground">Reply as </span>
             <span className="font-medium text-foreground">{displayName}</span>
           </p>
         ) : (
@@ -237,9 +264,11 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
             </p>
           </div>
         )}
-        <label htmlFor={`perspective-${rantId}`} className="sr-only">
-          Reply to this Rant
-        </label>
+      </div>
+      <label htmlFor={`perspective-${rantId}`} className="sr-only">
+        Reply to this Rant
+      </label>
+      <div className="relative min-w-0">
         <textarea
           id={`perspective-${rantId}`}
           name="body"
@@ -250,61 +279,56 @@ export function PerspectiveForm({ rantId }: { rantId: string }) {
           value={body}
           onChange={(event) => setBody(event.target.value)}
           placeholder={
-            displayName ? `Write a reply as ${displayName}` : "Write a reply"
+            replyToName
+              ? `Reply to ${replyToName}`
+              : displayName
+                ? `Write a reply as ${displayName}`
+                : "Write a reply"
           }
-          className="min-h-24 w-full min-w-0 resize-y rounded-xl border border-input bg-muted/40 px-3 py-3 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+          className="min-h-24 w-full min-w-0 resize-y rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-14 pb-12 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
         />
-        <input
-          name="website"
-          tabIndex={-1}
-          autoComplete="off"
-          aria-hidden="true"
-          className="hidden"
-        />
-        {siteKey ? (
-          <div
-            ref={turnstileRef}
-            className={cn("opacity-80", !hasBody && "hidden")}
-          />
-        ) : null}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
-            {siteKey
-              ? body.trim()
-                ? token
-                  ? "Human check complete"
-                  : "Complete the human check to reply"
-                : "Human check appears after you start typing"
-              : "Your synced identity stays private"}
-          </p>
-          <div className="flex items-center gap-2">
-            {body ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setBody("")}
-              >
-                Cancel
-              </Button>
-            ) : null}
-            <Button type="submit" size="sm" disabled={!canContinue}>
-              {status === "sending" ? "Posting…" : "Reply"}
-            </Button>
-          </div>
-        </div>
-        {message ? (
-          <p
-            className={cn(
-              "w-full text-sm",
-              status === "error" ? "text-destructive" : "text-muted-foreground"
-            )}
-            role="status"
-          >
-            {message}
-          </p>
-        ) : null}
+        <Button
+          type="submit"
+          size="icon-sm"
+          disabled={!canContinue}
+          aria-label={status === "sending" ? "Posting reply" : "Send reply"}
+          title={status === "sending" ? "Posting…" : "Send reply"}
+          className="absolute right-3 bottom-3 rounded-full"
+        >
+          {status === "sending" ? (
+            <PiSpinnerGapBold className="animate-spin" aria-hidden="true" />
+          ) : (
+            <PiPaperPlaneTiltFill aria-hidden="true" />
+          )}
+        </Button>
       </div>
+      <input
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="hidden"
+      />
+      {siteKey ? (
+        <div
+          ref={turnstileRef}
+          className={cn(
+            "w-full min-w-0 overflow-hidden opacity-80",
+            !hasBody && "hidden"
+          )}
+        />
+      ) : null}
+      {message ? (
+        <p
+          className={cn(
+            "w-full text-sm",
+            status === "error" ? "text-destructive" : "text-muted-foreground"
+          )}
+          role="status"
+        >
+          {message}
+        </p>
+      ) : null}
     </form>
   )
 }

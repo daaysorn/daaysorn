@@ -18,7 +18,13 @@ export function normalizeKeepUrl(value: string) {
   for (const key of commonTrackingParameters) url.searchParams.delete(key)
 
   if (url.hostname === "twitter.com") url.hostname = "x.com"
-  if (url.hostname === "x.com") url.search = ""
+  if (url.hostname === "x.com") {
+    url.search = ""
+    const statusId = url.pathname.match(
+      /^\/(?:i\/status|[^/]+\/status)\/(\d+)(?:\/|$)/i
+    )?.[1]
+    if (statusId) url.pathname = `/i/status/${statusId}`
+  }
   if (
     url.hostname === "tiktok.com" ||
     url.hostname === "instagram.com" ||

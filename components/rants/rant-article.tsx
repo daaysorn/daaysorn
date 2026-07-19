@@ -1,7 +1,7 @@
 import Link from "next/link"
+import { PiCaretLeftBold } from "react-icons/pi"
 
-import { PerspectiveForm } from "@/components/rants/perspective-form"
-import { PerspectiveAvatar } from "@/components/rants/perspective-avatar"
+import { PerspectiveList } from "@/components/rants/perspective-list"
 import type { Perspective, Rant } from "@/lib/rants/types"
 
 function formatDate(value: string | null) {
@@ -50,9 +50,10 @@ export function RantArticle({
       ) : null}
       <Link
         href="/rants"
-        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        ← Rants
+        <PiCaretLeftBold aria-hidden="true" />
+        <span>Rants</span>
       </Link>
       <header className="mt-8">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs tracking-wide text-muted-foreground uppercase">
@@ -81,44 +82,18 @@ export function RantArticle({
       />
 
       {!preview ? (
-        <section className="mt-14 border-t border-border pt-7">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
-                Perspectives · {perspectives.length.toString().padStart(2, "0")}
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">Add to the thought</h2>
-            </div>
-          </div>
+        <section className="mt-14">
+          <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+            Perspectives
+          </p>
 
-          {perspectives.length ? (
-            <div className="mt-7 divide-y divide-border border-y border-border">
-              {perspectives.map((perspective) => (
-                <article
-                  key={perspective.id}
-                  className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 py-6"
-                >
-                  <PerspectiveAvatar seed={perspective.name} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">
-                      {perspective.name}
-                    </p>
-                    <time className="mt-0.5 block font-mono text-xs text-muted-foreground">
-                      {formatDate(perspective.createdAt)}
-                    </time>
-                    <p className="mt-3 text-sm leading-7 whitespace-pre-wrap text-muted-foreground">
-                      {perspective.body}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              No Perspectives yet. You can be the first.
-            </p>
-          )}
-          <PerspectiveForm rantId={rant.id} />
+          <PerspectiveList
+            key={perspectives
+              .map((perspective) => `${perspective.id}:${perspective.body}`)
+              .join("|")}
+            rantId={rant.id}
+            perspectives={perspectives}
+          />
         </section>
       ) : null}
     </article>

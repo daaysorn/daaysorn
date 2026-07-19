@@ -24,7 +24,9 @@ import { normalizeKeepUrl } from "@/lib/keeps/url"
 import { publishPublicKeepsChanged } from "@/lib/keeps/realtime"
 import {
   deleteRantByTelegramMessageId,
+  getRantById,
   moderatePerspective,
+  moderatePerspectiveEdit,
   publishRantById,
   publishRantByTelegramMessageId,
   saveRantDraft,
@@ -35,6 +37,7 @@ import {
 } from "@/lib/rants/enrich"
 import { stripRantCommand } from "@/lib/rants/format"
 import { createRantPreviewToken } from "@/lib/rants/preview"
+import { publishRantsChanged } from "@/lib/rants/realtime"
 import type { TelegramTextEntity } from "@/lib/rants/types"
 import { siteConfig } from "@/lib/seo"
 
@@ -263,6 +266,18 @@ function invalidateRants(slug?: string) {
   if (slug) revalidatePath(`/rants/${slug}`)
 }
 
+async function notifyRantsChanged(rantId: string) {
+  const rant = await getRantById(rantId)
+  invalidateRants(rant?.slug)
+  try {
+    await publishRantsChanged(rantId)
+  } catch (error) {
+    console.error("Rants realtime publish failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    })
+  }
+}
+
 function findRantPreviewId(text: string) {
   return text.match(
     /\/rants\/preview\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#]|$)/i
@@ -381,6 +396,9 @@ export async function POST(request: Request) {
     const moderation = callback.data.match(
       /^(approve|reject)_perspective:([0-9a-f-]{36})$/i
     )
+    const editModeration = callback.data.match(
+      /^(approve|reject)_edit:([0-9a-f-]{36})$/i
+    )
     after(async () => {
       if (publish) {
         const rant = await publishRantById(publish[1])
@@ -404,9 +422,26 @@ export async function POST(request: Request) {
           await answerCallbackQuery(callback.id, "Already reviewed or missing.")
           return
         }
-        invalidateRants()
+        await notifyRantsChanged(rantId)
         await answerCallbackQuery(callback.id, `Perspective ${status}.`)
         await reply(chatId, `Perspective ${status}.`)
+        return
+      }
+
+      if (editModeration) {
+        const status =
+          editModeration[1] === "approve" ? "approved" : "rejected"
+        const rantId = await moderatePerspectiveEdit(
+          editModeration[2],
+          status as "approved" | "rejected"
+        )
+        if (!rantId) {
+          await answerCallbackQuery(callback.id, "Edit already reviewed or missing.")
+          return
+        }
+        await notifyRantsChanged(rantId)
+        await answerCallbackQuery(callback.id, `Perspective edit ${status}.`)
+        await reply(chatId, `Perspective edit ${status}.`)
         return
       }
 
@@ -562,7 +597,7 @@ export async function POST(request: Request) {
         )
         return
       }
-      invalidateRants()
+      await notifyRantsChanged(rantId)
       await reply(message.chat.id, `Perspective ${status}.`)
     })
     return Response.json({ ok: true })

@@ -156,6 +156,7 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
 | `muted` / `muted-foreground`         | `bg-muted` `text-muted-foreground`         | Quiet chrome / captions |
 | `accent` / `accent-foreground`       | `bg-accent` `text-accent-foreground`       | Subtle hover/highlight  |
 | `destructive`                        | `bg-destructive` `text-destructive`        | Errors / danger         |
+| `success`                            | `bg-success` `text-success`                | Success / safe cancel   |
 | `border`                             | `border-border`                            | Default borders         |
 | `input`                              | `border-input` `bg-input`                  | Form control edges      |
 | `ring`                               | `ring-ring`                                | Focus rings             |
@@ -176,6 +177,7 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
 | `--muted-foreground`      | `oklch(0.556 0 0)`            | Mid gray text     |
 | `--accent`                | `oklch(0.97 0 0)`             | Soft gray         |
 | `--destructive`           | `oklch(0.577 0.245 27.325)`   | Warm red          |
+| `--success`               | `oklch(0.527 0.154 150.069)`  | Accessible green  |
 | `--border` / `--input`    | `oklch(0.922 0 0)`            | Light hairline    |
 | `--ring`                  | `oklch(0.708 0 0)`            | Medium gray focus |
 | `--chart-1` → `--chart-5` | `0.87` → `0.269` (achromatic) | Gray ramp         |
@@ -200,6 +202,7 @@ Colors are defined in **OKLCH** for perceptual uniformity. They are exposed as T
 | `--secondary` / `--muted` / `--accent` | `oklch(0.269 0 0)`           | Dark gray fills                               |
 | `--muted-foreground`                   | `oklch(0.708 0 0)`           | Soft gray text                                |
 | `--destructive`                        | `oklch(0.704 0.191 22.216)`  | Brighter warm red                             |
+| `--success`                            | `oklch(0.723 0.191 149.579)` | Brighter accessible green                     |
 | `--border`                             | `oklch(1 0 0 / 10%)`         | White @ 10%                                   |
 | `--input`                              | `oklch(1 0 0 / 15%)`         | White @ 15%                                   |
 | `--ring`                               | `oklch(0.556 0 0)`           | Mid gray                                      |
@@ -1041,6 +1044,10 @@ You may now add components…             ← Geist body
 **Icon behavior in Button:** default SVG size `size-4` unless overridden; icons are non-interactive (`pointer-events-none`).
 
 **Icon behavior in Dock:** children centered in a `rounded-full` hit target that scales.
+
+**Navigation icon rule:** never use text glyphs such as `←`, `→`, `‹`, or `›`
+for navigation. Use `react-icons` caret/chevron components (`PiCaretLeftBold`,
+`PiCaretRightBold`) beside an accessible label.
 
 ---
 

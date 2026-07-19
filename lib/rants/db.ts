@@ -55,8 +55,21 @@ async function ensureSchema() {
       DROP COLUMN IF EXISTS email
     `
     await sql`
+      ALTER TABLE rant_perspectives
+      ADD COLUMN IF NOT EXISTS parent_id TEXT
+        REFERENCES rant_perspectives(id) ON DELETE CASCADE
+    `
+    await sql`
+      ALTER TABLE rant_perspectives
+      ADD COLUMN IF NOT EXISTS pending_body TEXT
+    `
+    await sql`
       CREATE INDEX IF NOT EXISTS rant_perspectives_rant_status_idx
       ON rant_perspectives (rant_id, status, created_at ASC)
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS rant_perspectives_parent_idx
+      ON rant_perspectives (parent_id, status, created_at ASC)
     `
   })()
 
@@ -227,6 +240,8 @@ export async function getRantById(id: string) {
 type PerspectiveRow = {
   id: string
   rant_id: string
+  parent_id: string | null
+  parent_name: string | null
   name: string
   body: string
   created_at: string | Date
@@ -236,6 +251,8 @@ function toPerspective(row: PerspectiveRow): Perspective {
   return {
     id: row.id,
     rantId: row.rant_id,
+    parentId: row.parent_id,
+    parentName: row.parent_name,
     name: row.name,
     body: row.body,
     createdAt: new Date(row.created_at).toISOString(),
@@ -247,10 +264,14 @@ export async function listApprovedPerspectives(rantId: string) {
   if (!sql) return []
   await ensureSchema()
   const rows = (await sql`
-    SELECT id, rant_id, name, body, created_at
-    FROM rant_perspectives
-    WHERE rant_id = ${rantId} AND status = 'approved'
-    ORDER BY created_at ASC
+    SELECT perspective.id, perspective.rant_id, perspective.parent_id,
+      parent.name AS parent_name, perspective.name, perspective.body,
+      perspective.created_at
+    FROM rant_perspectives AS perspective
+    LEFT JOIN rant_perspectives AS parent ON parent.id = perspective.parent_id
+    WHERE perspective.rant_id = ${rantId}
+      AND perspective.status = 'approved'
+    ORDER BY perspective.created_at ASC
   `) as PerspectiveRow[]
   return rows.map(toPerspective)
 }
@@ -260,15 +281,29 @@ export async function createPerspective(input: {
   name: string
   body: string
   submitterHash: string
+  parentId?: string | null
+  status?: "pending" | "approved"
 }) {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
   await ensureSchema()
 
+  let parentName: string | null = null
+  if (input.parentId) {
+    const parents = (await sql`
+      SELECT name FROM rant_perspectives
+      WHERE id = ${input.parentId} AND rant_id = ${input.rantId}
+        AND status = 'approved'
+      LIMIT 1
+    `) as Array<{ name: string }>
+    if (!parents[0]) return { status: "invalid_parent" as const }
+    parentName = parents[0].name
+  }
+
   const recent = await sql`
     SELECT id FROM rant_perspectives
     WHERE submitter_hash = ${input.submitterHash}
-      AND created_at > NOW() - INTERVAL '10 minutes'
+      AND created_at > NOW() - INTERVAL '30 seconds'
     LIMIT 1
   `
   if (recent.length) return { status: "rate_limited" as const }
@@ -276,13 +311,126 @@ export async function createPerspective(input: {
   const id = crypto.randomUUID()
   await sql`
     INSERT INTO rant_perspectives (
-      id, rant_id, name, body, submitter_hash
+      id, rant_id, parent_id, name, body, status, submitter_hash, reviewed_at
     ) VALUES (
-      ${id}, ${input.rantId}, ${input.name}, ${input.body},
-      ${input.submitterHash}
+      ${id}, ${input.rantId}, ${input.parentId ?? null}, ${input.name}, ${input.body},
+      ${input.status ?? "pending"}, ${input.submitterHash},
+      ${input.status === "approved" ? new Date() : null}
     )
   `
-  return { status: "created" as const, id }
+  return { status: "created" as const, id, parentName }
+}
+
+export async function listOwnedPerspectiveIds(
+  rantId: string,
+  submitterHash: string
+) {
+  const sql = database()
+  if (!sql) return []
+  await ensureSchema()
+  const rows = await sql`
+    SELECT id FROM rant_perspectives
+    WHERE rant_id = ${rantId} AND submitter_hash = ${submitterHash}
+  `
+  return rows.map((row) => String(row.id))
+}
+
+export async function updateOwnedPerspective(
+  id: string,
+  body: string,
+  submitterHash: string
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = await sql`
+    UPDATE rant_perspectives
+    SET body = ${body}, pending_body = NULL, reviewed_at = NOW()
+    WHERE id = ${id} AND submitter_hash = ${submitterHash}
+    RETURNING rant_id
+  `
+  return rows[0]?.rant_id ? String(rows[0].rant_id) : null
+}
+
+export async function getOwnedPerspectiveForEdit(
+  id: string,
+  submitterHash: string
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = (await sql`
+    SELECT perspective.rant_id, perspective.name, perspective.body,
+      rant.title AS rant_title
+    FROM rant_perspectives AS perspective
+    JOIN rants AS rant ON rant.id = perspective.rant_id
+    WHERE perspective.id = ${id}
+      AND perspective.submitter_hash = ${submitterHash}
+      AND perspective.status = 'approved'
+    LIMIT 1
+  `) as Array<{
+    rant_id: string
+    name: string
+    body: string
+    rant_title: string
+  }>
+  return rows[0] ?? null
+}
+
+export async function stageOwnedPerspectiveEdit(
+  id: string,
+  body: string,
+  submitterHash: string
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = await sql`
+    UPDATE rant_perspectives
+    SET pending_body = ${body}
+    WHERE id = ${id} AND submitter_hash = ${submitterHash}
+      AND status = 'approved'
+    RETURNING rant_id
+  `
+  return rows[0]?.rant_id ? String(rows[0].rant_id) : null
+}
+
+export async function deleteOwnedPerspective(
+  id: string,
+  submitterHash: string,
+  allowAny = false
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = await sql`
+    DELETE FROM rant_perspectives
+    WHERE id = ${id}
+      AND (${allowAny} = TRUE OR submitter_hash = ${submitterHash})
+    RETURNING rant_id
+  `
+  return rows[0]?.rant_id ? String(rows[0].rant_id) : null
+}
+
+export async function moderatePerspectiveEdit(
+  id: string,
+  status: "approved" | "rejected"
+) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  const rows = await sql`
+    UPDATE rant_perspectives
+    SET body = CASE
+          WHEN ${status} = 'approved' THEN COALESCE(pending_body, body)
+          ELSE body
+        END,
+        pending_body = NULL,
+        reviewed_at = NOW()
+    WHERE id = ${id} AND pending_body IS NOT NULL
+    RETURNING rant_id
+  `
+  return rows[0]?.rant_id ? String(rows[0].rant_id) : null
 }
 
 export async function moderatePerspective(

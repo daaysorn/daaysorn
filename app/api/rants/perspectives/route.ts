@@ -1,16 +1,27 @@
 import { createHash } from "node:crypto"
 import { revalidatePath, revalidateTag } from "next/cache"
 
-import { createPerspective, getRantById } from "@/lib/rants/db"
+import {
+  createPerspective,
+  deleteOwnedPerspective,
+  getOwnedPerspectiveForEdit,
+  getRantById,
+  listOwnedPerspectiveIds,
+  stageOwnedPerspectiveEdit,
+  updateOwnedPerspective,
+} from "@/lib/rants/db"
 import {
   authenticateKeepsSyncGroup,
   getKeepsSyncDisplayName,
   setKeepsSyncDisplayName,
 } from "@/lib/keeps/sync-db"
 import { sendRantsTelegramMessage } from "@/lib/rants/telegram"
+import { publishRantsChanged } from "@/lib/rants/realtime"
+import { moderatePerspectiveContent } from "@/lib/rants/moderation"
 
 type Submission = {
   rantId?: string
+  parentId?: string
   name?: string
   body?: string
   website?: string
@@ -22,6 +33,33 @@ function syncCredentials(request: Request) {
   if (!authorization?.startsWith("Bearer ")) return null
   const [id, secret] = authorization.slice(7).split(".", 2)
   return id && secret ? { id, secret } : null
+}
+
+function submitterHash(syncId: string) {
+  return createHash("sha256")
+    .update(
+      `perspective:${syncId}:${process.env.TELEGRAM_WEBHOOK_SECRET ?? ""}`
+    )
+    .digest("hex")
+}
+
+function isAdminSync(syncId: string) {
+  const adminSyncId = process.env.RANTS_ADMIN_SYNC_ID?.trim()
+  return Boolean(adminSyncId && adminSyncId === syncId)
+}
+
+async function authenticatedSync(request: Request) {
+  const sync = syncCredentials(request)
+  if (!sync || !(await authenticateKeepsSyncGroup(sync.id, sync.secret))) {
+    return null
+  }
+  return sync
+}
+
+async function refreshRant(rantId: string) {
+  const rant = await getRantById(rantId)
+  revalidateTag("rants", { expire: 0 })
+  if (rant) revalidatePath(`/rants/${rant.slug}`)
 }
 
 async function validTurnstile(token: string | undefined, ip: string) {
@@ -46,6 +84,7 @@ export async function POST(request: Request) {
   if (input.website) return Response.json({ ok: true })
 
   const rantId = input.rantId?.trim() ?? ""
+  const parentId = input.parentId?.trim() || null
   const name = input.name?.trim().replace(/\s+/g, " ").slice(0, 60) ?? ""
   const body = input.body?.trim().replace(/\r\n/g, "\n").slice(0, 1200) ?? ""
   if (!rantId || !body) {
@@ -55,8 +94,8 @@ export async function POST(request: Request) {
     )
   }
 
-  const sync = syncCredentials(request)
-  if (!sync || !(await authenticateKeepsSyncGroup(sync.id, sync.secret))) {
+  const sync = await authenticatedSync(request)
+  if (!sync) {
     return Response.json(
       { error: "This device identity is unavailable. Refresh and try again." },
       { status: 401 }
@@ -80,17 +119,27 @@ export async function POST(request: Request) {
     )
   }
 
-  const submitterHash = createHash("sha256")
-    .update(
-      `perspective:${sync.id}:${process.env.TELEGRAM_WEBHOOK_SECRET ?? ""}`
-    )
-    .digest("hex")
+  const moderation = await moderatePerspectiveContent({
+    rantTitle: rant.title,
+    body,
+    kind: parentId ? "reply" : "perspective",
+  })
+  const autoApproved = moderation.decision === "auto_approve"
+
   const result = await createPerspective({
     rantId,
     name: displayName,
     body,
-    submitterHash,
+    submitterHash: submitterHash(sync.id),
+    parentId,
+    status: autoApproved ? "approved" : "pending",
   })
+  if (result.status === "invalid_parent") {
+    return Response.json(
+      { error: "The Perspective you replied to is unavailable." },
+      { status: 404 }
+    )
+  }
   if (result.status === "rate_limited") {
     return Response.json(
       { error: "Please wait a little before submitting again." },
@@ -98,14 +147,23 @@ export async function POST(request: Request) {
     )
   }
 
-  await sendRantsTelegramMessage(
-    [
-      `New Perspective on “${rant.title}”`,
-      `From: ${displayName}`,
-      body,
-      "Use the buttons below to approve or reject this Perspective.",
-    ].join("\n\n"),
-    {
+  const notification = [
+    result.parentName
+      ? `New reply to ${result.parentName} on “${rant.title}”`
+      : `New Perspective on “${rant.title}”`,
+    `From: ${displayName}`,
+    body,
+    autoApproved
+      ? `AI moderation: published automatically. ${moderation.reason}`
+      : `AI moderation: needs your review. ${moderation.reason}`,
+  ].join("\n\n")
+
+  if (autoApproved) {
+    await refreshRant(rantId)
+    await publishRantsChanged(rantId)
+    await sendRantsTelegramMessage(notification)
+  } else {
+    await sendRantsTelegramMessage(notification, {
       inlineKeyboard: [
         [
           {
@@ -118,10 +176,113 @@ export async function POST(request: Request) {
           },
         ],
       ],
+    })
+  }
+
+  return Response.json({
+    ok: true,
+    id: result.id,
+    name: displayName,
+    published: autoApproved,
+  })
+}
+
+export async function GET(request: Request) {
+  const sync = await authenticatedSync(request)
+  if (!sync) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const rantId = new URL(request.url).searchParams.get("rantId")?.trim()
+  if (!rantId) {
+    return Response.json({ error: "Rant ID is required." }, { status: 400 })
+  }
+  const ownedIds = await listOwnedPerspectiveIds(rantId, submitterHash(sync.id))
+  return Response.json(
+    { ownedIds, isAdmin: isAdminSync(sync.id) },
+    { headers: { "Cache-Control": "private, no-store" } }
+  )
+}
+
+export async function PATCH(request: Request) {
+  const sync = await authenticatedSync(request)
+  if (!sync) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const input = (await request.json()) as { id?: string; body?: string }
+  const id = input.id?.trim() ?? ""
+  const body = input.body?.trim().replace(/\r\n/g, "\n").slice(0, 1200) ?? ""
+  if (!id || !body) {
+    return Response.json({ error: "A comment is required." }, { status: 400 })
+  }
+  const hash = submitterHash(sync.id)
+  const existing = await getOwnedPerspectiveForEdit(id, hash)
+  if (!existing) {
+    return Response.json({ error: "Comment not found." }, { status: 404 })
+  }
+  const moderation = await moderatePerspectiveContent({
+    rantTitle: existing.rant_title,
+    body,
+    kind: "edit",
+  })
+  if (moderation.decision === "auto_approve") {
+    const rantId = await updateOwnedPerspective(id, body, hash)
+    if (!rantId) {
+      return Response.json({ error: "Comment not found." }, { status: 404 })
+    }
+    await refreshRant(rantId)
+    await publishRantsChanged(rantId)
+    return Response.json({ ok: true, body, published: true })
+  }
+
+  const rantId = await stageOwnedPerspectiveEdit(id, body, hash)
+  if (!rantId) {
+    return Response.json({ error: "Comment not found." }, { status: 404 })
+  }
+  await sendRantsTelegramMessage(
+    [
+      `Edited Perspective on “${existing.rant_title}”`,
+      `From: ${existing.name}`,
+      `Current: ${existing.body}`,
+      `Proposed: ${body}`,
+      `AI moderation: needs your review. ${moderation.reason}`,
+    ].join("\n\n"),
+    {
+      inlineKeyboard: [
+        [
+          {
+            text: "Approve edit",
+            callbackData: `approve_edit:${id}`,
+          },
+          {
+            text: "Reject edit",
+            callbackData: `reject_edit:${id}`,
+          },
+        ],
+      ],
     }
   )
-  revalidateTag("rants", { expire: 0 })
-  revalidatePath(`/rants/${rant.slug}`)
+  return Response.json({ ok: true, pendingReview: true })
+}
 
-  return Response.json({ ok: true, name: displayName })
+export async function DELETE(request: Request) {
+  const sync = await authenticatedSync(request)
+  if (!sync) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const input = (await request.json()) as { id?: string }
+  const id = input.id?.trim() ?? ""
+  if (!id) {
+    return Response.json({ error: "Comment ID is required." }, { status: 400 })
+  }
+  const rantId = await deleteOwnedPerspective(
+    id,
+    submitterHash(sync.id),
+    isAdminSync(sync.id)
+  )
+  if (!rantId) {
+    return Response.json({ error: "Comment not found." }, { status: 404 })
+  }
+  await refreshRant(rantId)
+  await publishRantsChanged(rantId)
+  return Response.json({ ok: true })
 }

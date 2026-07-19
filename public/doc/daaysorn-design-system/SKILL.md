@@ -18,7 +18,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 ## Rules the agent must never violate
 
 1. Use **semantic tokens only** — never hard-code hex/oklch/rgb or raw px colors in components. Use `bg-*`, `text-*`, `border-*` mapped from tokens.
-2. Colors come from these roles: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`, `sidebar*`, `chart-1..5`. Nothing else.
+2. Colors come from these roles: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `success`, `border`, `input`, `ring`, `sidebar*`, `chart-1..5`. Nothing else.
 3. Quiet/secondary text = `text-muted-foreground`. Quiet fills/skeletons = `bg-muted`. Brand emphasis = `text-primary` (often `font-semibold`). Ghost actions = `<Button variant="ghost">` (transparent until hover).
 4. Type is role-based: **Geist** body (`font-sans`, default), **Montserrat** headings (`<h1>`–`<h6>` auto via base layer), **JetBrains Mono** code (`font-mono`, `<code>`/`<kbd>`/`pre`). Don't introduce other fonts.
 5. Radius uses the scale (`rounded-sm`…`rounded-4xl`) derived from `--radius`. Don't invent arbitrary radii.
@@ -36,6 +36,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 16. Page body content must stay inside the shared `<main>` column used by Home: `w-full min-w-0`, with the same left and right edges. Do not use viewport-width breakout layouts, negative translation, or page-specific horizontal offsets unless the user explicitly requests a wider page.
 17. Every actionable link must show a pointer cursor. The runtime enforces this globally with `a[href] { cursor: pointer; }`; preserve that rule and use `cursor-pointer` when a component must state the behavior locally.
 18. Keep App Router page files thin. `app/**/page.tsx` owns route concerns such as metadata, params, and revalidation, then imports the page composition from `views/`. Data loading and the full body layout belong in that view. A feature with one view uses `views/<routeName>View.tsx`, such as `views/galleryView.tsx`. As soon as a feature has more than one view file, create `views/<feature>/`, keep all of its views there, and add `views/<feature>/index.ts` to export them to the root `views/index.ts`. Rants therefore lives in `views/rants/`. Reusable or interactive sections belong in `components/<feature>/`. Do not rebuild an entire page body directly in its route file.
+19. Never use Unicode arrow glyphs such as `←`, `→`, `‹`, or `›` as navigation icons. Use `react-icons` caret/chevron components such as `PiCaretLeftBold` and `PiCaretRightBold`, paired with an accessible text label.
 
 ## Token → utility quick map
 
@@ -53,6 +54,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 | Borders / inputs      | `border-border` / `border-input`                        |
 | Focus ring            | `ring-ring` (buttons already handle it)                 |
 | Danger                | `variant="destructive"` / `text-destructive`            |
+| Success               | `text-success` / `bg-success`                             |
 | Actionable link       | `cursor-pointer` (also enforced globally for `a[href]`) |
 
 ## Typography
