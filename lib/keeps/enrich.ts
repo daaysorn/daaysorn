@@ -448,6 +448,96 @@ type AiKeep = {
   tags: string[]
 }
 
+type AiKeepReview = {
+  accepted: boolean
+  feedback: string
+  unsupportedClaims: string[]
+}
+
+const keepSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    title: { type: "string", minLength: 4, maxLength: 100 },
+    summary: { type: "string", minLength: 30, maxLength: 320 },
+    author: { type: "string", minLength: 1, maxLength: 80 },
+    tags: {
+      type: "array",
+      minItems: 1,
+      maxItems: 2,
+      items: { type: "string", enum: [...keepTagTaxonomy] },
+    },
+  },
+  required: ["title", "summary", "author", "tags"],
+}
+
+const editorialSystemPrompt =
+  "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. The words impressive, stunning, and captivating are forbidden. Never write vague filler such as original content can be viewed. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts and do not claim what happens in the video. The thumbnail analysis describes one visible frame and is valid evidence only for objects, text, and context visible in that frame. Combine it with the caption without extrapolating beyond either source. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general."
+
+async function generateKeepMetadata(
+  cencori: Cencori,
+  evidence: Record<string, unknown>,
+  revisionFeedback = ""
+) {
+  return cencori.ai.generateObject<AiKeep>({
+    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4.1-nano",
+    schemaName: "keeps_entry",
+    schemaDescription:
+      "A concise editorial entry for Tomiwa David's public Keeps page.",
+    schema: keepSchema,
+    maxTokens: 350,
+    messages: [
+      { role: "system", content: editorialSystemPrompt },
+      {
+        role: "user",
+        content: JSON.stringify({
+          ...evidence,
+          revisionFeedback: revisionFeedback || undefined,
+        }),
+      },
+    ],
+  })
+}
+
+async function reviewKeepMetadata(
+  cencori: Cencori,
+  evidence: Record<string, unknown>,
+  candidate: AiKeep
+) {
+  return cencori.ai.generateObject<AiKeepReview>({
+    model: process.env.CENCORI_KEEPS_REVIEW_MODEL?.trim() || "gpt-4.1-mini",
+    schemaName: "keeps_entry_review",
+    schemaDescription:
+      "An evidence-based quality review of proposed Keeps metadata.",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        accepted: { type: "boolean" },
+        feedback: { type: "string", minLength: 1, maxLength: 400 },
+        unsupportedClaims: {
+          type: "array",
+          maxItems: 6,
+          items: { type: "string", maxLength: 160 },
+        },
+      },
+      required: ["accepted", "feedback", "unsupportedClaims"],
+    },
+    maxTokens: 300,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are the independent quality gate for public editorial metadata. Compare the candidate only with the supplied evidence. Reject unsupported claims, guessed events, truly generic or tautological titles, promotional filler, incorrect authors or resource types, unrelated tags, and summaries that merely say to view the original. A thumbnail analysis proves only what is visible in one frame. Read the candidate carefully and never claim it omitted a detail that it explicitly contains. Do not demand details absent from the evidence. A broad but factual title based on the source caption is acceptable. Give concrete, evidence-bounded rewrite instructions when rejecting. Accept specific, natural, factual copy.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({ evidence, candidate }),
+      },
+    ],
+  })
+}
+
 function cleanEditorialText(value: string) {
   return value
     .replace(/#[\p{L}\p{N}_-]+/gu, " ")
@@ -567,93 +657,71 @@ export async function enrichKeep({
       "Instagram did not provide enough verified metadata to save this link"
     )
   }
-  const response = await cencori.ai.generateObject<AiKeep>({
-    model: process.env.CENCORI_KEEPS_MODEL?.trim() || "gpt-4.1-nano",
-    schemaName: "keeps_entry",
-    schemaDescription:
-      "A concise editorial entry for Tomiwa David's public Keeps page.",
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        title: { type: "string", minLength: 4, maxLength: 100 },
-        summary: { type: "string", minLength: 30, maxLength: 320 },
-        author: { type: "string", minLength: 1, maxLength: 80 },
-        tags: {
-          type: "array",
-          minItems: 1,
-          maxItems: 2,
-          items: { type: "string", enum: [...keepTagTaxonomy] },
-        },
-      },
-      required: ["title", "summary", "author", "tags"],
-    },
-    maxTokens: 350,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. The words impressive, stunning, and captivating are forbidden. Never write vague filler such as original content can be viewed. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts and do not claim what happens in the video. The thumbnail analysis describes one visible frame and is valid evidence only for objects, text, and context visible in that frame. Combine it with the caption without extrapolating beyond either source. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general.",
-      },
-      {
-        role: "user",
-        content: JSON.stringify({
-          ownerNote,
-          pageTitle: page.title,
-          pageDescription: page.description,
-          pageAuthor: page.author,
-          pageText,
-          thumbnailAnalysis,
-          contentAvailability,
-          source,
-          instagramResourceKind: instagramResource?.kind,
-          instagramHandle: instagramResource?.handle,
-          previousTagsAsHints: customTags,
-          allowedTags: keepTagTaxonomy,
-        }),
-      },
-    ],
-  })
+  const evidence = {
+    ownerNote,
+    pageTitle: page.title,
+    pageDescription: page.description,
+    pageAuthor: page.author,
+    pageText,
+    thumbnailAnalysis,
+    contentAvailability,
+    source,
+    instagramResourceKind: instagramResource?.kind,
+    instagramHandle: instagramResource?.handle,
+    previousTagsAsHints: customTags,
+    allowedTags: keepTagTaxonomy,
+  }
+  let candidate = (await generateKeepMetadata(cencori, evidence)).object
+  let aiTitle = cleanAiTitle(candidate.title)
+  let aiSummary = limitSentences(cleanEditorialText(candidate.summary))
+  let deterministicRejection =
+    isChallengeContent(aiTitle, aiSummary) ||
+    isGenericKeepCopy(aiTitle, aiSummary)
+  let review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
 
-  const aiTitle = cleanAiTitle(response.object.title)
-  const aiSummary = limitSentences(cleanEditorialText(response.object.summary))
+  if (deterministicRejection || !review.accepted) {
+    const feedback = [
+      deterministicRejection
+        ? "The draft failed deterministic checks for generic, challenge, or unsupported copy."
+        : "",
+      review.feedback,
+      ...review.unsupportedClaims.map((claim) => `Unsupported: ${claim}`),
+    ]
+      .filter(Boolean)
+      .join(" ")
+    candidate = (await generateKeepMetadata(cencori, evidence, feedback)).object
+    aiTitle = cleanAiTitle(candidate.title)
+    aiSummary = limitSentences(cleanEditorialText(candidate.summary))
+    deterministicRejection =
+      isChallengeContent(aiTitle, aiSummary) ||
+      isGenericKeepCopy(aiTitle, aiSummary)
+    review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
+  }
+
+  if (deterministicRejection || !review.accepted) {
+    throw new Error("AI metadata review rejected the corrected draft")
+  }
+
   const aiAuthor =
-    cleanAiTitle(response.object.author) ||
+    cleanAiTitle(candidate.author) ||
     instagramResource?.handle ||
     page.author ||
     source
-  const rejectedChallengeOutput = isChallengeContent(aiTitle, aiSummary)
-  const rejectedGenericOutput = isGenericKeepCopy(aiTitle, aiSummary)
-  const genericFallback =
-    rejectedGenericOutput && source === "Instagram"
-      ? {
-          source,
-          title: `Instagram ${instagramResource?.kind === "profile" ? "profile" : (instagramResource?.kind ?? "post")} by ${aiAuthor}`,
-          summary: `A saved Instagram ${instagramResource?.kind ?? "post"} from ${aiAuthor}. The available public metadata does not provide enough verified context, so the original provides the full details.`,
-          tags: response.object.tags,
-        }
-      : null
-  const safeFallback = rejectedChallengeOutput
-    ? challengeFallback(page.href, source)
-    : (genericFallback ??
-      (rejectedGenericOutput ? challengeFallback(page.href, source) : null))
   const imageUrl =
     instagramPreview ??
-    (rejectedChallengeOutput
-      ? await captureKeepScreenshotPreview(page.href)
-      : ((await cacheKeepPreview(page.imageUrl, page.href)) ??
-        (await captureKeepScreenshotPreview(page.href))))
+    (await cacheKeepPreview(page.imageUrl, page.href)) ??
+    (await captureKeepScreenshotPreview(page.href))
 
   return {
     href: page.href,
-    source: safeFallback?.source ?? source,
-    author: genericFallback ? aiAuthor : safeFallback ? source : aiAuthor,
-    title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
-    summary: safeFallback?.summary ?? aiSummary,
+    source,
+    author: aiAuthor,
+    title: aiTitle,
+    summary: aiSummary,
     imageUrl,
     tags: [
       ...new Set(
-        (safeFallback?.tags ?? response.object.tags)
+        candidate.tags
           .map((tag) => tag.replace(/^#+/, "").trim())
           .filter(Boolean)
       ),
