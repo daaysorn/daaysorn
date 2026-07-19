@@ -205,7 +205,7 @@ export async function updateKeepEditorial(
   id: string,
   draft: Pick<
     KeepDraft,
-    "source" | "author" | "title" | "summary" | "imageUrl" | "tags"
+    "href" | "source" | "author" | "title" | "summary" | "imageUrl" | "tags"
   >
 ) {
   const sql = database()
@@ -214,7 +214,7 @@ export async function updateKeepEditorial(
 
   await sql`
     UPDATE keeps
-    SET source = ${draft.source}, author = ${draft.author},
+    SET href = ${draft.href}, source = ${draft.source}, author = ${draft.author},
       title = ${draft.title}, summary = ${draft.summary},
       image_url = COALESCE(${draft.imageUrl}, image_url), tags = ${draft.tags},
       ai_format_version = 1

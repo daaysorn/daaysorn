@@ -11,6 +11,12 @@ import {
 import { limitSentences } from "@/lib/keeps/text"
 import { cacheInstagramPreview } from "@/lib/keeps/preview-storage"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
+import {
+  instagramResourceFromUrl,
+  isInstagramAuthUrl,
+  keepTagTaxonomy,
+  originalKeepHref,
+} from "@/lib/keeps/metadata"
 
 const privateIpv4 = [
   /^10\./,
@@ -48,6 +54,12 @@ async function assertPublicUrl(value: string) {
 
 function decodeHtml(value: string) {
   return value
+    .replace(/&#x([\da-f]+);/gi, (_, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 16))
+    )
+    .replace(/&#(\d+);/g, (_, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 10))
+    )
     .replaceAll("&amp;", "&")
     .replaceAll("&quot;", '"')
     .replaceAll("&#39;", "'")
@@ -189,15 +201,16 @@ async function readPage(initialUrl: string) {
       headers: {
         Accept: "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9",
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36 daaysorn-keeps/1.0",
+        "User-Agent": "Mozilla/5.0",
       },
     })
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location")
       if (!location) break
-      url = await assertPublicUrl(new URL(location, url).toString())
+      const redirectUrl = new URL(location, url)
+      if (isInstagramAuthUrl(redirectUrl.toString())) break
+      url = await assertPublicUrl(redirectUrl.toString())
       continue
     }
 
@@ -395,13 +408,16 @@ export async function enrichKeep({
   telegramMessageId: number
   customTags?: string[]
 }): Promise<KeepDraft> {
-  const page = await readPage(href)
+  const recoveredHref = originalKeepHref(href, rawText)
+  const page = await readPage(recoveredHref)
   const ownerNote = rawText
     .replace(/https?:\/\/[^\s<>]+/gi, "")
     .replace(/(?:^|\s)#[\p{L}\p{N}_-]{2,24}/gu, " ")
     .replace(/(?:^|\s)\/keep(?:@\w+)?\b/gi, " ")
     .trim()
   const source = sourceFrom(new URL(page.href))
+  const instagramResource =
+    source === "Instagram" ? instagramResourceFromUrl(page.href) : null
   const challengeSafeCopy = challengeFallback(page.href, source)
   const pageWasChallenge =
     page.title === challengeSafeCopy.title &&
@@ -424,7 +440,9 @@ export async function enrichKeep({
   }
   const contentAvailability =
     source === "Instagram"
-      ? "Public caption and thumbnail only. No reel transcript, audio, or full video content is available. Engagement counts are not content."
+      ? instagramResource?.kind === "profile"
+        ? "Public Instagram profile metadata only. This URL is a creator profile, not a post or reel."
+        : `Public Instagram ${instagramResource?.kind ?? "content"} caption and thumbnail only. No transcript, audio, or full video content is available. Engagement counts are not content.`
       : source === "TikTok"
         ? "Public embed metadata only. A transcript may not be available."
         : "Public page metadata and readable page text."
@@ -449,8 +467,8 @@ export async function enrichKeep({
         tags: {
           type: "array",
           minItems: 1,
-          maxItems: 3,
-          items: { type: "string", minLength: 2, maxLength: 24 },
+          maxItems: 2,
+          items: { type: "string", enum: [...keepTagTaxonomy] },
         },
       },
       required: ["title", "summary", "author", "tags"],
@@ -460,7 +478,7 @@ export async function enrichKeep({
       {
         role: "system",
         content:
-          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. Return short Title Case tags without # symbols. For Instagram, the supplied text is public caption metadata, not a reel transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, say that the original post provides the full context. Do not describe the social platform in general.",
+          "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts, do not claim what happens in the video, and do not turn a request to comment for a link into a promotion, giveaway, or offer. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general.",
       },
       {
         role: "user",
@@ -472,6 +490,10 @@ export async function enrichKeep({
           pageText,
           contentAvailability,
           source,
+          instagramResourceKind: instagramResource?.kind,
+          instagramHandle: instagramResource?.handle,
+          previousTagsAsHints: customTags,
+          allowedTags: keepTagTaxonomy,
         }),
       },
     ],
@@ -491,20 +513,22 @@ export async function enrichKeep({
   return {
     href: page.href,
     source: safeFallback?.source ?? source,
-    author: safeFallback ? source : response.object.author,
+    author: safeFallback
+      ? source
+      : cleanAiTitle(response.object.author) ||
+        instagramResource?.handle ||
+        page.author ||
+        source,
     title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
     summary: safeFallback?.summary ?? aiSummary,
     imageUrl: safeFallback ? null : imageUrl,
     tags: [
       ...new Set(
-        [
-          ...(safeFallback ? [] : customTags),
-          ...(safeFallback?.tags ?? response.object.tags),
-        ]
+        (safeFallback?.tags ?? response.object.tags)
           .map((tag) => tag.replace(/^#+/, "").trim())
           .filter(Boolean)
       ),
-    ].slice(0, 5),
+    ].slice(0, 2),
     telegramMessageId,
     rawText,
   }

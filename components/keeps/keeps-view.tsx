@@ -56,6 +56,7 @@ import {
   type DeviceSyncSession,
 } from "@/lib/device-sync"
 import type { Keep } from "@/lib/keeps/types"
+import { keepTagTaxonomy } from "@/lib/keeps/metadata"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 import { cn } from "@/lib/utils"
 
@@ -286,7 +287,7 @@ function KeepCard({
               ) : null}
               {keep.tags.length ? (
                 <p className="min-w-0 text-xs leading-5 text-muted-foreground">
-                  {keep.tags.join(" · ")}
+                  {keep.tags.slice(0, 2).join(" · ")}
                 </p>
               ) : null}
             </div>
@@ -932,15 +933,24 @@ export function KeepsView({
       ),
     [keeps, shuffleSeed]
   )
-  const tags = useMemo(
-    () => [
-      "All",
-      "Saved Keeps",
-      "Latest",
-      ...new Set(keeps.flatMap((keep) => keep.tags)),
-    ],
-    [keeps]
-  )
+  const tags = useMemo(() => {
+    const allowedTags = new Set<string>(keepTagTaxonomy)
+    const tagCounts = new Map<string, number>()
+    for (const tag of keeps.flatMap((keep) => keep.tags)) {
+      if (!allowedTags.has(tag)) continue
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
+    }
+
+    const topicTags = [...tagCounts]
+      .sort(
+        ([firstTag, firstCount], [secondTag, secondCount]) =>
+          secondCount - firstCount || firstTag.localeCompare(secondTag)
+      )
+      .slice(0, 12)
+      .map(([tag]) => tag)
+
+    return ["All", "Saved Keeps", "Latest", ...topicTags]
+  }, [keeps])
   const filteredKeeps = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     const orderedKeeps = activeTag === "Latest" ? keeps : shuffledKeeps
