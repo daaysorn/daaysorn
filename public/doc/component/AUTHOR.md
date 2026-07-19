@@ -1357,8 +1357,10 @@ Approved Perspectives and the composer use deterministic DiceBear `adventurer`
 avatars with pastel backgrounds, seeded by the persistent public name. This
 style has billions of combinations and remains legible at 32px in both themes,
 so identities are visually distinct while remaining consistent across Rants
-and synced devices. The SVG loads directly from DiceBear without Vercel image
-optimization. The send button stays disabled
+and synced devices. The browser loads the SVG through daaysorn's same-origin
+avatar endpoint, which caches DiceBear responses for 30 days and returns a
+deterministic initials avatar if DiceBear is unavailable. This prevents an
+external request failure from leaving an empty avatar. The send button stays disabled
 until device identity is ready, the
 response is non-empty, and Turnstile is complete when configured. Opening a
 Rant does not create a sync row; a new group is created only on the first
