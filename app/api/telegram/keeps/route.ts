@@ -198,6 +198,31 @@ function findCustomTags(text: string) {
   ].slice(0, 5)
 }
 
+function telegramFailureReason(reason: unknown) {
+  const message =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === "string"
+        ? reason
+        : "An unknown error occurred"
+
+  const sanitized = message
+    .replace(/\b(?:postgres(?:ql)?|https?):\/\/[^\s@]+@/gi, (value) => {
+      const protocol = value.slice(0, value.indexOf("://") + 3)
+      return `${protocol}[credentials hidden]@`
+    })
+    .replace(/\b(Bearer|Basic)\s+\S+/gi, "$1 [credentials hidden]")
+    .replace(
+      /\b(api[_-]?key|token|secret|password)\s*[:=]\s*[^\s,;]+/gi,
+      "$1=[credentials hidden]"
+    )
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500)
+
+  return sanitized || "An unknown error occurred"
+}
+
 async function reply(
   chatId: number,
   text: string,
@@ -883,23 +908,37 @@ export async function POST(request: Request) {
     const saved = results.flatMap((result) =>
       result.status === "fulfilled" ? [result.value] : []
     )
-    const failed = results.filter((result) => result.status === "rejected")
+    const failed = results.flatMap((result, index) =>
+      result.status === "rejected"
+        ? [
+            {
+              href: hrefs[index].slice(0, 200),
+              linkIndex: index,
+              reason: telegramFailureReason(result.reason),
+            },
+          ]
+        : []
+    )
 
-    failed.forEach((result, index) => {
+    failed.forEach((failure) => {
       console.error("Keeps enrichment failed", {
-        message:
-          result.status === "rejected" && result.reason instanceof Error
-            ? result.reason.message
-            : "Unknown error",
+        message: failure.reason,
         telegramMessageId: message.message_id,
-        linkIndex: index,
+        linkIndex: failure.linkIndex,
       })
     })
 
     if (!saved.length) {
+      const reasons = failed
+        .map((failure) =>
+          hrefs.length === 1
+            ? `Reason: ${failure.reason}`
+            : `• ${failure.href}\n  ${failure.reason}`
+        )
+        .join("\n")
       await reply(
         message.chat.id,
-        `I could not add ${hrefs.length === 1 ? "that link" : "those links"}. Please try again.`
+        `I could not add ${hrefs.length === 1 ? "that link" : "those links"}.\n${reasons}`
       )
       return
     }
@@ -908,7 +947,9 @@ export async function POST(request: Request) {
 
     const titles = saved.map((keep) => `• ${keep.title}`).join("\n")
     const failureNote = failed.length
-      ? `\n${failed.length} ${failed.length === 1 ? "link was" : "links were"} not added.`
+      ? `\n\nNot added:\n${failed
+          .map((failure) => `• ${failure.href}\n  Reason: ${failure.reason}`)
+          .join("\n")}`
       : ""
     await reply(
       message.chat.id,
