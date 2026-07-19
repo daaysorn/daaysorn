@@ -308,23 +308,29 @@ async function processGalleryMedia(
     return
   }
 
-  const results = []
-  for (const attachment of attachments) {
-    try {
-      results.push(
-        await processGalleryAttachment(
-          attachment,
-          instructions.caption,
-          instructions.destinations
-        )
-      )
-    } catch (error) {
-      console.error("Gallery media processing failed", {
-        message: error instanceof Error ? error.message : "Unknown error",
-        telegramMessageId: attachment.telegramMessageId,
+  const results: Array<
+    Awaited<ReturnType<typeof processGalleryAttachment>> | { status: "failed" }
+  > = []
+  for (let index = 0; index < attachments.length; index += 2) {
+    const batch = attachments.slice(index, index + 2)
+    const processed = await Promise.all(
+      batch.map(async (attachment) => {
+        try {
+          return await processGalleryAttachment(
+            attachment,
+            instructions.caption,
+            instructions.destinations
+          )
+        } catch (error) {
+          console.error("Gallery media processing failed", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            telegramMessageId: attachment.telegramMessageId,
+          })
+          return { status: "failed" as const }
+        }
       })
-      results.push({ status: "failed" as const })
-    }
+    )
+    results.push(...processed)
   }
 
   const addedMedia = results.flatMap((result) =>

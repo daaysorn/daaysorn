@@ -455,7 +455,7 @@ Relevant files:
 | `app/api/keeps/public-realtime-token/route.ts` | Public-feed, subscribe-only Ably tokens               |
 | `lib/keeps/enrich.ts`                          | Safe metadata fetch and Cencori structured summary    |
 | `lib/keeps/text.ts`                            | Enforces the two-sentence summary limit               |
-| `lib/keeps/db.ts`                              | PostgreSQL schema initialization, reads, and upserts  |
+| `lib/keeps/db.ts`                              | PostgreSQL reads, writes, and explicit migrations     |
 | `lib/keeps/sync-db.ts`                         | Saved Keeps sync groups and per-Keep changes          |
 | `lib/keeps/realtime.ts`                        | Ably token creation, private channels, and publishing |
 | `database/keeps.sql`                           | Standalone copy of the PostgreSQL schema              |
@@ -480,6 +480,10 @@ ABLY_API_KEY=
 
 - `DATABASE_URL` is a PostgreSQL connection string. Neon is the recommended
   host, but another hosted PostgreSQL service can be used.
+- Run `bun run db:migrate` once after configuring a new database and whenever a
+  migration changes. Production requests never run `CREATE TABLE`, `ALTER
+TABLE`, index creation, or cleanup scans; keeping DDL out of request paths
+  reduces Neon round trips and Vercel function duration.
 - `CENCORI_API_KEY` is a server-side `csk_...` project key.
 - `CENCORI_KEEPS_MODEL` defaults to `gpt-4.1-nano`. It is substantially cheaper
   while retaining structured output for short classification and summarization.
@@ -1547,6 +1551,8 @@ bun run dev:clean       # clear stale Turbopack state, then develop
 bun run registry        # regenerate public/r/*.json after editing a component
 bun run build           # registry + next build (what deploy runs)
 bun run typecheck       # tsc --noEmit
+bun run test            # focused unit tests
+bun run db:migrate      # apply idempotent PostgreSQL schema migrations
 
 # test an install against your dev server (in a scratch project)
 bunx shadcn@latest add http://localhost:3000/r/<name>.json

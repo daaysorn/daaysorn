@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless"
 import { unstable_cache } from "next/cache"
+import { cache } from "react"
 
 import type { Perspective, Rant, RantDraft } from "@/lib/rants/types"
 
@@ -232,7 +233,7 @@ export const listPublishedRants = unstable_cache(
   { tags: ["rants"], revalidate: 86400 }
 )
 
-export async function getPublishedRantBySlug(slug: string) {
+const queryPublishedRantBySlug = async (slug: string) => {
   const sql = database()
   if (!sql) return null
   await ensureSchema()
@@ -243,6 +244,8 @@ export async function getPublishedRantBySlug(slug: string) {
   `) as RantRow[]
   return rows[0] ? toRant(rows[0]) : null
 }
+
+export const getPublishedRantBySlug = cache(queryPublishedRantBySlug)
 
 export async function getRantById(id: string) {
   const sql = database()
