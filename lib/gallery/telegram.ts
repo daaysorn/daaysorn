@@ -58,33 +58,33 @@ export const telegramBotHelp = `<b>daaysorn bot</b>
 Choose what you want to do.
 
 <b>📌 Keeps</b>
-<code>/keep &lt;link&gt;</code>  Save a link
+/keep <code>&lt;link&gt;</code>  Save a link
 Add <code>#tags</code> if needed. You can send up to five links.
-<code>/deletekeep &lt;link&gt;</code>  Delete a Keep
+/deletekeep <code>&lt;link&gt;</code>  Delete a Keep
 
 <b>🖼 Gallery</b>
-Send media normally, or use <code>/gallery</code>.
-<code>/deletegallery</code>  Reply to media to delete it
+Send media normally, or use /gallery.
+/deletegallery  Reply to media to delete it
 
 <b>📸 Instagram</b>
-<code>/insta</code>  Instagram only
-<code>/instagal</code>  Gallery + Instagram
+/insta  Instagram only
+/instagal  Gallery + Instagram
 
 <b>Carousel</b> <i>(2–10 photos)</i>
-<code>/intatag "life update"</code>  Instagram only
-<code>/instagal_tag "life update"</code>  Gallery + Instagram
+/intatag <code>"life update"</code>  Instagram only
+/instagal_tag <code>"life update"</code>  Gallery + Instagram
 Videos cannot be included in a carousel.
 
 <b>✍️ Rants</b>
-<code>/rant &lt;text&gt;</code>  Create or update a draft
-<code>/publish</code>  Reply to a draft to publish
-<code>/deleterant</code>  Reply to a Rant to delete
+/rant <code>&lt;text&gt;</code>  Create or update a draft
+/publish  Reply to a draft to publish
+/deleterant  Reply to a Rant to delete
 
 <b>💬 Perspectives</b>
-<code>/approve &lt;id&gt;</code>  Approve a submission
-<code>/reject &lt;id&gt;</code>  Reject a submission
+/approve <code>&lt;id&gt;</code>  Approve a submission
+/reject <code>&lt;id&gt;</code>  Reject a submission
 
 <b>More</b>
-<code>/delete</code>  Keeps/Gallery delete shortcut
-<code>/help</code>  Show this guide
-<code>/start</code>  Start here`
+/delete  Keeps/Gallery delete shortcut
+/help  Show this guide
+/start  Start here`

@@ -853,8 +853,10 @@ the media caption controls its destination and its links are not sent to Keeps.
 
 The bot command menu is a compact command index. `/help` and `/start` return a
 formatted, sectioned guide for Keeps, Gallery, Instagram, Rants, Perspectives,
-and deletion instead of one dense wall of text. Commands can be placed in the
-media caption. Rerun
+and deletion instead of one dense wall of text. Command names must remain
+outside Telegram HTML `<code>` tags so Telegram renders them as tappable bot
+commands; only arguments and example values use code styling. Commands can be
+placed in the media caption. Rerun
 `bun run telegram:webhook` after deploying command-menu changes.
 
 | Bot input                     | Destination and behavior                                |
