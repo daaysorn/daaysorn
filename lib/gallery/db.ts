@@ -14,7 +14,7 @@ function database() {
   return databaseUrl ? neon(databaseUrl) : null
 }
 
-async function ensureGallerySchema() {
+export async function migrateGallerySchema() {
   const sql = database()
   if (!sql) return
 
@@ -92,6 +92,9 @@ async function ensureGallerySchema() {
   await gallerySchemaReady
 }
 
+// Schema changes belong to the explicit migration command, never a request.
+async function ensureGallerySchema() {}
+
 type GalleryRow = {
   id: string
   media_type: "image" | "video"
@@ -128,7 +131,6 @@ export async function listGalleryMediaFresh(): Promise<GalleryMedia[]> {
   const sql = database()
   if (!sql) return []
 
-  await ensureGallerySchema()
   const rows = (await sql`
     SELECT id, media_type, caption, alt_text, width, height, small_url,
       medium_url, large_url, media_url, poster_url, created_at
@@ -153,7 +155,6 @@ export async function galleryMediaExists(
 ) {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
-  await ensureGallerySchema()
 
   const rows = contentHash
     ? await sql`
@@ -180,7 +181,6 @@ export async function saveGalleryMedia(
 ) {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
-  await ensureGallerySchema()
 
   const rows = await sql`
     INSERT INTO gallery_media (

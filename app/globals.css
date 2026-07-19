@@ -233,9 +233,7 @@
   animation: flip-fold-bottom 0.28s ease-out 0.28s forwards;
 }
 
-/* Start hidden in CSS so content cannot flash before React and GSAP hydrate.
-   The short CSS reveal is also a safety net when client animation setup is
-   delayed or unavailable. GSAP removes the class and takes over normally. */
+/* CSS-only page reveal keeps transitions lightweight and honors reduced motion. */
 @keyframes page-reveal-fallback {
   from {
     visibility: visible;

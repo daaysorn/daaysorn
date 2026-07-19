@@ -11,7 +11,7 @@ export async function GET() {
     // response across visitors instead of invoking this function per person.
     headers: {
       "Cache-Control":
-        "public, max-age=0, s-maxage=10, stale-while-revalidate=20",
+        "public, max-age=0, s-maxage=30, stale-while-revalidate=120",
     },
   })
 }

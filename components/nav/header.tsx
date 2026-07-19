@@ -145,7 +145,7 @@ function CountryBadge() {
         typeof cached.cachedAt === "number" &&
         Date.now() - cached.cachedAt < countryCacheTtl
       ) {
-        setCountry(cached.country)
+        queueMicrotask(() => setCountry(cached.country ?? null))
         lastLoadedAt.current = cached.cachedAt
       }
     } catch {

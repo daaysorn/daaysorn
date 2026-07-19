@@ -20,22 +20,22 @@ export function FlipUnit({ digit }: { digit: string }) {
     flipping: false,
   })
 
-  React.useEffect(() => {
+  if (state.current !== digit) {
     setState((s) =>
       s.current === digit
         ? s
-        : { current: digit, previous: s.current, flipping: true },
+        : { current: digit, previous: s.current, flipping: true }
     )
-  }, [digit])
+  }
 
   React.useEffect(() => {
     if (!state.flipping) return
     const t = setTimeout(
       () => setState((s) => ({ ...s, flipping: false })),
-      FLIP_MS,
+      FLIP_MS
     )
     return () => clearTimeout(t)
-  }, [state.flipping, state.current])
+  }, [state.flipping])
 
   const { current, previous, flipping } = state
   // Bottom static half keeps showing the old digit until the flip completes.
@@ -85,7 +85,7 @@ function Half({
         half === "top"
           ? "top-0 items-start rounded-t-[0.18em]"
           : "bottom-0 items-end rounded-b-[0.18em]",
-        className,
+        className
       )}
     >
       {/* A full-unit-height glyph clipped by the half window. items-start shows

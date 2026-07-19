@@ -15,7 +15,7 @@ function database() {
   return neon(databaseUrl)
 }
 
-async function ensureSchema() {
+export async function migrateKeepsSchema() {
   const sql = database()
   if (!sql) return
 
@@ -78,6 +78,10 @@ async function ensureSchema() {
   await schemaReady
 }
 
+// Production requests never perform DDL. Run `bun run db:migrate` when the
+// schema changes; this no-op remains temporarily to keep data functions small.
+async function ensureSchema() {}
+
 type KeepRow = {
   id: string
   href: string
@@ -116,7 +120,6 @@ async function queryKeeps(): Promise<Keep[]> {
   const sql = database()
   if (!sql) return []
 
-  await ensureSchema()
   const rows = (await sql`
     SELECT id, href, source, author, title, summary, image_url, tags, saved_at
     FROM keeps
@@ -136,7 +139,6 @@ export async function saveKeep(draft: KeepDraft) {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
 
-  await ensureSchema()
   const id = crypto.randomUUID()
 
   await sql`
@@ -164,6 +166,8 @@ export async function saveKeep(draft: KeepDraft) {
 export type KeepForReformat = {
   id: string
   href: string
+  title: string
+  summary: string
   rawText: string
   telegramMessageId: number
   tags: string[]
@@ -174,16 +178,17 @@ export async function listKeepsForReformat(
 ): Promise<KeepForReformat[]> {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
-  await ensureSchema()
 
   const rows = (await sql`
-    SELECT id, href, raw_text, telegram_message_id, tags
+    SELECT id, href, title, summary, raw_text, telegram_message_id, tags
     FROM keeps
     WHERE ${includeFormatted} = TRUE OR ai_format_version < 1
     ORDER BY saved_at ASC
   `) as Array<{
     id: string
     href: string
+    title: string
+    summary: string
     raw_text: string
     telegram_message_id: string | number
     tags: string[]
@@ -192,6 +197,8 @@ export async function listKeepsForReformat(
   return rows.map((row) => ({
     id: row.id,
     href: row.href,
+    title: row.title,
+    summary: row.summary,
     rawText: row.raw_text,
     telegramMessageId: Number(row.telegram_message_id),
     tags: row.tags,

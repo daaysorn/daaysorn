@@ -17,8 +17,8 @@ import { PROVIDERS } from "./providers"
 import type { NowPlayingResult, Track } from "./types"
 
 /** Poll fast while a track is actively playing, slower when idle (ms). */
-const PLAYING_INTERVAL = 15_000
-const IDLE_INTERVAL = 60_000
+const PLAYING_INTERVAL = 60_000
+const IDLE_INTERVAL = 5 * 60_000
 
 const fetcher = async (url: string): Promise<NowPlayingResult> => {
   const res = await fetch(url)
@@ -39,7 +39,7 @@ export function NowPlaying({ className }: { className?: string }) {
       refreshWhenHidden: false,
       revalidateOnFocus: true, // returning to the tab refetches immediately
       revalidateOnReconnect: true,
-      dedupingInterval: 10_000,
+      dedupingInterval: 30_000,
       keepPreviousData: true, // no flash back to the skeleton on refetch
     }
   )

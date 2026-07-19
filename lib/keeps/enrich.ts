@@ -402,6 +402,26 @@ export async function enrichKeep({
     .replace(/(?:^|\s)\/keep(?:@\w+)?\b/gi, " ")
     .trim()
   const source = sourceFrom(new URL(page.href))
+  const challengeSafeCopy = challengeFallback(page.href, source)
+  const pageWasChallenge =
+    page.title === challengeSafeCopy.title &&
+    page.description === challengeSafeCopy.summary
+
+  // Challenge pages contain no useful source material. Avoid paying for an AI
+  // rewrite unless the owner supplied a trusted note with actual context.
+  if (pageWasChallenge && !ownerNote) {
+    return {
+      href: page.href,
+      source: challengeSafeCopy.source,
+      author: source,
+      title: cleanAiTitle(challengeSafeCopy.title),
+      summary: challengeSafeCopy.summary,
+      imageUrl: null,
+      tags: challengeSafeCopy.tags,
+      telegramMessageId,
+      rawText,
+    }
+  }
   const contentAvailability =
     source === "Instagram"
       ? "Public caption and thumbnail only. No reel transcript, audio, or full video content is available. Engagement counts are not content."
@@ -471,13 +491,16 @@ export async function enrichKeep({
   return {
     href: page.href,
     source: safeFallback?.source ?? source,
-    author: response.object.author,
+    author: safeFallback ? source : response.object.author,
     title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
     summary: safeFallback?.summary ?? aiSummary,
-    imageUrl,
+    imageUrl: safeFallback ? null : imageUrl,
     tags: [
       ...new Set(
-        [...customTags, ...(safeFallback?.tags ?? response.object.tags)]
+        [
+          ...(safeFallback ? [] : customTags),
+          ...(safeFallback?.tags ?? response.object.tags),
+        ]
           .map((tag) => tag.replace(/^#+/, "").trim())
           .filter(Boolean)
       ),

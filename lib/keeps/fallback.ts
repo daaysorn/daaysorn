@@ -1,13 +1,27 @@
 const challengePhrases = [
+  "javascript verification notice",
+  "javascript is disabled",
+  "javascript verification",
   "verify javascript for access",
   "enable javascript in your browser",
+  "enable javascript and reload",
+  "reload the page for verification",
   "browser settings",
   "checking your browser",
+  "checking if the site connection is secure",
   "just a moment",
   "verify you're not a robot",
+  "verify you are not a robot",
+  "verify you are human",
   "confirm you are not a robot",
   "javascript verification required",
   "verification required",
+  "human verification",
+  "security verification",
+  "performing security verification",
+  "cf challenge",
+  "cloudflare ray id",
+  "captcha",
 ]
 
 export function sourceFromKeepUrl(href: string) {

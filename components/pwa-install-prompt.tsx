@@ -58,7 +58,7 @@ export function PWAInstallPrompt() {
   useEffect(() => {
     queueMicrotask(readInstallPrompt)
     if (!isInstalled() && !recentlyDismissed() && isIosBrowser()) {
-      setShowIosInstall(true)
+      queueMicrotask(() => setShowIosInstall(true))
     }
 
     const installed = () => {

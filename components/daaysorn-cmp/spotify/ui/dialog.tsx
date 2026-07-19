@@ -11,7 +11,7 @@ function Dialog(props: React.ComponentProps<typeof DialogPrimitive.Root>) {
 }
 
 function DialogTrigger(
-  props: React.ComponentProps<typeof DialogPrimitive.Trigger>,
+  props: React.ComponentProps<typeof DialogPrimitive.Trigger>
 ) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
@@ -56,24 +56,24 @@ function DialogContent({
         className={cn(
           "fixed inset-0 z-50 bg-black/40 backdrop-blur-md",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
+          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
         )}
       />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
           // Centered glass modal.
-          "fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-2xl border border-border/60 bg-popover/80 p-5 shadow-2xl ring-1 ring-inset ring-white/10 backdrop-blur-xl backdrop-saturate-150 outline-hidden supports-backdrop-filter:bg-popover/70",
+          "fixed top-1/2 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-2xl border border-border/60 bg-popover/80 p-5 shadow-2xl ring-1 ring-white/10 outline-hidden backdrop-blur-xl backdrop-saturate-150 ring-inset supports-backdrop-filter:bg-popover/70",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-          className,
+          className
         )}
         {...props}
       >
         {children}
         {showClose && (
           <DialogPrimitive.Close
-            className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Close"
           >
             <LuX className="size-4" />
@@ -84,10 +84,4 @@ function DialogContent({
   )
 }
 
-export {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-}
+export { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription }

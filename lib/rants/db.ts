@@ -10,7 +10,7 @@ function database() {
   return url ? neon(url) : null
 }
 
-async function ensureSchema() {
+export async function migrateRantsSchema() {
   const sql = database()
   if (!sql) return
 
@@ -88,6 +88,9 @@ async function ensureSchema() {
 
   await schemaReady
 }
+
+// Schema changes belong to the explicit migration command, never a request.
+async function ensureSchema() {}
 
 type RantRow = {
   id: string

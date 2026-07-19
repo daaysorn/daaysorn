@@ -1,8 +1,16 @@
 import { createRantsRealtimeToken } from "@/lib/rants/realtime"
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limit = rateLimit(request, {
+    key: "rants-realtime-token",
+    limit: 30,
+    windowMs: 60 * 1000,
+  })
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter)
+
   try {
     return Response.json(await createRantsRealtimeToken(), {
       headers: { "Cache-Control": "private, no-store" },

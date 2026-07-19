@@ -26,8 +26,8 @@ export function NowPlayingWidget({
     <div
       className={cn(
         // Glass surface: translucent popover token + blur + soft border/ring.
-        "w-[320px] max-w-[80vw] overflow-hidden rounded-2xl border border-border/60 bg-popover/70 p-2 shadow-2xl ring-1 ring-inset ring-white/10 backdrop-blur-xl backdrop-saturate-150 supports-backdrop-filter:bg-popover/60",
-        className,
+        "w-[320px] max-w-[80vw] overflow-hidden rounded-2xl border border-border/60 bg-popover/70 p-2 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl backdrop-saturate-150 ring-inset supports-backdrop-filter:bg-popover/60",
+        className
       )}
     >
       {track.embedUrl ? (

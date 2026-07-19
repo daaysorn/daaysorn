@@ -21,7 +21,7 @@ function anonymousName(groupId: string) {
   return `${adjectives[hash[0] % adjectives.length]} ${nouns[hash[1] % nouns.length]}`
 }
 
-async function ensureSyncSchema() {
+export async function migrateKeepsSyncSchema() {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
 
@@ -59,7 +59,8 @@ async function ensureSyncSchema() {
 }
 
 export async function createKeepsSyncGroup(savedIds: string[]) {
-  const sql = await ensureSyncSchema()
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
   const id = crypto.randomUUID()
   const secret = randomBytes(32).toString("base64url")
 
@@ -68,10 +69,12 @@ export async function createKeepsSyncGroup(savedIds: string[]) {
     VALUES (${id}, ${hashSecret(secret)}, ${anonymousName(id)})
   `
 
-  for (const keepId of savedIds) {
+  if (savedIds.length) {
+    const records = JSON.stringify(savedIds.map((keepId) => ({ keepId })))
     await sql`
       INSERT INTO keeps_sync_items (group_id, keep_id, saved)
-      VALUES (${id}, ${keepId}, TRUE)
+      SELECT ${id}, item.keep_id, TRUE
+      FROM jsonb_to_recordset(${records}::jsonb) AS item(keep_id TEXT)
       ON CONFLICT (group_id, keep_id) DO UPDATE SET
         saved = TRUE,
         updated_at = NOW()
@@ -82,7 +85,8 @@ export async function createKeepsSyncGroup(savedIds: string[]) {
 }
 
 export async function authenticateKeepsSyncGroup(id: string, secret: string) {
-  const sql = await ensureSyncSchema()
+  const sql = database()
+  if (!sql) return false
   const rows = await sql`
     SELECT id
     FROM keeps_sync_groups
@@ -93,7 +97,8 @@ export async function authenticateKeepsSyncGroup(id: string, secret: string) {
 }
 
 export async function getKeepsSyncDisplayName(groupId: string) {
-  const sql = await ensureSyncSchema()
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
   const existing = (await sql`
     SELECT display_name FROM keeps_sync_groups WHERE id = ${groupId} LIMIT 1
   `) as Array<{ display_name: string | null }>
@@ -110,7 +115,8 @@ export async function getKeepsSyncDisplayName(groupId: string) {
 }
 
 export async function setKeepsSyncDisplayName(groupId: string, name: string) {
-  const sql = await ensureSyncSchema()
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
   await sql`
     UPDATE keeps_sync_groups
     SET display_name = ${name}, updated_at = NOW()
@@ -120,7 +126,8 @@ export async function setKeepsSyncDisplayName(groupId: string, name: string) {
 }
 
 export async function listRecentKeepsSyncGroups() {
-  const sql = await ensureSyncSchema()
+  const sql = database()
+  if (!sql) return []
   return (await sql`
     SELECT id, display_name
     FROM keeps_sync_groups
@@ -130,7 +137,8 @@ export async function listRecentKeepsSyncGroups() {
 }
 
 export async function listSyncedKeepIds(groupId: string) {
-  const sql = await ensureSyncSchema()
+  const sql = database()
+  if (!sql) return []
   const rows = (await sql`
     SELECT keep_id
     FROM keeps_sync_items
@@ -145,12 +153,21 @@ export async function applyKeepsSyncChanges(
   groupId: string,
   changes: { keepId: string; saved: boolean }[]
 ) {
-  const sql = await ensureSyncSchema()
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
 
-  for (const change of changes) {
+  if (changes.length) {
+    const records = JSON.stringify(
+      changes.map((change) => ({
+        keepId: change.keepId,
+        saved: change.saved,
+      }))
+    )
     await sql`
       INSERT INTO keeps_sync_items (group_id, keep_id, saved)
-      VALUES (${groupId}, ${change.keepId}, ${change.saved})
+      SELECT ${groupId}, item.keep_id, item.saved
+      FROM jsonb_to_recordset(${records}::jsonb)
+        AS item(keep_id TEXT, saved BOOLEAN)
       ON CONFLICT (group_id, keep_id) DO UPDATE SET
         saved = EXCLUDED.saved,
         updated_at = NOW()

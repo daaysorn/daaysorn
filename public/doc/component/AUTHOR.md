@@ -730,6 +730,19 @@ format version, so rerunning the command resumes unfinished work. Use `--all`
 only when intentionally reprocessing every row after changing the editorial
 prompt.
 
+To repair only rows polluted by JavaScript, CAPTCHA, Cloudflare, or other
+anti-bot challenge text, use the cost-safe targeted command:
+
+```bash
+bun run keeps:reformat --challenge-only --publish --continue-on-error
+```
+
+Challenge-only reformatting does not call AI when the source returns a
+challenge page and no owner note supplies usable context. It derives safe copy
+from the original URL instead. The ingestion, AI-output validation, and
+database read layers all reject known challenge language, so verification copy
+cannot become a public Keep again.
+
 To preview or run the one-time Instagram thumbnail backfill:
 
 ```bash
@@ -1358,9 +1371,10 @@ avatars with pastel backgrounds, seeded by the persistent public name. This
 style has billions of combinations and remains legible at 32px in both themes,
 so identities are visually distinct while remaining consistent across Rants
 and synced devices. The browser loads the SVG through daaysorn's same-origin
-avatar endpoint, which caches DiceBear responses for 30 days and returns a
-deterministic initials avatar if DiceBear is unavailable. This prevents an
-external request failure from leaving an empty avatar. The send button stays disabled
+avatar endpoint. The endpoint generates DiceBear locally and caches the result
+for 30 days, so live avatars do not depend on a request to DiceBear's external
+API. A deterministic initials avatar remains as a last-resort fallback. The
+send button stays disabled
 until device identity is ready, the
 response is non-empty, and Turnstile is complete when configured. Opening a
 Rant does not create a sync row; a new group is created only on the first
@@ -1387,8 +1401,10 @@ JSON.parse(localStorage.getItem("daaysorn-keeps-sync-session")).id
 
 This is JavaScript for the browser Developer Tools **Console**, not a zsh or Bun
 terminal command. From a phone, use the owner-only Telegram command `/adminid`
-instead. It lists the ten most recently active synced identities and marks the
-currently configured ID with `✓`.
+instead. Its **Currently configured** section names the present admin device
+and prints its ID. The **Other recently synced devices** section lists the
+available alternatives, followed by the exact environment-variable format and
+restart instructions needed to change the admin device.
 
 Copy only the returned `id` into the deployment environment. Never copy or
 publish the adjacent `secret` value. The local environment is already bound to

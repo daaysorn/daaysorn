@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 export default function NotFound() {
   return (
     <section className="pointer-events-none fixed inset-0 flex items-center justify-center px-6">
-      <div className="pointer-events-auto min-w-0 max-w-sm text-center">
+      <div className="pointer-events-auto max-w-sm min-w-0 text-center">
         <p className="font-mono text-sm font-medium text-primary">404</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">
           Page not found

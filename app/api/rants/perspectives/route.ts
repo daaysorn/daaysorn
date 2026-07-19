@@ -19,6 +19,7 @@ import {
 import { sendRantsTelegramMessage } from "@/lib/rants/telegram"
 import { publishRantsChanged } from "@/lib/rants/realtime"
 import { moderatePerspectiveContent } from "@/lib/rants/moderation"
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 type Submission = {
   rantId?: string
@@ -65,7 +66,7 @@ async function refreshRant(rantId: string) {
 
 async function validTurnstile(token: string | undefined, ip: string) {
   const secret = process.env.TURNSTILE_SECRET_KEY?.trim()
-  if (!secret) return true
+  if (!secret) return process.env.NODE_ENV !== "production"
   if (!token) return false
 
   const response = await fetch(
@@ -81,6 +82,13 @@ async function validTurnstile(token: string | undefined, ip: string) {
 }
 
 export async function POST(request: Request) {
+  const limit = rateLimit(request, {
+    key: "perspective-submit",
+    limit: 8,
+    windowMs: 60 * 60 * 1000,
+  })
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter)
+
   const input = (await request.json()) as Submission
   if (input.website) return Response.json({ ok: true })
 

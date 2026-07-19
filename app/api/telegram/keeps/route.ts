@@ -627,17 +627,33 @@ export async function POST(request: Request) {
     after(async () => {
       const groups = await listRecentKeepsSyncGroups()
       const configured = process.env.RANTS_ADMIN_SYNC_ID?.trim()
-      const lines = groups.map(
-        (group) =>
-          `${group.id === configured ? "✓ " : ""}${group.display_name ?? "Unnamed device"}: ${group.id}`
-      )
+      const currentAdmin = groups.find((group) => group.id === configured)
+      const otherDevices = groups.filter((group) => group.id !== configured)
       await reply(
         message.chat.id,
-        lines.length
+        groups.length
           ? [
-              "Recent synced identities:",
-              ...lines,
-              "Set RANTS_ADMIN_SYNC_ID to the ID for your phone or admin device. ✓ is currently configured.",
+              "Admin access is ready.",
+              "",
+              configured
+                ? `Current admin: ${currentAdmin?.display_name ?? "Unknown or older device"}\nAdmin ID: ${configured}\n\nYou do not need to change anything.`
+                : "No admin device is configured yet. Choose a device below.",
+              ...(otherDevices.length
+                ? [
+                    "",
+                    "Other devices you can make admin:",
+                    ...otherDevices.flatMap((group) => [
+                      group.display_name ?? "Unnamed device",
+                      `Device ID: ${group.id}`,
+                    ]),
+                  ]
+                : []),
+              "",
+              "Only if you want to switch admin:",
+              "1. Copy the Device ID you want.",
+              "2. Set:",
+              "RANTS_ADMIN_SYNC_ID=PASTE_ID_HERE",
+              "3. Redeploy the site or restart the bot.",
             ].join("\n")
           : "No synced identities exist yet. Open Keeps or submit a Perspective first."
       )

@@ -68,7 +68,11 @@ const SitePreview = ({
   const isLocalPage = href.startsWith("/")
   const previewSrc = isWebsite
     ? `https://api.microlink.io/?url=${encodeURIComponent(href)}&screenshot=true&meta=false&embed=screenshot.url`
-    : href
+    : href.startsWith("/keeps")
+      ? "/keeps/opengraph-image"
+      : href.startsWith("/rants")
+        ? "/rants/opengraph-image"
+        : "/opengraph-image"
   const [loaded, setLoaded] = useState(() => loadedPreviews.has(previewSrc))
 
   const finishLoading = () => {
@@ -109,13 +113,13 @@ const SitePreview = ({
           onError={finishLoading}
         />
       ) : isLocalPage ? (
-        <iframe
+        <Image
+          fill
           src={previewSrc}
-          title={`Preview of ${label}`}
-          tabIndex={-1}
-          loading="lazy"
+          alt={`Preview of ${label}`}
+          sizes="15rem"
           className={cn(
-            "pointer-events-none absolute inset-0 h-[200%] w-[200%] origin-top-left scale-50 border-0 bg-background transition-opacity duration-500 ease-out",
+            "object-cover object-top transition-opacity duration-500 ease-out",
             loaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={finishLoading}

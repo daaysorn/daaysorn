@@ -6,6 +6,7 @@ import {
   listSyncedKeepIds,
 } from "@/lib/keeps/sync-db"
 import { publishKeepsChanged } from "@/lib/keeps/realtime"
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 
@@ -38,6 +39,13 @@ async function authorize(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const limit = rateLimit(request, {
+    key: "keeps-sync-create",
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  })
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter)
+
   try {
     const body = (await request.json()) as { savedIds?: unknown }
     const session = await createKeepsSyncGroup(validIds(body.savedIds))

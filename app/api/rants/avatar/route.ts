@@ -1,4 +1,8 @@
+import * as adventurer from "@dicebear/adventurer"
+import { createAvatar } from "@dicebear/core"
 import { NextResponse } from "next/server"
+
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 const CACHE_CONTROL =
   "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800"
@@ -33,27 +37,25 @@ function fallbackAvatar(seed: string) {
 }
 
 export async function GET(request: Request) {
+  const limit = rateLimit(request, {
+    key: "rant-avatar",
+    limit: 60,
+    windowMs: 60 * 1000,
+  })
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter)
+
   const seed =
     new URL(request.url).searchParams.get("seed")?.trim().slice(0, 80) ||
     "daaysorn-reader"
-  const source = new URL("https://api.dicebear.com/10.x/adventurer/svg")
-  source.searchParams.set("seed", seed)
-  source.searchParams.set("backgroundColor", BACKGROUNDS.join(","))
-  source.searchParams.set("radius", "50")
 
   try {
-    const response = await fetch(source, {
-      headers: { Accept: "image/svg+xml" },
-      next: { revalidate: 2_592_000 },
-      signal: AbortSignal.timeout(5_000),
-    })
-    const svg = await response.text()
-
-    if (!response.ok || svg.length > 250_000 || !svg.includes("<svg")) {
-      return avatarResponse(fallbackAvatar(seed))
-    }
-
-    return avatarResponse(svg)
+    return avatarResponse(
+      createAvatar(adventurer, {
+        seed,
+        backgroundColor: BACKGROUNDS,
+        radius: 50,
+      }).toString()
+    )
   } catch {
     return avatarResponse(fallbackAvatar(seed))
   }

@@ -1,14 +1,19 @@
 import { createPublicKeepsRealtimeToken } from "@/lib/keeps/realtime"
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limit = rateLimit(request, {
+    key: "public-realtime-token",
+    limit: 30,
+    windowMs: 60 * 1000,
+  })
+  if (!limit.allowed) return rateLimitResponse(limit.retryAfter)
+
   try {
     return Response.json(await createPublicKeepsRealtimeToken(), {
-      headers: {
-        "Cache-Control":
-          "public, max-age=0, s-maxage=300, stale-while-revalidate=60",
-      },
+      headers: { "Cache-Control": "private, no-store" },
     })
   } catch (error) {
     const isMissingKey =

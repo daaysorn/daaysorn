@@ -1,9 +1,11 @@
 import { listKeepsForReformat, updateKeepEditorial } from "@/lib/keeps/db"
 import { enrichKeep } from "@/lib/keeps/enrich"
+import { isChallengeContent } from "@/lib/keeps/fallback"
 
 const publish = process.argv.includes("--publish")
 const includeFormatted = process.argv.includes("--all")
 const continueOnError = process.argv.includes("--continue-on-error")
+const challengeOnly = process.argv.includes("--challenge-only")
 const limitArgument = process.argv.find((argument) =>
   argument.startsWith("--limit=")
 )
@@ -16,17 +18,23 @@ if (
   throw new Error("--limit must be a positive integer")
 }
 
-const keeps = (await listKeepsForReformat(includeFormatted)).slice(
-  0,
-  requestedLimit
+const availableKeeps = await listKeepsForReformat(
+  includeFormatted || challengeOnly
 )
+const keeps = availableKeeps
+  .filter(
+    (keep) =>
+      !challengeOnly ||
+      isChallengeContent(keep.title, keep.summary, ...keep.tags)
+  )
+  .slice(0, requestedLimit)
 if (!keeps.length) {
   console.log("There are no Keeps to reformat.")
   process.exit(0)
 }
 
 console.log(
-  `${publish ? "Reformatting" : "Previewing"} ${keeps.length} Keeps with AI...`
+  `${publish ? "Reformatting" : "Previewing"} ${keeps.length} ${challengeOnly ? "challenge-affected" : "AI-formatted"} Keeps...`
 )
 
 let completed = 0
