@@ -16,6 +16,7 @@
     "buffer:sync-gallery": "bun scripts/sync-gallery-to-buffer.ts",
     "telegram:webhook": "bun scripts/set-telegram-keeps-webhook.ts",
     "keeps:reformat": "bun scripts/reformat-keeps.ts",
+    "keeps:cache-previews": "bun scripts/cache-instagram-keep-previews.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

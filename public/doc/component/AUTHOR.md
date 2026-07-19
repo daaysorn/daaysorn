@@ -651,6 +651,12 @@ enforce uniqueness on each canonical URL.
   the platform.
 - Custom topic tags remain available below the summary for searching and
   filtering.
+- Instagram preview CDN URLs are never served directly to visitors. Ingestion
+  downloads each thumbnail once, constrains it to 8 MB, converts it to a
+  720-pixel WebP, and stores it under an immutable content hash in R2. A cheap
+  existence check prevents duplicate uploads when the same image is processed
+  again. Page views then use the public R2 asset directly, with no image proxy,
+  function invocation, AI call, or Instagram request.
 - The share controls and **View** action sit on opposite edges of the same card
   footer row and use the same compact text scale.
 - Keep order is randomized once per page visit and remains stable while the
@@ -670,6 +676,16 @@ temporarily inaccessible sources. Completed rows are checkpointed with an AI
 format version, so rerunning the command resumes unfinished work. Use `--all`
 only when intentionally reprocessing every row after changing the editorial
 prompt.
+
+To preview or run the one-time Instagram thumbnail backfill:
+
+```bash
+bun run keeps:cache-previews
+bun run keeps:cache-previews --publish
+```
+
+The command selects only Instagram previews that are not already stored under
+the R2 Keeps prefix. It does not invoke AI or reformat Keep text.
 
 #### Supported link types
 

@@ -9,6 +9,7 @@ import {
   titleFromKeepUrl,
 } from "@/lib/keeps/fallback"
 import { limitSentences } from "@/lib/keeps/text"
+import { cacheInstagramPreview } from "@/lib/keeps/preview-storage"
 import { normalizeKeepUrl } from "@/lib/keeps/url"
 
 const privateIpv4 = [
@@ -462,6 +463,10 @@ export async function enrichKeep({
   const safeFallback = rejectedChallengeOutput
     ? challengeFallback(page.href, source)
     : null
+  const imageUrl =
+    source === "Instagram"
+      ? await cacheInstagramPreview(page.imageUrl)
+      : page.imageUrl
 
   return {
     href: page.href,
@@ -469,7 +474,7 @@ export async function enrichKeep({
     author: response.object.author,
     title: safeFallback ? cleanAiTitle(safeFallback.title) : aiTitle,
     summary: safeFallback?.summary ?? aiSummary,
-    imageUrl: page.imageUrl,
+    imageUrl,
     tags: [
       ...new Set(
         [...customTags, ...(safeFallback?.tags ?? response.object.tags)]

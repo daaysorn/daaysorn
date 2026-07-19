@@ -219,6 +219,26 @@ export async function updateKeepEditorial(
   `
 }
 
+export async function listInstagramPreviewsForStorage() {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+
+  return (await sql`
+    SELECT id, href, image_url
+    FROM keeps
+    WHERE source = 'Instagram' AND image_url IS NOT NULL
+    ORDER BY saved_at ASC
+  `) as Array<{ id: string; href: string; image_url: string }>
+}
+
+export async function updateKeepImageUrl(id: string, imageUrl: string) {
+  const sql = database()
+  if (!sql) throw new Error("DATABASE_URL is not configured")
+  await ensureSchema()
+  await sql`UPDATE keeps SET image_url = ${imageUrl} WHERE id = ${id}`
+}
+
 export async function deleteKeepByHref(href: string) {
   const sql = database()
   if (!sql) throw new Error("DATABASE_URL is not configured")
