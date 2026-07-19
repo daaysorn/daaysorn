@@ -1378,7 +1378,10 @@ and synced devices. The browser loads the SVG through daaysorn's same-origin
 avatar endpoint. The endpoint generates DiceBear locally and caches the result
 for 30 days, so live avatars do not depend on a request to DiceBear's external
 API. A deterministic initials avatar remains as a last-resort fallback. The
-send button stays disabled
+avatar request includes a cache-version parameter, and last-resort fallback
+responses use `no-store`; a temporary generation failure therefore cannot
+leave browsers displaying cached initials after DiceBear recovers. No DiceBear
+environment variable or external API key is required. The send button stays disabled
 until device identity is ready, the
 response is non-empty, and Turnstile is complete when configured. Opening a
 Rant does not create a sync row; a new group is created only on the first
@@ -1430,10 +1433,13 @@ Perspectives. This includes replies written by the site owner, so every reply
 still reaches Telegram—informationally after automatic publication or with
 approval buttons when escalated. Deleting a parent cascades to its thread.
 
-After a synced identity has submitted any top-level Perspective or reply on a
-Rant, the standalone composer is hidden. That identity can continue through
-edit and reply actions only. Pending submissions count immediately, so the box
-does not briefly return while moderation is in progress.
+After a synced identity has submitted a top-level Perspective on a Rant, the
+standalone composer is hidden. Replying inside another person's thread does not
+hide it. The server determines this from a non-rejected row whose `parent_id`
+is null, and the client applies the same distinction immediately after a
+submission. Pending top-level submissions count immediately, so the box does
+not briefly return while moderation is in progress. Deleting the identity's
+top-level Perspective restores the composer.
 
 Article metadata shows the publication date until a published Rant is edited.
 After an edit, that date is replaced with **Last edited** plus the edit date and

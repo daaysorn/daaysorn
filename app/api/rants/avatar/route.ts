@@ -8,10 +8,10 @@ const CACHE_CONTROL =
   "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800"
 const BACKGROUNDS = ["b6e3f4", "c0aede", "d1d4f9", "ffd5dc", "ffdfbf"]
 
-function avatarResponse(svg: string) {
+function avatarResponse(svg: string, cache = true) {
   return new NextResponse(svg, {
     headers: {
-      "Cache-Control": CACHE_CONTROL,
+      "Cache-Control": cache ? CACHE_CONTROL : "no-store",
       "Content-Type": "image/svg+xml; charset=utf-8",
       "X-Content-Type-Options": "nosniff",
     },
@@ -57,6 +57,8 @@ export async function GET(request: Request) {
       }).toString()
     )
   } catch {
-    return avatarResponse(fallbackAvatar(seed))
+    // Never cache a degraded avatar. A later request can immediately retry
+    // local DiceBear generation instead of retaining initials for a day.
+    return avatarResponse(fallbackAvatar(seed), false)
   }
 }

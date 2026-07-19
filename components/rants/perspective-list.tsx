@@ -193,6 +193,7 @@ export function PerspectiveList({
   const remove = async (id: string) => {
     const session = readDeviceSyncSession()
     if (!session) return
+    const removedPerspective = perspectives.find((item) => item.id === id)
     setBusyId(id)
     setError("")
     setFeedback("")
@@ -216,6 +217,13 @@ export function PerspectiveList({
         next.delete(id)
         return next
       })
+      if (!removedPerspective?.parentId && ownedIds.has(id)) {
+        setHasContributed(
+          perspectives.some(
+            (item) => item.id !== id && !item.parentId && ownedIds.has(item.id)
+          )
+        )
+      }
       setDeletingId(null)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Please try again.")
@@ -224,9 +232,13 @@ export function PerspectiveList({
     }
   }
 
-  const rememberSubmission = (id: string) => {
-    setHasContributed(true)
+  const rememberOwnership = (id: string) => {
     setOwnedIds((current) => new Set(current).add(id))
+  }
+
+  const rememberRootSubmission = (id: string) => {
+    rememberOwnership(id)
+    setHasContributed(true)
   }
 
   const renderPerspective = (perspective: Perspective, depth = 0) => {
@@ -410,7 +422,7 @@ export function PerspectiveList({
               <PerspectiveForm
                 rantId={rantId}
                 parentId={perspective.id}
-                onSubmitted={rememberSubmission}
+                onSubmitted={rememberOwnership}
               />
             ) : null}
           </div>
@@ -443,7 +455,10 @@ export function PerspectiveList({
           </p>
         ) : null}
         {ownershipReady && !hasContributed ? (
-          <PerspectiveForm rantId={rantId} onSubmitted={rememberSubmission} />
+          <PerspectiveForm
+            rantId={rantId}
+            onSubmitted={rememberRootSubmission}
+          />
         ) : null}
       </div>
     </TooltipProvider>

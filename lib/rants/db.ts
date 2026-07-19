@@ -353,8 +353,10 @@ export async function hasPerspectiveContribution(
   if (!sql) return false
   await ensureSchema()
   const rows = await sql`
-    SELECT 1 FROM rant_participants
+    SELECT 1 FROM rant_perspectives
     WHERE rant_id = ${rantId} AND submitter_hash = ${submitterHash}
+      AND parent_id IS NULL
+      AND status IN ('pending', 'approved')
     LIMIT 1
   `
   return rows.length > 0
