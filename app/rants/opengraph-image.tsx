@@ -1,14 +1,14 @@
-import { ogSize, renderPageOgImage } from "@/lib/og-image"
+import { createPageOgImage } from "@/lib/og-page"
 
-export const alt = "Rants by Tomiwa David"
-export const size = ogSize
-export const contentType = "image/png"
+const og = createPageOgImage({
+  title: "Rants",
+  description: "Thoughts, questions, and unfinished conclusions.",
+  path: "/rants",
+  labels: ["Design", "Faith", "Building", "Life"],
+  alt: "Rants by Tomiwa David",
+})
 
-export default function RantsOpenGraphImage() {
-  return renderPageOgImage({
-    title: "Rants",
-    description: "Thoughts, questions, and unfinished conclusions.",
-    path: "daaysorn.com/rants",
-    labels: ["Design", "Faith", "Building", "Life"],
-  })
-}
+export const alt = og.alt
+export const size = og.size
+export const contentType = og.contentType
+export default og.Image

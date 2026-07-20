@@ -31,6 +31,7 @@ import {
   HoverCardTrigger,
 } from "@/components/daaysorn-cmp/spotify/ui/hover-card"
 import links from "@/json/links.json"
+import { localOpenGraphImageSrc } from "@/lib/og-page"
 import { cn } from "@/lib/utils"
 
 const linkClassName =
@@ -68,11 +69,7 @@ const SitePreview = ({
   const isLocalPage = href.startsWith("/")
   const previewSrc = isWebsite
     ? `https://api.microlink.io/?url=${encodeURIComponent(href)}&screenshot=true&meta=false&embed=screenshot.url`
-    : href.startsWith("/keeps")
-      ? "/keeps/opengraph-image"
-      : href.startsWith("/rants")
-        ? "/rants/opengraph-image"
-        : "/opengraph-image"
+    : localOpenGraphImageSrc(href)
   const [loaded, setLoaded] = useState(() => loadedPreviews.has(previewSrc))
 
   const finishLoading = () => {

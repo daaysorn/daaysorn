@@ -1,15 +1,14 @@
-import { ogSize, renderPageOgImage } from "@/lib/og-image"
+import { createPageOgImage } from "@/lib/og-page"
 
-export const alt =
-  "Gallery by Tomiwa David, moments from life, work, and everything in between"
-export const size = ogSize
-export const contentType = "image/png"
+const og = createPageOgImage({
+  title: "Gallery",
+  description: "Moments from my life, work, and everything in between.",
+  path: "/gallery",
+  labels: ["Life", "Work", "Design", "Moments"],
+  alt: "Gallery by Tomiwa David, moments from life, work, and everything in between",
+})
 
-export default function GalleryOpenGraphImage() {
-  return renderPageOgImage({
-    title: "Gallery",
-    description: "Moments from my life, work, and everything in between.",
-    path: "daaysorn.com/gallery",
-    labels: ["Life", "Work", "Design", "Moments"],
-  })
-}
+export const alt = og.alt
+export const size = og.size
+export const contentType = og.contentType
+export default og.Image

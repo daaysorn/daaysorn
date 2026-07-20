@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 
 import { ogSize, renderPageOgImage } from "@/lib/og-image"
+import { formatOgSitePath } from "@/lib/og-page"
 import { getPublishedRantBySlug } from "@/lib/rants/db"
 
 export const alt = "A Rant by Tomiwa David"
@@ -18,7 +19,7 @@ export default async function RantOpenGraphImage({
   return renderPageOgImage({
     title: rant.title,
     description: rant.excerpt,
-    path: `daaysorn.com/rants/${rant.slug}`,
+    path: formatOgSitePath(`/rants/${rant.slug}`),
     labels: [...rant.tags, `${rant.readingMinutes} min`].slice(0, 4),
   })
 }

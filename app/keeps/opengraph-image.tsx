@@ -1,15 +1,14 @@
-import { ogSize, renderPageOgImage } from "@/lib/og-image"
+import { createPageOgImage } from "@/lib/og-page"
 
-export const alt =
-  "Keeps by Tomiwa David, a collection of posts, articles, videos, and ideas"
-export const size = ogSize
-export const contentType = "image/png"
+const og = createPageOgImage({
+  title: "Keeps",
+  description: "Posts, articles, videos, and ideas I found worth keeping.",
+  path: "/keeps",
+  labels: ["All", "Articles", "Videos", "Ideas"],
+  alt: "Keeps by Tomiwa David, a collection of posts, articles, videos, and ideas",
+})
 
-export default function KeepsOpenGraphImage() {
-  return renderPageOgImage({
-    title: "Keeps",
-    description: "Posts, articles, videos, and ideas I found worth keeping.",
-    path: "daaysorn.com/keeps",
-    labels: ["All", "Articles", "Videos", "Ideas"],
-  })
-}
+export const alt = og.alt
+export const size = og.size
+export const contentType = og.contentType
+export default og.Image
