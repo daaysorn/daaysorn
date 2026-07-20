@@ -1,49 +1,81 @@
 {
   "version": 1,
   "transcripts": {
-    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/7c58a317-6a6e-4f3a-9180-54bdb3c59e9e/7c58a317-6a6e-4f3a-9180-54bdb3c59e9e.jsonl": {
-      "mtimeMs": 1784183349153.3838,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
-    },
-    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a.jsonl": {
-      "mtimeMs": 1784257930039.8638,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
-    },
-    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/541125dd-d508-4637-aa4b-32a15f80e7d4.jsonl": {
-      "mtimeMs": 1784252050381.1228,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
-    },
-    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/eff6b0b4-febe-4af6-932b-611ac7301e6b.jsonl": {
-      "mtimeMs": 1784257949705.6147,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
-    },
-    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/cdeecaef-ce04-474f-9e98-27e17b8d5fc5.jsonl": {
-      "mtimeMs": 1784252639146.1597,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
-    },
-    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/9a8f729b-38da-4d0c-8569-5aa14e4a16f7.jsonl": {
-      "mtimeMs": 1784252124537.5286,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
-    },
     "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/0ccb0bbd-915d-48aa-b704-82f880e9ee8b/0ccb0bbd-915d-48aa-b704-82f880e9ee8b.jsonl": {
       "mtimeMs": 1784251245550.0508,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
     },
     "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/0ccb0bbd-915d-48aa-b704-82f880e9ee8b/subagents/696ef8ff-ed0a-4291-a02e-d8bb8d2320d6.jsonl": {
       "mtimeMs": 1784250653705.5032,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
     },
-    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/b2f44080-64d6-46a7-815b-8316aa9ee189/b2f44080-64d6-46a7-815b-8316aa9ee189.jsonl": {
-      "mtimeMs": 1784244480630.7087,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a.jsonl": {
+      "mtimeMs": 1784258911688.0422,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/541125dd-d508-4637-aa4b-32a15f80e7d4.jsonl": {
+      "mtimeMs": 1784252050381.1228,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/9a8f729b-38da-4d0c-8569-5aa14e4a16f7.jsonl": {
+      "mtimeMs": 1784252124537.5286,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/cdeecaef-ce04-474f-9e98-27e17b8d5fc5.jsonl": {
+      "mtimeMs": 1784252639146.1597,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/1a887357-3e18-4ce2-bd7b-d0a1a468fc8a/subagents/eff6b0b4-febe-4af6-932b-611ac7301e6b.jsonl": {
+      "mtimeMs": 1784258010025.7878,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/3f943ffe-1657-4a30-8470-d30f253c82ba/3f943ffe-1657-4a30-8470-d30f253c82ba.jsonl": {
+      "mtimeMs": 1784262477658.135,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/441b98fe-94bc-4916-9ae6-7e2ecc2e7883/441b98fe-94bc-4916-9ae6-7e2ecc2e7883.jsonl": {
+      "mtimeMs": 1784518909458.7905,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/441b98fe-94bc-4916-9ae6-7e2ecc2e7883/subagents/e6f3ccdd-e541-4c79-9949-3c103641a24a.jsonl": {
+      "mtimeMs": 1784518929872.0737,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/441b98fe-94bc-4916-9ae6-7e2ecc2e7883/subagents/fd0e6923-c705-41c2-99af-c4f94e9ab908.jsonl": {
+      "mtimeMs": 1784517668826.7612,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/7c58a317-6a6e-4f3a-9180-54bdb3c59e9e/7c58a317-6a6e-4f3a-9180-54bdb3c59e9e.jsonl": {
+      "mtimeMs": 1784183349153.3835,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
     },
     "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/a0588cc2-7fe7-4e14-9201-97afa73cf0b2/a0588cc2-7fe7-4e14-9201-97afa73cf0b2.jsonl": {
       "mtimeMs": 1784208262716.4521,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
     },
     "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/a0588cc2-7fe7-4e14-9201-97afa73cf0b2/subagents/fe2f197d-27b2-47d6-aac6-1532d0249f53.jsonl": {
       "mtimeMs": 1784205232068.807,
-      "lastProcessedAt": "2026-07-17T03:13:26Z"
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/a6652c0e-0293-4f1a-892b-f019b7a69e1d/a6652c0e-0293-4f1a-892b-f019b7a69e1d.jsonl": {
+      "mtimeMs": 1784259549666.8708,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/b2f44080-64d6-46a7-815b-8316aa9ee189/b2f44080-64d6-46a7-815b-8316aa9ee189.jsonl": {
+      "mtimeMs": 1784244480630.7087,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/fe8b2816-4029-436f-97d7-e5f30fcde718/fe8b2816-4029-436f-97d7-e5f30fcde718.jsonl": {
+      "mtimeMs": 1784416482974.3357,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/fe8b2816-4029-436f-97d7-e5f30fcde718/subagents/322648d0-aa9a-47a4-9009-6616c976964f.jsonl": {
+      "mtimeMs": 1784265156716.081,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
+    },
+    "/Users/grtsnx/.cursor/projects/Users-grtsnx-Programming-Nextjs-daaysorn/agent-transcripts/fe8b2816-4029-436f-97d7-e5f30fcde718/subagents/35e33c54-119c-4f0e-869c-fa95107e59cc.jsonl": {
+      "mtimeMs": 1784372193129.7795,
+      "lastProcessedAt": "2026-07-20T03:43:11.261Z"
     }
   }
 }

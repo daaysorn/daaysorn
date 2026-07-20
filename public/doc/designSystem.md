@@ -878,8 +878,10 @@ export default og.Image
 export { alt, contentType, default, size } from "./opengraph-image"
 ```
 
-Internal hover previews resolve with `localOpenGraphImageSrc(href)` →
-`/<path>/opengraph-image`. Do not hard-code per-route preview URLs.
+Internal hover previews resolve with `localOpenGraphImageSrc(href)` from
+`@/lib/og-path` → `/<path>/opengraph-image`. Do not hard-code per-route
+preview URLs. Never import `@/lib/og-page` or `@/lib/og-image` from Client
+Components — those modules use `next/og` / Node APIs.
 
 **Anti-pattern:** multi-line OG subtitles, long marketing paragraphs under the
 title, or inventing a second OG layout for ordinary pages.

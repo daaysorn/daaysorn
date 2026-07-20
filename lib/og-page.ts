@@ -1,4 +1,5 @@
 import { ogSize, renderPageOgImage, type PageOgOptions } from "@/lib/og-image"
+import { formatOgSitePath } from "@/lib/og-path"
 import { siteConfig } from "@/lib/seo"
 
 export type PageOgConfig = {
@@ -15,57 +16,12 @@ export type PageOgConfig = {
   alt?: string
 }
 
-function siteHost() {
-  try {
-    return new URL(siteConfig.url).host
-  } catch {
-    return "daaysorn.com"
-  }
-}
-
-/** Normalize a route or href to a leading-slash pathname without query/hash. */
-export function normalizeAppPath(href: string) {
-  const trimmed = href.trim()
-  if (!trimmed || trimmed === "/") return "/"
-
-  const withoutOrigin = trimmed.replace(/^https?:\/\/[^/]+/i, "")
-  const pathOnly = withoutOrigin.split(/[?#]/, 1)[0] ?? "/"
-  const withSlash = pathOnly.startsWith("/") ? pathOnly : `/${pathOnly}`
-  const collapsed = withSlash.replace(/\/{2,}/g, "/")
-  if (collapsed.length > 1 && collapsed.endsWith("/")) {
-    return collapsed.slice(0, -1)
-  }
-  return collapsed || "/"
-}
-
-/**
- * Path shown on the PageLightSwiss OG template
- * (e.g. `/privacy` → `daaysorn.com/privacy`).
- */
-export function formatOgSitePath(path: string) {
-  const pathname = normalizeAppPath(path)
-  const host = siteHost()
-  return pathname === "/" ? host : `${host}${pathname}`
-}
-
-/**
- * Resolve a local app href to its generated Next.js OG image route.
- * `/privacy` → `/privacy/opengraph-image`
- * `/` → `/opengraph-image`
- *
- * New static pages only need `app/<route>/opengraph-image.tsx` (via
- * {@link createPageOgImage}); previews and social cards pick them up
- * automatically.
- */
-export function localOpenGraphImageSrc(href: string) {
-  const pathname = normalizeAppPath(href)
-  return pathname === "/"
-    ? "/opengraph-image"
-    : `${pathname}/opengraph-image`
-}
-
 /**
  * Standard page OG module exports for the PageLightSwiss template.
+ * Server-only — used from `opengraph-image.tsx` / `twitter-image.tsx`.
+ *
+ * Client code that only needs preview URLs should import
+ * `localOpenGraphImageSrc` from `@/lib/og-path` instead.
  *
  * @example
  * ```tsx

@@ -4,7 +4,7 @@ import {
   formatOgSitePath,
   localOpenGraphImageSrc,
   normalizeAppPath,
-} from "@/lib/og-page"
+} from "@/lib/og-path"
 
 describe("normalizeAppPath", () => {
   test("normalizes routes and strips query or hash", () => {

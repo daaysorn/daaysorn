@@ -31,7 +31,7 @@ import {
   HoverCardTrigger,
 } from "@/components/daaysorn-cmp/spotify/ui/hover-card"
 import links from "@/json/links.json"
-import { localOpenGraphImageSrc } from "@/lib/og-page"
+import { localOpenGraphImageSrc } from "@/lib/og-path"
 import { cn } from "@/lib/utils"
 
 const linkClassName =
