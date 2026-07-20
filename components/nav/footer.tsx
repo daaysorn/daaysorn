@@ -50,31 +50,11 @@ const Footer = () => {
         <div className="order-1 flex justify-center text-sm text-muted-foreground md:relative md:z-10 md:scale-90">
           <FlipClock />
         </div>
-        <div className="order-3 flex flex-col items-center gap-1.5 text-sm text-muted-foreground md:relative md:z-10 md:scale-90">
+        <div className="order-3 flex items-center text-sm text-muted-foreground md:relative md:z-10 md:scale-90">
           <span className="font-semibold">
             &copy; <span className="text-primary">{appName}&apos;s</span>{" "}
             {currentYear}
           </span>
-          <nav
-            aria-label="Legal"
-            className="flex items-center gap-2 text-xs font-normal"
-          >
-            <Link
-              href="/privacy"
-              className="transition-colors hover:text-foreground"
-            >
-              Privacy
-            </Link>
-            <span aria-hidden="true" className="text-muted-foreground/50">
-              ·
-            </span>
-            <Link
-              href="/terms"
-              className="transition-colors hover:text-foreground"
-            >
-              Terms
-            </Link>
-          </nav>
         </div>
       </div>
 

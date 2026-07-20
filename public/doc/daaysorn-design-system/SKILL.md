@@ -42,6 +42,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 22. Link previews must be lightweight. Internal links use generated OG/static preview images and must never load a full local route in an iframe. External screenshots should be generated once and cached where practical. A hover must not start page analytics, realtime connections, media polling, or service-worker work for the previewed page.
 23. Loading feedback must preserve the final layout. Show a skeleton only while an asset has never loaded in the current session; once a preview succeeds or fails, retain that settled state and do not flash the skeleton again during ordinary hover/open cycles.
 24. **Page OG images** (via `createPageOgImage` / `renderPageOgImage` → PageLightSwiss) must keep the supporting **description on one line** — never wrap. Write short copy (roughly ≤72 characters). The template enforces `white-space: nowrap`. See `public/doc/designSystem.md` §8.9.
+25. Never use em dashes (`—`) in user-facing content. Rewrite the sentence with a period, comma, colon, or parentheses instead. This rule applies to headings, body copy, labels, descriptions, metadata, and generated editorial content.
 
 ## Token → utility quick map
 
@@ -123,6 +124,7 @@ After writing UI:
 - [ ] Internal link previews use OG/static images, never full-page iframes
 - [ ] Settled previews do not flash their skeleton again
 - [ ] Page OG description is one line (≤72 chars); never multi-line subtext
+- [ ] User-facing content contains no em dashes (`—`)
 ```
 
 ## Portability (use on any site)

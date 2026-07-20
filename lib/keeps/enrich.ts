@@ -212,6 +212,46 @@ async function readYouTubeEmbed(url: URL) {
   }
 }
 
+function textFromXEmbedHtml(html: string) {
+  const paragraph = html.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? ""
+
+  return decodeHtml(
+    paragraph
+      .replace(/<br\s*\/?\s*>/gi, "\n")
+      .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, "$1")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/https?:\/\/t\.co\/\S+/gi, " ")
+      .replace(/pic\.twitter\.com\/\S+/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  )
+}
+
+async function readXEmbed(url: URL) {
+  const endpoint = new URL("https://publish.twitter.com/oembed")
+  endpoint.searchParams.set("url", url.toString())
+  endpoint.searchParams.set("omit_script", "1")
+  endpoint.searchParams.set("dnt", "1")
+
+  const response = await fetch(endpoint, {
+    signal: AbortSignal.timeout(8000),
+    headers: { Accept: "application/json" },
+  })
+  if (!response.ok) return null
+
+  const data = (await response.json()) as {
+    author_name?: string
+    html?: string
+  }
+  const postText = textFromXEmbedHtml(data.html ?? "")
+  if (!postText) return null
+
+  return {
+    postText,
+    author: data.author_name?.trim() ?? "",
+  }
+}
+
 async function readDiscoveredEmbed(html: string, pageUrl: URL) {
   const tag = html.match(
     /<link[^>]+type=["']application\/json\+oembed["'][^>]*>/i
@@ -254,6 +294,20 @@ function contentTypeLabel(contentType: string) {
 
 async function readPage(initialUrl: string) {
   let url = await assertPublicUrl(normalizeKeepUrl(initialUrl))
+
+  if (sourceFrom(url) === "X") {
+    const embed = await readXEmbed(url).catch(() => null)
+    if (embed) {
+      return {
+        href: normalizeKeepUrl(url.toString()),
+        title: "",
+        description: embed.postText,
+        author: embed.author,
+        imageUrl: null,
+        body: embed.postText,
+      }
+    }
+  }
 
   if (sourceFrom(url) === "Instagram") {
     const instagramPage = await readInstagramPage(url)
@@ -472,7 +526,7 @@ const keepSchema = {
 }
 
 const editorialSystemPrompt =
-  "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. The words impressive, stunning, and captivating are forbidden. Never write vague filler such as original content can be viewed. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts and do not claim what happens in the video. The thumbnail analysis describes one visible frame and is valid evidence only for objects, text, and context visible in that frame. Combine it with the caption without extrapolating beyond either source. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general."
+  "You edit Tomiwa David's public Keeps collection. Always translate and rewrite every title and summary into natural English, even when the source is in another language. Create a clear editorial title instead of copying the source title or caption. A social account name, @handle, or platform boilerplate such as Name (@handle) on X must never be the title. For X posts, use xPostText as the primary content evidence and describe its subject, not its author or username. Never use emojis in the title. Never use hashtags or include # anywhere in the title or summary. Write plain, non-technical English. The summary must contain no more than two concise sentences and should not reproduce a long caption. The owner's note is the most trusted context when present. State only facts explicitly supported by the owner note or supplied page data. Never invent, infer, or confidently reframe missing details. Never create a title or summary about browser verification, JavaScript, CAPTCHA, access checks, or being a robot. Never use promotional framing such as free offer, giveaway, or amazing deal unless the owner's note explicitly uses that framing. Never use em dashes and never mention that AI created the summary. The words impressive, stunning, and captivating are forbidden. Never write vague filler such as original content can be viewed. Choose one or two broad topic tags from the supplied taxonomy. Do not use a platform, person, content format, or overly specific phrase as a tag. For Instagram, respect instagramResourceKind: a profile is not a post or reel. Instagram post and reel text is public caption metadata, not a transcript: ignore likes and comment counts and do not claim what happens in the video. The thumbnail analysis describes one visible frame and is valid evidence only for objects, text, and context visible in that frame. Combine it with the caption without extrapolating beyond either source. If details are unavailable, identify the saved resource accurately and say that the original provides the full context. Do not describe the social platform in general."
 
 async function generateKeepMetadata(
   cencori: Cencori,
@@ -546,7 +600,9 @@ async function generateReviewedKeepMetadata(
   let title = cleanAiTitle(candidate.title)
   let summary = limitSentences(cleanEditorialText(candidate.summary))
   let deterministicallyRejected =
-    isChallengeContent(title, summary) || isGenericKeepCopy(title, summary)
+    isChallengeContent(title, summary) ||
+    isGenericKeepCopy(title, summary) ||
+    (evidence.source === "X" && isXIdentityTitle(title))
   let review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
 
   if (deterministicallyRejected || !review.accepted) {
@@ -563,7 +619,9 @@ async function generateReviewedKeepMetadata(
     title = cleanAiTitle(candidate.title)
     summary = limitSentences(cleanEditorialText(candidate.summary))
     deterministicallyRejected =
-      isChallengeContent(title, summary) || isGenericKeepCopy(title, summary)
+      isChallengeContent(title, summary) ||
+      isGenericKeepCopy(title, summary) ||
+      (evidence.source === "X" && isXIdentityTitle(title))
     review = (await reviewKeepMetadata(cencori, evidence, candidate)).object
   }
 
@@ -585,6 +643,25 @@ function cleanAiTitle(value: string) {
   )
 }
 
+export function isXIdentityTitle(value: string) {
+  const title = cleanAiTitle(value)
+  return (
+    /\(@[A-Za-z0-9_]+\)\s+on\s+(?:X|Twitter)$/i.test(title) ||
+    /^@[A-Za-z0-9_]+(?:\s+on\s+(?:X|Twitter))?$/i.test(title)
+  )
+}
+
+function editorialTitleFromContext(value: string) {
+  const withoutLinks = value
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/pic\.twitter\.com\/\S+/gi, " ")
+  const firstThought = withoutLinks.split(/(?<=[.!?])\s|\n/u)[0] ?? ""
+  const cleaned = cleanAiTitle(firstThought)
+
+  if (cleaned.length <= 100) return cleaned
+  return `${cleaned.slice(0, 97).trimEnd()}...`
+}
+
 export function sourceMetadataFallback({
   href,
   title,
@@ -598,7 +675,13 @@ export function sourceMetadataFallback({
   body: string
   ownerNote: string
 }) {
-  const fallbackTitle = cleanAiTitle(title) || titleFromKeepUrl(href)
+  const source = sourceFrom(new URL(href))
+  const cleanedTitle = cleanAiTitle(title)
+  const fallbackTitle =
+    source === "X" && (!cleanedTitle || isXIdentityTitle(cleanedTitle))
+      ? editorialTitleFromContext(ownerNote || description || body) ||
+        "Saved X post"
+      : cleanedTitle || titleFromKeepUrl(href)
   const fallbackSummary = limitSentences(
     cleanEditorialText(ownerNote || description || body)
   )
@@ -681,7 +764,9 @@ export async function enrichKeep({
         : `Public Instagram ${instagramResource?.kind ?? "content"} caption and thumbnail only. No transcript, audio, or full video content is available. Engagement counts are not content.`
       : source === "TikTok"
         ? "Public embed metadata only. A transcript may not be available."
-        : "Public page metadata and readable page text."
+        : source === "X"
+          ? "Public X embed text. Linked pages, quoted posts, audio, and full video content may not be available."
+          : "Public page metadata and readable page text."
   const pageText = source === "Instagram" ? page.description : page.body
 
   const apiKey = process.env.CENCORI_API_KEY?.trim()
@@ -717,6 +802,7 @@ export async function enrichKeep({
     pageDescription: page.description,
     pageAuthor: page.author,
     pageText,
+    xPostText: source === "X" ? page.description || page.body : undefined,
     thumbnailAnalysis,
     contentAvailability,
     source,
@@ -747,7 +833,11 @@ export async function enrichKeep({
     body: page.body,
     ownerNote,
   })
-  const title = candidate ? cleanAiTitle(candidate.title) : fallback.title
+  const candidateTitle = candidate ? cleanAiTitle(candidate.title) : ""
+  const title =
+    candidateTitle && !(source === "X" && isXIdentityTitle(candidateTitle))
+      ? candidateTitle
+      : fallback.title
   const summary = candidate
     ? limitSentences(cleanEditorialText(candidate.summary))
     : fallback.summary

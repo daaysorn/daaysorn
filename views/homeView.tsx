@@ -58,6 +58,14 @@ type PreviewLinkProps = {
 
 const passthroughImageLoader = ({ src }: { src: string }) => src
 const loadedPreviews = new Set<string>()
+const localPreviewRoutes = new Set([
+  "/",
+  "/gallery",
+  "/keeps",
+  "/privacy",
+  "/rants",
+  "/terms",
+])
 
 const SitePreview = ({
   href,
@@ -66,10 +74,12 @@ const SitePreview = ({
   logoSrc,
 }: Pick<PreviewLinkProps, "href" | "label" | "icon" | "logoSrc">) => {
   const isWebsite = href.startsWith("http")
-  const isLocalPage = href.startsWith("/")
+  const isLocalPage = localPreviewRoutes.has(href)
   const previewSrc = isWebsite
     ? `https://api.microlink.io/?url=${encodeURIComponent(href)}&screenshot=true&meta=false&embed=screenshot.url`
-    : localOpenGraphImageSrc(href)
+    : isLocalPage
+      ? localOpenGraphImageSrc(href)
+      : ""
   const [loaded, setLoaded] = useState(() => loadedPreviews.has(previewSrc))
 
   const finishLoading = () => {
@@ -192,7 +202,7 @@ const HomeView = () => {
   const accountHref = links.account.createHref.trim()
 
   return (
-    <article className="min-w-0 pb-8 md:pb-14">
+    <article className="min-w-0 pb-8 md:pb-32">
       <h1 className="text-3xl leading-none font-bold tracking-tight xs:text-4xl md:text-3xl">
         Tomiwa David
       </h1>
@@ -218,10 +228,11 @@ const HomeView = () => {
         </div>
 
         <p>
-          I&apos;m a founder, designer, and builder. I create brands that mean
-          something—products that look as good as they work. I turn ideas into
-          clear experiences people can understand and enjoy. I&apos;m also a
-          Christian, growing in faith with{" "}
+          I&apos;m a founder, designer, and builder creating meaningful brands
+          and products that work as beautifully as they look. I bring ideas to
+          life through clear, thoughtful experiences people can understand and
+          enjoy. My faith shapes who I am, and I&apos;m growing as a Christian
+          with{" "}
           <PreviewLink
             href={links.faith.href}
             label={links.faith.label}
@@ -237,7 +248,7 @@ const HomeView = () => {
             />
             {links.faith.label}
           </PreviewLink>
-          . You can join me for devotion with{" "}
+          . Join me for weekday devotion with{" "}
           <PreviewLink
             href={links.faith.devotion.href}
             label={links.faith.devotion.label}
@@ -258,7 +269,7 @@ const HomeView = () => {
             />
             {links.faith.devotion.label}
           </PreviewLink>
-          , Mon-Fri (6-7am WAT).
+          , Monday to Friday from 6 to 7 a.m. WAT.
         </p>
 
         <p className="clear-none mt-5">
@@ -454,6 +465,14 @@ const HomeView = () => {
           >
             X
           </PreviewLink>
+          . You can also read the{" "}
+          <Link href="/privacy" className={linkClassName}>
+            Privacy Policy
+          </Link>{" "}
+          and{" "}
+          <Link href="/terms" className={linkClassName}>
+            Terms of Service
+          </Link>
           .
         </p>
 

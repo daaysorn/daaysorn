@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, test } from "node:test"
 
-import { sourceMetadataFallback } from "@/lib/keeps/enrich"
+import { isXIdentityTitle, sourceMetadataFallback } from "@/lib/keeps/enrich"
 
 describe("sourceMetadataFallback", () => {
   test("keeps a normal page when AI review rejects its drafts", () => {
@@ -33,5 +33,29 @@ describe("sourceMetadataFallback", () => {
       }).summary,
       "My reason for saving this."
     )
+  })
+
+  test("replaces X profile boilerplate with the post context", () => {
+    assert.deepEqual(
+      sourceMetadataFallback({
+        href: "https://x.com/i/status/123456789",
+        title: "TERO (@TERO1X_) on X",
+        description: "Lego Dump 👾",
+        body: "Lego Dump 👾",
+        ownerNote: "",
+      }),
+      {
+        title: "Lego Dump",
+        summary: "Lego Dump 👾",
+      }
+    )
+  })
+})
+
+describe("isXIdentityTitle", () => {
+  test("detects X username boilerplate without rejecting editorial titles", () => {
+    assert.equal(isXIdentityTitle("TERO (@TERO1X_) on X"), true)
+    assert.equal(isXIdentityTitle("@TERO1X_ on X"), true)
+    assert.equal(isXIdentityTitle("A Lego Character Dump"), false)
   })
 })

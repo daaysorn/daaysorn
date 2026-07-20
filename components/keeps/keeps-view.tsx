@@ -106,6 +106,28 @@ function removeHashtags(value: string) {
     .trim()
 }
 
+function isXIdentityTitle(value: string) {
+  return (
+    /\(@[A-Za-z0-9_]+\)\s+on\s+(?:X|Twitter)$/i.test(value.trim()) ||
+    /^@[A-Za-z0-9_]+(?:\s+on\s+(?:X|Twitter))?$/i.test(value.trim())
+  )
+}
+
+function keepDisplayTitle(keep: Keep) {
+  const title = removeHashtags(keep.title)
+  if (keep.source !== "X" || !isXIdentityTitle(title)) {
+    return title || keep.source
+  }
+
+  const contextualTitle = removeHashtags(keep.summary)
+    .split(/(?<=[.!?])\s/u)[0]
+    ?.replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  return contextualTitle || "X post"
+}
+
 function KeepCard({
   keep,
   isSaved,
@@ -120,7 +142,7 @@ function KeepCard({
   const impressionSent = useRef(false)
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const showImage = Boolean(keep.imageUrl && keep.imageUrl !== failedImageUrl)
-  const displayTitle = removeHashtags(keep.title) || keep.source
+  const displayTitle = keepDisplayTitle(keep)
   const displaySummary = removeHashtags(keep.summary)
   const shareText = `${displayTitle} ${keep.href}`
   const socialShares = [
