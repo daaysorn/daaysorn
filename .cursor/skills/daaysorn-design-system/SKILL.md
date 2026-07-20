@@ -26,6 +26,8 @@
 7. [Breakpoints — philosophy, approach & how it helps](#7-breakpoints--philosophy-approach--how-it-helps)
 8. [Motion & interaction](#8-motion--interaction)
    - [8.7 Ghost, loaders & feedback motion](#87-ghost-loaders--feedback-motion)
+   - [8.8 Performance, previews & perceived speed](#88-performance-previews--perceived-speed)
+   - [8.9 Open Graph — page template (PageLightSwiss)](#89-open-graph--page-template-pagelightswiss)
 9. [Theming](#9-theming)
 10. [Components](#10-components)
 11. [Icons](#11-icons)
@@ -841,6 +843,47 @@ A preview is visual context, not an embedded copy of the destination. Hovering
 it must not boot the destination's analytics, Spotify polling, database reads,
 realtime connection, or service worker.
 
+### 8.9 Open Graph — page template (PageLightSwiss)
+
+Static and content pages use the shared page OG template via
+`createPageOgImage` (`lib/og-page.ts`) → `renderPageOgImage` (`lib/og-image.tsx`).
+Home identity art still uses `renderOgImage` variants.
+
+| Field         | Rule                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| `title`       | Short page name (Montserrat, large).                                                                      |
+| `description` | **One line only** — never wrap. Keep copy short (roughly **≤72 characters**). Template uses `nowrap`.     |
+| `path`        | Display path such as `daaysorn.com/privacy` (use `formatOgSitePath`).                                     |
+| `labels`      | Optional footer chips (first label emphasized).                                                           |
+
+```tsx
+// app/<route>/opengraph-image.tsx
+import { createPageOgImage } from "@/lib/og-page"
+
+const og = createPageOgImage({
+  title: "Privacy Policy",
+  description: "How daaysorn collects, uses, and protects information.", // one line
+  path: "/privacy",
+  labels: ["Legal", "Privacy", "Data"],
+})
+
+export const alt = og.alt
+export const size = og.size
+export const contentType = og.contentType
+export default og.Image
+```
+
+```tsx
+// app/<route>/twitter-image.tsx
+export { alt, contentType, default, size } from "./opengraph-image"
+```
+
+Internal hover previews resolve with `localOpenGraphImageSrc(href)` →
+`/<path>/opengraph-image`. Do not hard-code per-route preview URLs.
+
+**Anti-pattern:** multi-line OG subtitles, long marketing paragraphs under the
+title, or inventing a second OG layout for ordinary pages.
+
 ---
 
 ## 9. Theming
@@ -1372,6 +1415,7 @@ consistent across body links, cards, navigation, previews, and social links.
 | Overflow wrap  | §13.6 — long tokens/URLs/env lines must use `break-all` + `overflow-wrap` / `min-w-0`; Spotify auth callback fixed                                                                                                                                                                                                                   |
 | Feedback UI    | §3.6 muted text hierarchy; §8.7 ghost patterns, skeletons, pulse, text-shimmer (`5.5s ease-in-out`)                                                                                                                                                                                                                                  |
 | Performance UI | Added performance as a design principle; §8.1 CSS-only page reveals; §8.8 server/client boundaries, lightweight OG previews, settled skeleton behavior and reduced-motion rules                                                                                                                                                      |
+| Page OG        | §8.9 — PageLightSwiss via `createPageOgImage`; **description must stay one line** (≤72 chars, template `nowrap`); `localOpenGraphImageSrc` for automatic previews                                                                                                                                                                     |
 
 ---
 

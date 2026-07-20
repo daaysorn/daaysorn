@@ -439,6 +439,10 @@ function LightSwiss({ portrait }: { portrait: string }) {
 
 export type PageOgOptions = {
   title: string
+  /**
+   * Supporting line under the title. Must fit on **one line** in the
+   * PageLightSwiss template (keep it short — roughly ≤72 characters).
+   */
   description: string
   path: string
   labels?: string[]
@@ -520,12 +524,16 @@ function PageLightSwiss({
         <div
           style={{
             display: "flex",
-            maxWidth: 820,
+            maxWidth: 1056,
             marginTop: 28,
             fontFamily: "Geist",
             fontSize: 27,
-            lineHeight: 1.38,
+            lineHeight: 1,
             color: "rgba(7,7,7,0.6)",
+            // Page OG subtext is always a single line — never wrap.
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {description}

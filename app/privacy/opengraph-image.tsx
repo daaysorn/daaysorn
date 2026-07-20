@@ -2,8 +2,7 @@ import { createPageOgImage } from "@/lib/og-page"
 
 const og = createPageOgImage({
   title: "Privacy Policy",
-  description:
-    "How daaysorn collects, uses, and protects information across the Site.",
+  description: "How daaysorn collects, uses, and protects information.",
   path: "/privacy",
   labels: ["Legal", "Privacy", "Data"],
   alt: "Privacy Policy | daaysorn",

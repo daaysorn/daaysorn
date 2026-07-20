@@ -3,6 +3,10 @@ import { siteConfig } from "@/lib/seo"
 
 export type PageOgConfig = {
   title: string
+  /**
+   * One-line supporting copy for the PageLightSwiss OG template.
+   * Keep it short (roughly ≤72 characters) so it never wraps.
+   */
   description: string
   /** App route pathname, e.g. `/privacy` or `privacy`. */
   path: string

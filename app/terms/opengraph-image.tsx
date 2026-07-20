@@ -2,8 +2,7 @@ import { createPageOgImage } from "@/lib/og-page"
 
 const og = createPageOgImage({
   title: "Terms of Service",
-  description:
-    "The rules for using daaysorn—acceptable use, contributions, and liability.",
+  description: "Rules for using daaysorn—use, contributions, and liability.",
   path: "/terms",
   labels: ["Legal", "Terms", "Use"],
   alt: "Terms of Service | daaysorn",

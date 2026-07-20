@@ -41,6 +41,7 @@ Read the relevant doc section before non-trivial UI work (progressive disclosure
 21. Use CSS-first motion for page reveals, fades, simple transforms, skeletons, and reduced-motion fallbacks. Do not add a JavaScript animation library for effects expressible in `app/globals.css`. Keep Motion only where continuous pointer physics or gesture state materially improves the interaction, such as Dock magnification.
 22. Link previews must be lightweight. Internal links use generated OG/static preview images and must never load a full local route in an iframe. External screenshots should be generated once and cached where practical. A hover must not start page analytics, realtime connections, media polling, or service-worker work for the previewed page.
 23. Loading feedback must preserve the final layout. Show a skeleton only while an asset has never loaded in the current session; once a preview succeeds or fails, retain that settled state and do not flash the skeleton again during ordinary hover/open cycles.
+24. **Page OG images** (via `createPageOgImage` / `renderPageOgImage` → PageLightSwiss) must keep the supporting **description on one line** — never wrap. Write short copy (roughly ≤72 characters). The template enforces `white-space: nowrap`. See `public/doc/designSystem.md` §8.9.
 
 ## Token → utility quick map
 
@@ -121,6 +122,7 @@ After writing UI:
 - [ ] Simple motion is CSS-first and has a reduced-motion outcome
 - [ ] Internal link previews use OG/static images, never full-page iframes
 - [ ] Settled previews do not flash their skeleton again
+- [ ] Page OG description is one line (≤72 chars); never multi-line subtext
 ```
 
 ## Portability (use on any site)
@@ -136,7 +138,7 @@ Same system, swap **token values only** (keep token names + component APIs). `ap
 | Radius                                  | §5                                 |
 | Layout / shell                          | §6                                 |
 | Responsive / breakpoints                | §7                                 |
-| Motion / ghost / loaders / previews     | §8 (incl. §8.7–§8.8)               |
+| Motion / ghost / loaders / previews / OG | §8 (incl. §8.7–§8.9)               |
 | Theming (light/dark)                    | §9                                 |
 | Component variants/APIs                 | §10                                |
 | Accessibility                           | §12                                |
