@@ -1,4 +1,4 @@
-const CACHE_VERSION = "daaysorn-v5"
+const CACHE_VERSION = "daaysorn-v6"
 const PAGE_CACHE = `${CACHE_VERSION}-pages`
 const ASSET_CACHE = `${CACHE_VERSION}-assets`
 const KEEPS_SYNC_DATABASE = "daaysorn-keeps-sync"

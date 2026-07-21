@@ -1494,8 +1494,8 @@ The worker provides only capabilities that match this project:
   seven days.
 - iOS browsers do not expose `beforeinstallprompt`. On an eligible iPhone or
   iPad, the same card instead gives the native Share → Add to Home Screen steps.
-- The manifest sets `orientation: "landscape"`, so supported installed PWA
-  environments request a fixed landscape presentation.
+- The manifest sets `orientation: "portrait"`, so supported installed PWA
+  environments request a fixed portrait presentation.
 - The OS share target posts `title`, `text`, and `url` as
   `multipart/form-data` to `/api/keeps/share-target`. The handler validates and
   bounds the strings, redirects to a temporary fragment on `/keeps`, and the

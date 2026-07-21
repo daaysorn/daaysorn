@@ -16,7 +16,7 @@ export default function manifest(): DaaysornManifest {
     scope: "/",
     lang: "en-NG",
     dir: "ltr",
-    orientation: "landscape",
+    orientation: "portrait",
     display: "standalone",
     display_override: ["window-controls-overlay", "standalone"],
     launch_handler: {
