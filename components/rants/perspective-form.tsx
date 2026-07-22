@@ -275,7 +275,7 @@ export function PerspectiveForm({
           onChange={(event) => setBody(event.target.value)}
           onSubmitShortcut={() => formRef.current?.requestSubmit()}
           placeholder="No perspectives yet, you can be the first."
-          className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-14 pb-14 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+          className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-14 pb-14 text-base shadow-xs outline-none placeholder:text-muted-foreground md:text-sm"
         />
         <Button
           type="submit"

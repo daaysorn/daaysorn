@@ -54,6 +54,12 @@
 
 ---
 
+## Form focus (rule)
+
+Inputs and textareas do not use focus rings. The system relies on layout, spacing, and subtle surface contrast (border/background) instead of `ring-*` shadows on focus. Avoid adding `focus-visible:ring-*` to inputs, textareas, or input-like surfaces.
+
+---
+
 ## 2. Architecture & file map
 
 ```

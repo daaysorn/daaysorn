@@ -2,7 +2,12 @@
 
 import Image from "next/image"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { PiShareFatFill, PiXBold } from "react-icons/pi"
+import {
+  PiCheckBold,
+  PiDownloadSimpleFill,
+  PiShareFatFill,
+  PiXBold,
+} from "react-icons/pi"
 
 import { Button } from "@/components/ui/button"
 import { trackAnalyticsEvent } from "@/lib/analytics"
@@ -127,7 +132,7 @@ export function PWAInstallPrompt() {
           </p>
         ) : (
           <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-            Keep Keeps and Gallery close, even when you&apos;re offline.
+            Keep daaysorn close, even when you&apos;re offline.
           </p>
         )}
       </div>
@@ -146,11 +151,16 @@ export function PWAInstallPrompt() {
           }}
           aria-expanded={showIosSteps}
         >
-          <PiShareFatFill aria-hidden />
+          {showIosSteps ? (
+            <PiCheckBold className="text-current" aria-hidden />
+          ) : (
+            <PiDownloadSimpleFill className="text-current" aria-hidden />
+          )}
           {showIosSteps ? "Got it" : "Install"}
         </Button>
       ) : (
         <Button type="button" size="sm" onClick={() => void install()}>
+          <PiDownloadSimpleFill className="text-current" aria-hidden />
           Install
         </Button>
       )}

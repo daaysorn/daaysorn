@@ -41,14 +41,14 @@ export default function manifest(): DaaysornManifest {
     categories: ["design", "business", "technology"],
     screenshots: [
       {
-        src: "/screenshots/playstore-wide-a.png",
+        src: "/screenshots/playstore-wide-gradient.png",
         sizes: "1280x720",
         type: "image/png",
         form_factor: "wide",
         label: "daaysorn preview (wide)",
       },
       {
-        src: "/screenshots/playstore-narrow-a.png",
+        src: "/screenshots/playstore-narrow-gradient.png",
         sizes: "390x844",
         type: "image/png",
         form_factor: "narrow",
@@ -82,6 +82,13 @@ export default function manifest(): DaaysornManifest {
         short_name: "Gallery",
         description: "Open the daaysorn Gallery.",
         url: "/gallery",
+        icons: [{ src: "/icons/pwa-96.png", sizes: "96x96" }],
+      },
+      {
+        name: "Rants",
+        short_name: "Rants",
+        description: "Open Rants by Tomiwa David.",
+        url: "/rants",
         icons: [{ src: "/icons/pwa-96.png", sizes: "96x96" }],
       },
     ],

@@ -286,7 +286,7 @@ export function PerspectiveList({
                   maxLength={1200}
                   aria-label="Edit comment"
                   onSubmitShortcut={() => void save(perspective.id)}
-                  className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-20 pb-10 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+                  className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-20 pb-10 text-base outline-none md:text-sm"
                 />
                 <div className="absolute right-2 bottom-2 flex gap-1">
                   <IconTooltip label="Cancel edit">
