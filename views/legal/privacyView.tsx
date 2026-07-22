@@ -4,10 +4,7 @@ import {
   LegalDocument,
   type LegalSection,
 } from "@/components/legal/legal-document"
-import {
-  LEGAL_EFFECTIVE_DATE,
-  LEGAL_LAST_UPDATED,
-} from "@/lib/legal/dates"
+import { LEGAL_EFFECTIVE_DATE, LEGAL_LAST_UPDATED } from "@/lib/legal/dates"
 import { siteConfig } from "@/lib/seo"
 
 const sections: LegalSection[] = [
@@ -17,9 +14,9 @@ const sections: LegalSection[] = [
     content: (
       <>
         <p>
-          This Privacy Policy explains how{" "}
-          <strong>{siteConfig.name}</strong> (“we,” “us,” or “our”) collects,
-          uses, stores, and shares information when you visit or use{" "}
+          This Privacy Policy explains how <strong>{siteConfig.name}</strong>{" "}
+          (“we,” “us,” or “our”) collects, uses, stores, and shares information
+          when you visit or use{" "}
           <a
             href={siteConfig.url}
             className="min-w-0 break-all"
@@ -62,9 +59,9 @@ const sections: LegalSection[] = [
         </ul>
         <p>
           It does not control how third-party sites, apps, or services (for
-          example Instagram, GitHub, X, Spotify, or Google) handle your data when
-          you leave the Site or interact with their products. Their own privacy
-          notices apply there.
+          example Instagram, GitHub, X, Spotify, or Google) handle your data
+          when you leave the Site or interact with their products. Their own
+          privacy notices apply there.
         </p>
       </>
     ),
@@ -81,11 +78,11 @@ const sections: LegalSection[] = [
 
         <p>
           <strong>Information you provide.</strong> When you submit a Rant
-          perspective or reply, you may share a display name and the text of your
-          contribution. If you email us, we receive the address and content you
-          send. If you sync Keeps across devices, we store sync credentials and
-          the keep identifiers you choose to sync, along with an optional device
-          display name.
+          perspective or reply, you may share a display name and the text of
+          your contribution. If you email us, we receive the address and content
+          you send. If you sync Keeps across devices, we store sync credentials
+          and the keep identifiers you choose to sync, along with an optional
+          device display name.
         </p>
 
         <p>
@@ -109,8 +106,9 @@ const sections: LegalSection[] = [
           <strong>Cookies and similar technologies.</strong> We may use cookies
           or similar technologies for security (for example short-lived OAuth
           state cookies when connecting Spotify for the “now playing”
-          experience), analytics, and basic site operation. Your browser settings
-          can block or delete cookies; some features may then work less well.
+          experience), analytics, and basic site operation. Your browser
+          settings can block or delete cookies; some features may then work less
+          well.
         </p>
 
         <p>
@@ -134,17 +132,13 @@ const sections: LegalSection[] = [
             publish, moderate, and display user contributions (including Rant
             perspectives) after review where applicable;
           </li>
-          <li>
-            sync Keeps and related state across devices you authorize;
-          </li>
+          <li>sync Keeps and related state across devices you authorize;</li>
           <li>
             measure traffic and feature usage (including via Google Analytics)
             so we can understand what works and fix problems;
           </li>
           <li>respond to messages and support requests;</li>
-          <li>
-            detect abuse, spam, fraud, and security incidents;
-          </li>
+          <li>detect abuse, spam, fraud, and security incidents;</li>
           <li>
             comply with law, enforce our Terms of Service, and protect rights
             and safety.
@@ -203,9 +197,9 @@ const sections: LegalSection[] = [
         </p>
         <p>
           Do not include sensitive personal data, passwords, private contact
-          details of others, or unlawful content in contributions. We may refuse,
-          edit visibility of, or remove contributions that violate our Terms of
-          Service or community standards.
+          details of others, or unlawful content in contributions. We may
+          refuse, edit visibility of, or remove contributions that violate our
+          Terms of Service or community standards.
         </p>
         <p>
           If you want a published contribution removed, contact{" "}
@@ -227,9 +221,10 @@ const sections: LegalSection[] = [
         <ul>
           <li>
             <strong>Service providers</strong> who help us host, deliver,
-            analyze, or secure the Site (for example hosting platforms, analytics
-            providers, realtime messaging, storage, and email infrastructure),
-            under obligations to use data only for their services to us;
+            analyze, or secure the Site (for example hosting platforms,
+            analytics providers, realtime messaging, storage, and email
+            infrastructure), under obligations to use data only for their
+            services to us;
           </li>
           <li>
             <strong>The public</strong>, when you submit content intended for
@@ -241,8 +236,8 @@ const sections: LegalSection[] = [
           </li>
           <li>
             <strong>Successors</strong>, if the Site or related assets are
-            transferred as part of a reorganization or similar event, with notice
-            where reasonably possible.
+            transferred as part of a reorganization or similar event, with
+            notice where reasonably possible.
           </li>
         </ul>
         <p>
@@ -264,9 +259,10 @@ const sections: LegalSection[] = [
         <p>
           We are based in Nigeria. Service providers and visitors may be located
           in other countries. Information may be processed in jurisdictions with
-          different data-protection rules than your home country. Where required,
-          we take reasonable steps to ensure appropriate safeguards for such
-          transfers through our providers’ contractual and technical measures.
+          different data-protection rules than your home country. Where
+          required, we take reasonable steps to ensure appropriate safeguards
+          for such transfers through our providers’ contractual and technical
+          measures.
         </p>
       </>
     ),
@@ -278,7 +274,8 @@ const sections: LegalSection[] = [
       <>
         <p>
           We keep information only as long as needed for the purposes described
-          in this policy, unless a longer period is required or permitted by law.
+          in this policy, unless a longer period is required or permitted by
+          law.
         </p>
         <ul>
           <li>
@@ -311,8 +308,8 @@ const sections: LegalSection[] = [
           We use reasonable technical and organizational measures to protect
           information (for example HTTPS, access controls, and httpOnly cookies
           for sensitive OAuth state). No method of transmission or storage is
-          completely secure. You use the Site at your own risk regarding residual
-          security risk.
+          completely secure. You use the Site at your own risk regarding
+          residual security risk.
         </p>
         <p>
           If you believe your interaction with the Site has been compromised,
@@ -408,8 +405,7 @@ const sections: LegalSection[] = [
           Location: Lagos, Nigeria
         </p>
         <p>
-          Related document:{" "}
-          <Link href="/terms">Terms of Service</Link>.
+          Related document: <Link href="/terms">Terms of Service</Link>.
         </p>
       </>
     ),

@@ -41,18 +41,18 @@ export default function manifest(): DaaysornManifest {
     categories: ["design", "business", "technology"],
     screenshots: [
       {
-        src: "/screenshots/home-wide.png",
+        src: "/screenshots/playstore-wide-a.png",
         sizes: "1280x720",
         type: "image/png",
         form_factor: "wide",
-        label: "daaysorn home on desktop",
+        label: "daaysorn preview (wide)",
       },
       {
-        src: "/screenshots/home-narrow.png",
+        src: "/screenshots/playstore-narrow-a.png",
         sizes: "390x844",
         type: "image/png",
         form_factor: "narrow",
-        label: "daaysorn home on mobile",
+        label: "daaysorn preview (narrow)",
       },
     ],
     icons: [

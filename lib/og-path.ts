@@ -43,7 +43,5 @@ export function formatOgSitePath(path: string) {
  */
 export function localOpenGraphImageSrc(href: string) {
   const pathname = normalizeAppPath(href)
-  return pathname === "/"
-    ? "/opengraph-image"
-    : `${pathname}/opengraph-image`
+  return pathname === "/" ? "/opengraph-image" : `${pathname}/opengraph-image`
 }

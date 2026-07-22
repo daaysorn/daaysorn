@@ -16,9 +16,6 @@ type InstallWindow = Window & {
   __daaysornInstallPrompt?: InstallPromptEvent | null
 }
 
-const dismissalKey = "daaysorn-install-prompt-dismissed"
-const dismissalTtl = 7 * 24 * 60 * 60 * 1000
-
 function isInstalled() {
   const standaloneNavigator = navigator as Navigator & {
     standalone?: boolean
@@ -27,11 +24,6 @@ function isInstalled() {
     window.matchMedia("(display-mode: standalone)").matches ||
     standaloneNavigator.standalone === true
   )
-}
-
-function recentlyDismissed() {
-  const dismissedAt = Number(window.localStorage.getItem(dismissalKey) ?? 0)
-  return dismissedAt > 0 && Date.now() - dismissedAt < dismissalTtl
 }
 
 function isIosBrowser() {
@@ -50,14 +42,14 @@ export function PWAInstallPrompt() {
   const [showIosSteps, setShowIosSteps] = useState(false)
 
   const readInstallPrompt = useCallback(() => {
-    if (isInstalled() || recentlyDismissed()) return
+    if (isInstalled()) return
     const prompt = (window as InstallWindow).__daaysornInstallPrompt
     if (prompt) setInstallPrompt(prompt)
   }, [])
 
   useEffect(() => {
     queueMicrotask(readInstallPrompt)
-    if (!isInstalled() && !recentlyDismissed() && isIosBrowser()) {
+    if (!isInstalled() && isIosBrowser()) {
       queueMicrotask(() => setShowIosInstall(true))
     }
 
@@ -85,7 +77,6 @@ export function PWAInstallPrompt() {
       action: "dismiss",
       platform: showIosInstall ? "ios" : "other",
     })
-    window.localStorage.setItem(dismissalKey, String(Date.now()))
     setInstallPrompt(null)
     setShowIosInstall(false)
   }
@@ -100,11 +91,6 @@ export function PWAInstallPrompt() {
         action: choice.outcome,
         platform: "chromium",
       })
-      if (choice.outcome === "dismissed") {
-        window.localStorage.setItem(dismissalKey, String(Date.now()))
-      } else {
-        window.localStorage.removeItem(dismissalKey)
-      }
     } finally {
       ;(window as InstallWindow).__daaysornInstallPrompt = null
       setInstallPrompt(null)

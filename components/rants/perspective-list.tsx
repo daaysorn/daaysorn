@@ -437,13 +437,9 @@ export function PerspectiveList({
   return (
     <TooltipProvider delayDuration={150} skipDelayDuration={100}>
       <div className="mt-5 min-w-0 divide-y divide-border">
-        {roots.length ? (
-          roots.map((perspective) => renderPerspective(perspective))
-        ) : (
-          <p className="py-3 text-sm text-muted-foreground">
-            No Perspectives yet. You can be the first.
-          </p>
-        )}
+        {roots.length
+          ? roots.map((perspective) => renderPerspective(perspective))
+          : null}
         {error ? (
           <p className="py-3 text-sm text-destructive" role="status">
             {error}

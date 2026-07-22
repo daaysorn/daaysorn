@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import type { IconType } from "react-icons"
 import { FaEnvelope, FaGithub } from "react-icons/fa6"
 import { RiInstagramFill, RiTwitterXLine } from "react-icons/ri"
@@ -40,11 +43,18 @@ const socialLinks: {
 ]
 
 const Footer = () => {
+  const pathname = usePathname()
   const currentYear = new Date().getFullYear()
   const appName = process.env.NEXT_PUBLIC_APP_NAME
+  const isRantsRoute = pathname === "/rants" || pathname.startsWith("/rants/")
 
   return (
-    <footer className="flex w-full flex-col gap-3 py-4 text-center font-medium md:fixed md:inset-x-0 md:-bottom-2 md:isolate md:z-40 md:h-24 md:flex-row md:items-center md:justify-center md:gap-2 md:py-0 md:text-center md:before:pointer-events-none md:before:absolute md:before:inset-x-0 md:before:bottom-0 md:before:z-0 md:before:h-32 md:before:bg-linear-to-b md:before:from-transparent md:before:via-background md:before:to-background md:before:content-[''] md:after:pointer-events-none md:after:absolute md:after:inset-x-0 md:after:bottom-0 md:after:z-0 md:after:h-12 md:after:bg-background md:after:content-['']">
+    <footer
+      className={[
+        isRantsRoute ? "hidden md:flex" : "flex",
+        "w-full flex-col gap-3 py-4 text-center font-medium md:fixed md:inset-x-0 md:-bottom-2 md:isolate md:z-40 md:h-24 md:flex-row md:items-center md:justify-center md:gap-2 md:py-0 md:text-center md:before:pointer-events-none md:before:absolute md:before:inset-x-0 md:before:bottom-0 md:before:z-0 md:before:h-32 md:before:bg-linear-to-b md:before:from-transparent md:before:via-background md:before:to-background md:before:content-[''] md:after:pointer-events-none md:after:absolute md:after:inset-x-0 md:after:bottom-0 md:after:z-0 md:after:h-12 md:after:bg-background md:after:content-['']",
+      ].join(" ")}
+    >
       {/** mobile: clock & copyright are separate ordered rows; md: paired inline */}
       <div className="contents md:order-1 md:flex md:items-center md:justify-center md:gap-x-2">
         <div className="order-1 flex justify-center text-sm text-muted-foreground md:relative md:z-10 md:scale-90">

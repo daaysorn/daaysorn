@@ -4,10 +4,7 @@ import {
   LegalDocument,
   type LegalSection,
 } from "@/components/legal/legal-document"
-import {
-  LEGAL_EFFECTIVE_DATE,
-  LEGAL_LAST_UPDATED,
-} from "@/lib/legal/dates"
+import { LEGAL_EFFECTIVE_DATE, LEGAL_LAST_UPDATED } from "@/lib/legal/dates"
 import { siteConfig } from "@/lib/seo"
 
 const sections: LegalSection[] = [
@@ -129,11 +126,11 @@ const sections: LegalSection[] = [
         <p>
           If you submit content to the Site (“User Content”)—including Rant
           perspectives, replies, display names, or other contributions—you
-          retain ownership of your User Content, but you grant{" "}
-          {siteConfig.name} a worldwide, non-exclusive, royalty-free, transferable
-          license to host, store, reproduce, publish, display, distribute, and
-          otherwise use that User Content in connection with operating,
-          promoting, and improving the Site and related works.
+          retain ownership of your User Content, but you grant {siteConfig.name}{" "}
+          a worldwide, non-exclusive, royalty-free, transferable license to
+          host, store, reproduce, publish, display, distribute, and otherwise
+          use that User Content in connection with operating, promoting, and
+          improving the Site and related works.
         </p>
         <p>You represent and warrant that:</p>
         <ul>
@@ -165,8 +162,8 @@ const sections: LegalSection[] = [
         <p>
           The Site—including text, design, branding, logos, photographs, code,
           layout, and other materials we create or license (excluding User
-          Content and third-party marks)—is owned by {siteConfig.creator.name}{" "}
-          / {siteConfig.name} or our licensors and is protected by intellectual
+          Content and third-party marks)—is owned by {siteConfig.creator.name} /{" "}
+          {siteConfig.name} or our licensors and is protected by intellectual
           property laws.
         </p>
         <p>
@@ -179,9 +176,9 @@ const sections: LegalSection[] = [
           licenses).
         </p>
         <p>
-          “{siteConfig.name}” and related brand elements must be written and used
-          as described on the Site. Do not suggest endorsement or affiliation
-          without permission.
+          “{siteConfig.name}” and related brand elements must be written and
+          used as described on the Site. Do not suggest endorsement or
+          affiliation without permission.
         </p>
       </>
     ),
@@ -258,9 +255,9 @@ const sections: LegalSection[] = [
         <p>
           You agree to defend, indemnify, and hold harmless{" "}
           {siteConfig.creator.name} and {siteConfig.name} from and against any
-          claims, damages, losses, and expenses (including reasonable legal fees)
-          arising out of or related to your User Content, your use of the Site,
-          or your violation of these Terms or applicable law.
+          claims, damages, losses, and expenses (including reasonable legal
+          fees) arising out of or related to your User Content, your use of the
+          Site, or your violation of these Terms or applicable law.
         </p>
       </>
     ),
@@ -313,8 +310,8 @@ const sections: LegalSection[] = [
           </a>{" "}
           and attempt to resolve the issue informally in good faith. If a
           dispute remains unresolved, courts located in Lagos, Nigeria will have
-          exclusive jurisdiction, except where applicable law gives you the right
-          to bring claims in your local courts.
+          exclusive jurisdiction, except where applicable law gives you the
+          right to bring claims in your local courts.
         </p>
       </>
     ),
@@ -327,12 +324,12 @@ const sections: LegalSection[] = [
         <p>
           These Terms, together with the{" "}
           <Link href="/privacy">Privacy Policy</Link>, are the entire agreement
-          between you and us regarding the Site and supersede prior agreements on
-          that subject. If any provision is found unenforceable, the remaining
-          provisions remain in effect. Our failure to enforce a provision is not
-          a waiver. You may not assign these Terms without our consent; we may
-          assign them in connection with a transfer of the Site. Headings are for
-          convenience only.
+          between you and us regarding the Site and supersede prior agreements
+          on that subject. If any provision is found unenforceable, the
+          remaining provisions remain in effect. Our failure to enforce a
+          provision is not a waiver. You may not assign these Terms without our
+          consent; we may assign them in connection with a transfer of the Site.
+          Headings are for convenience only.
         </p>
       </>
     ),

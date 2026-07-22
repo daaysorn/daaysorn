@@ -114,8 +114,7 @@ export function LegalDocument({
           .
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
-          Also see the{" "}
-          <Link href={relatedHref}>{relatedLabel}</Link>.
+          Also see the <Link href={relatedHref}>{relatedLabel}</Link>.
         </p>
       </footer>
     </article>

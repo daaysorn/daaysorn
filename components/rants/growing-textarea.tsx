@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 
 type GrowingTextareaProps = Omit<
   TextareaHTMLAttributes<HTMLTextAreaElement>,
-  "onChange" | "value" | "rows" | "placeholder"
+  "onChange" | "value" | "rows"
 > & {
   value: string
   onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void
@@ -29,12 +29,21 @@ export function GrowingTextarea({
 }: GrowingTextareaProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const [isMac, setIsMac] = useState(false)
+  const [maxHeight, setMaxHeight] = useState(160)
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       setIsMac(/Mac|iPhone|iPad|iPod/i.test(navigator.platform))
     })
     return () => window.cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    const update = () => setMaxHeight(media.matches ? 240 : 160)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
   }, [])
 
   useEffect(() => {
@@ -45,8 +54,8 @@ export function GrowingTextarea({
       return
     }
     textarea.style.height = "auto"
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`
-  }, [value])
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`
+  }, [maxHeight, value])
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     props.onKeyDown?.(event)
@@ -58,7 +67,6 @@ export function GrowingTextarea({
   }
 
   const shortcut = isMac ? "⌘ + Enter" : "Ctrl + Enter"
-  const guidance = `${shortcut} to send · Shift + Enter for a new line`
 
   return (
     <textarea
@@ -68,8 +76,8 @@ export function GrowingTextarea({
       value={value}
       onChange={onChange}
       onKeyDown={handleKeyDown}
-      placeholder={guidance}
-      className={cn("max-h-40 min-h-12 resize-none overflow-y-auto", className)}
+      aria-keyshortcuts={`${shortcut}, Shift+Enter`}
+      className={cn("min-h-12 resize-none overflow-y-hidden", className)}
     />
   )
 }

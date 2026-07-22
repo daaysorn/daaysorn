@@ -257,10 +257,7 @@ export function PerspectiveForm({
               aria-label="Name, optional"
               className="h-8 max-w-56 bg-transparent"
             />
-            <p className="text-xs text-muted-foreground">
-              Leave this blank for a private name that stays with your synced
-              identity.
-            </p>
+            <p className="text-xs text-muted-foreground">Anon if blank.</p>
           </div>
         )}
       </div>
@@ -277,7 +274,8 @@ export function PerspectiveForm({
           value={body}
           onChange={(event) => setBody(event.target.value)}
           onSubmitShortcut={() => formRef.current?.requestSubmit()}
-          className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-14 pb-12 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+          placeholder="No perspectives yet, you can be the first."
+          className="w-full min-w-0 rounded-xl border border-input bg-muted/40 px-3 pt-3 pr-14 pb-14 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
         />
         <Button
           type="submit"
@@ -285,7 +283,7 @@ export function PerspectiveForm({
           disabled={!canContinue}
           aria-label={status === "sending" ? "Posting reply" : "Send reply"}
           title={status === "sending" ? "Posting…" : "Send reply"}
-          className="absolute right-3 bottom-3 rounded-full"
+          className="absolute right-3 bottom-4 rounded-full"
         >
           {status === "sending" ? (
             <PiSpinnerGapBold className="animate-spin" aria-hidden="true" />
