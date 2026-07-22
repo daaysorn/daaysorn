@@ -1,12 +1,8 @@
 import { createHash } from "node:crypto"
 import { extname } from "node:path"
-import {
-  DeleteObjectsCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3"
 import sharp from "sharp"
 
+import { r2Files, r2PublicBaseUrl } from "@/lib/files"
 import { galleryMediaExists, saveGalleryMedia } from "@/lib/gallery/db"
 import type {
   GalleryMediaDraft,
@@ -14,66 +10,32 @@ import type {
 } from "@/lib/gallery/types"
 
 const maxTelegramDownloadBytes = 20 * 1024 * 1024
-let cachedGalleryConfig: ReturnType<typeof createGalleryConfig> | undefined
+let cachedTelegramToken: string | null | undefined
 
-function createGalleryConfig() {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim()
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim()
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim()
-  const bucket = process.env.R2_BUCKET_NAME?.trim()
-  const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL?.trim().replace(
-    /\/$/,
-    ""
-  )
+function telegramToken() {
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN?.trim()
-
-  if (
-    !accountId ||
-    !accessKeyId ||
-    !secretAccessKey ||
-    !bucket ||
-    !publicBaseUrl ||
-    !telegramToken
-  ) {
-    throw new Error("Gallery storage environment variables are incomplete")
-  }
-
-  return {
-    bucket,
-    publicBaseUrl,
-    telegramToken,
-    client: new S3Client({
-      region: "auto",
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: { accessKeyId, secretAccessKey },
-    }),
-  }
-}
-
-function galleryConfig() {
-  cachedGalleryConfig ??= createGalleryConfig()
-  return cachedGalleryConfig
+  if (!telegramToken) return null
+  return telegramToken
 }
 
 export async function deleteGalleryObjects(objectKeys: string[]) {
   if (!objectKeys.length) return
 
-  const { bucket, client } = galleryConfig()
-  await client.send(
-    new DeleteObjectsCommand({
-      Bucket: bucket,
-      Delete: {
-        Objects: objectKeys.map((Key) => ({ Key })),
-        Quiet: true,
-      },
-    })
-  )
+  const files = r2Files()
+  if (!files)
+    throw new Error("Gallery storage environment variables are incomplete")
+  await files.delete(objectKeys)
 }
 
 async function downloadTelegramFile(fileId: string) {
-  const { telegramToken } = galleryConfig()
+  if (cachedTelegramToken === undefined) cachedTelegramToken = telegramToken()
+  if (!cachedTelegramToken) {
+    throw new Error("Gallery storage environment variables are incomplete")
+  }
+
+  const token = cachedTelegramToken
   const fileResponse = await fetch(
-    `https://api.telegram.org/bot${telegramToken}/getFile?file_id=${encodeURIComponent(fileId)}`
+    `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
   )
   const fileResult = (await fileResponse.json()) as {
     ok: boolean
@@ -88,7 +50,7 @@ async function downloadTelegramFile(fileId: string) {
   }
 
   const response = await fetch(
-    `https://api.telegram.org/file/bot${telegramToken}/${fileResult.result.file_path}`
+    `https://api.telegram.org/file/bot${token}/${fileResult.result.file_path}`
   )
   if (!response.ok) throw new Error("Telegram media download failed")
   const contentLength = Number(response.headers.get("content-length") ?? 0)
@@ -105,16 +67,17 @@ async function downloadTelegramFile(fileId: string) {
 }
 
 async function uploadObject(key: string, body: Buffer, contentType: string) {
-  const { bucket, client, publicBaseUrl } = galleryConfig()
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-      CacheControl: "public, max-age=31536000, immutable",
-    })
-  )
+  const files = r2Files()
+  const publicBaseUrl = r2PublicBaseUrl()
+  if (!files || !publicBaseUrl) {
+    throw new Error("Gallery storage environment variables are incomplete")
+  }
+
+  await files.upload(key, body, {
+    contentType,
+    cacheControl: "public, max-age=31536000, immutable",
+  })
+
   return `${publicBaseUrl}/${key}`
 }
 
